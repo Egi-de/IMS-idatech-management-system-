@@ -12,7 +12,7 @@ import {
   AcademicCapIcon,
 } from "@heroicons/react/24/outline";
 
-const Sidebar = ({ isOpen, onToggle }) => {
+const Sidebar = () => {
   const location = useLocation();
   const [openSubmenus, setOpenSubmenus] = useState({});
 
@@ -77,93 +77,76 @@ const Sidebar = ({ isOpen, onToggle }) => {
   };
 
   return (
-    <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={onToggle}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed left-0 top-0 z-50 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 lg:static lg:z-0
-        `}
-      >
-        <div className="flex flex-col h-full">
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {navigation.map((item) => (
-              <div key={item.name}>
-                {item.submenu ? (
-                  <div>
-                    <button
-                      onClick={() => toggleSubmenu(item.name)}
-                      className={`
-                        w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
-                        ${
-                          isActive(item.href)
-                            ? "bg-blue-100 text-blue-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }
-                      `}
-                    >
-                      <item.icon className="h-5 w-5 mr-3" />
-                      <span className="flex-1 text-left">{item.name}</span>
-                      {openSubmenus[item.name] ? (
-                        <ChevronDownIcon className="h-4 w-4" />
-                      ) : (
-                        <ChevronRightIcon className="h-4 w-4" />
-                      )}
-                    </button>
-
-                    {openSubmenus[item.name] && (
-                      <div className="mt-2 ml-8 space-y-1">
-                        {item.items.map((subItem) => (
-                          <Link
-                            key={subItem.name}
-                            to={subItem.href}
-                            className={`
-                              block px-3 py-2 text-sm rounded-lg transition-colors duration-200
-                              ${
-                                location.pathname === subItem.href
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "text-gray-600 hover:bg-gray-100"
-                              }
-                            `}
-                          >
-                            {subItem.name}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link
-                    to={item.href}
+    <aside className="h-full w-50 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/20">
+      <div className="flex flex-col h-full">
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-hidden">
+          {navigation.map((item) => (
+            <div key={item.name}>
+              {item.submenu ? (
+                <div>
+                  <button
+                    onClick={() => toggleSubmenu(item.name)}
                     className={`
-                      flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
+                      w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
                       ${
-                        item.current
-                          ? "bg-blue-100 text-blue-700"
-                          : "text-gray-700 hover:bg-gray-100"
+                        isActive(item.href)
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                       }
                     `}
                   >
                     <item.icon className="h-5 w-5 mr-3" />
-                    {item.name}
-                  </Link>
-                )}
-              </div>
-            ))}
-          </nav>
-        </div>
-      </aside>
-    </>
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {openSubmenus[item.name] ? (
+                      <ChevronDownIcon className="h-4 w-4" />
+                    ) : (
+                      <ChevronRightIcon className="h-4 w-4" />
+                    )}
+                  </button>
+
+                  {openSubmenus[item.name] && (
+                    <div className="mt-2 ml-8 space-y-1">
+                      {item.items.map((subItem) => (
+                        <Link
+                          key={subItem.name}
+                          to={subItem.href}
+                          className={`
+                            block px-3 py-2 text-sm rounded-lg transition-colors duration-200
+                            ${
+                              location.pathname === subItem.href
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            }
+                          `}
+                        >
+                          {subItem.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to={item.href}
+                  className={`
+                    flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
+                    ${
+                      item.current
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }
+                  `}
+                >
+                  <item.icon className="h-5 w-5 mr-3" />
+                  {item.name}
+                </Link>
+              )}
+            </div>
+          ))}
+        </nav>
+      </div>
+    </aside>
   );
 };
 

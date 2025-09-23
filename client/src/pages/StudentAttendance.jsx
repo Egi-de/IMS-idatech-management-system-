@@ -1,0 +1,511 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
+import Button from "../components/Button";
+import Modal from "../components/Modal";
+import Input from "../components/Input";
+import {
+  CalendarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationCircleIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  EyeIcon,
+  PencilIcon,
+  UserIcon,
+  ChartBarIcon,
+} from "@heroicons/react/24/outline";
+
+const StudentAttendance = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
+  // Enhanced mock attendance data
+  const [attendanceData] = useState([
+    {
+      id: 1,
+      studentName: "John Doe",
+      studentId: "STU001",
+      email: "john.doe@email.com",
+      program: "IoT Development",
+      overallAttendance: 95,
+      presentDays: 152,
+      absentDays: 8,
+      lateDays: 3,
+      excusedAbsences: 2,
+      currentStreak: 12,
+      lastAttendance: "2024-01-15",
+      status: "Excellent",
+      monthlyData: {
+        "2024-01": { present: 22, absent: 1, late: 0 },
+        "2024-02": { present: 20, absent: 2, late: 1 },
+        "2024-03": { present: 21, absent: 1, late: 1 },
+      },
+    },
+    {
+      id: 2,
+      studentName: "Jane Smith",
+      studentId: "STU002",
+      email: "jane.smith@email.com",
+      program: "Software Development",
+      overallAttendance: 88,
+      presentDays: 141,
+      absentDays: 15,
+      lateDays: 4,
+      excusedAbsences: 8,
+      currentStreak: 5,
+      lastAttendance: "2024-01-14",
+      status: "Good",
+      monthlyData: {
+        "2024-01": { present: 20, absent: 2, late: 1 },
+        "2024-02": { present: 19, absent: 3, late: 1 },
+        "2024-03": { present: 18, absent: 4, late: 1 },
+      },
+    },
+    {
+      id: 3,
+      studentName: "Mike Johnson",
+      studentId: "STU003",
+      email: "mike.johnson@email.com",
+      program: "IoT Development",
+      overallAttendance: 75,
+      presentDays: 120,
+      absentDays: 32,
+      lateDays: 8,
+      excusedAbsences: 12,
+      currentStreak: 0,
+      lastAttendance: "2024-01-10",
+      status: "Needs Improvement",
+      monthlyData: {
+        "2024-01": { present: 15, absent: 6, late: 2 },
+        "2024-02": { present: 14, absent: 7, late: 2 },
+        "2024-03": { present: 16, absent: 5, late: 2 },
+      },
+    },
+  ]);
+
+  const handleViewDetails = (student) => {
+    setSelectedStudent(student);
+    setShowModal(true);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Excellent":
+        return "text-green-600 bg-green-100";
+      case "Good":
+        return "text-blue-600 bg-blue-100";
+      case "Average":
+        return "text-yellow-600 bg-yellow-100";
+      case "Needs Improvement":
+        return "text-red-600 bg-red-100";
+      default:
+        return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const getAttendanceColor = (percentage) => {
+    if (percentage >= 90) return "text-green-600";
+    if (percentage >= 80) return "text-blue-600";
+    if (percentage >= 70) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Attendance & Participation
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Track student attendance and participation records
+          </p>
+        </div>
+        <Button>
+          <CalendarIcon className="h-4 w-4 mr-2" />
+          Mark Attendance
+        </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600">
+                {Math.round(
+                  attendanceData.reduce(
+                    (acc, student) => acc + student.overallAttendance,
+                    0
+                  ) / attendanceData.length
+                )}
+                %
+              </div>
+              <div className="text-sm text-gray-600">Average Attendance</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600">
+                {attendanceData.reduce(
+                  (acc, student) => acc + student.presentDays,
+                  0
+                )}
+              </div>
+              <div className="text-sm text-gray-600">Total Present Days</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-red-600">
+                {attendanceData.reduce(
+                  (acc, student) => acc + student.absentDays,
+                  0
+                )}
+              </div>
+              <div className="text-sm text-gray-600">Total Absent Days</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-yellow-600">
+                {attendanceData.reduce(
+                  (acc, student) => acc + student.lateDays,
+                  0
+                )}
+              </div>
+              <div className="text-sm text-gray-600">Total Late Days</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1 min-w-64">
+          <div className="relative">
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <Input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="w-auto"
+        />
+
+        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">All Programs</option>
+          <option value="iot">IoT Development</option>
+          <option value="software">Software Development</option>
+          <option value="data">Data Science</option>
+        </select>
+
+        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">All Status</option>
+          <option value="excellent">Excellent</option>
+          <option value="good">Good</option>
+          <option value="average">Average</option>
+          <option value="needs-improvement">Needs Improvement</option>
+        </select>
+      </div>
+
+      {/* Attendance List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Student Attendance Records</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {attendanceData.map((student) => (
+              <div
+                key={student.id}
+                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <UserIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {student.studentName}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {student.studentId} • {student.program}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Last attendance:{" "}
+                      {new Date(student.lastAttendance).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-6">
+                  <div className="text-center">
+                    <div
+                      className={`text-2xl font-bold ${getAttendanceColor(
+                        student.overallAttendance
+                      )}`}
+                    >
+                      {student.overallAttendance}%
+                    </div>
+                    <div className="text-xs text-gray-600">Overall</div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-green-600">
+                      {student.presentDays}
+                    </div>
+                    <div className="text-xs text-gray-600">Present</div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-red-600">
+                      {student.absentDays}
+                    </div>
+                    <div className="text-xs text-gray-600">Absent</div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-yellow-600">
+                      {student.lateDays}
+                    </div>
+                    <div className="text-xs text-gray-600">Late</div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-purple-600">
+                      {student.currentStreak}
+                    </div>
+                    <div className="text-xs text-gray-600">Streak</div>
+                  </div>
+
+                  <div className="text-center">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                        student.status
+                      )}`}
+                    >
+                      {student.status}
+                    </span>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => handleViewDetails(student)}
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attendance Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Attendance Details"
+        size="large"
+      >
+        {selectedStudent && (
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <UserIcon className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold">
+                  {selectedStudent.studentName}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {selectedStudent.email}
+                </p>
+                <p className="text-sm text-gray-500">
+                  ID: {selectedStudent.studentId}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Attendance Summary
+                  </label>
+                  <div className="mt-2 grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {selectedStudent.presentDays}
+                      </div>
+                      <div className="text-sm text-green-600">Present Days</div>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">
+                        {selectedStudent.absentDays}
+                      </div>
+                      <div className="text-sm text-red-600">Absent Days</div>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {selectedStudent.lateDays}
+                      </div>
+                      <div className="text-sm text-yellow-600">Late Days</div>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {selectedStudent.excusedAbsences}
+                      </div>
+                      <div className="text-sm text-blue-600">
+                        Excused Absences
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Current Status
+                  </label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Overall Attendance:</span>
+                      <span
+                        className={`text-sm font-medium ${getAttendanceColor(
+                          selectedStudent.overallAttendance
+                        )}`}
+                      >
+                        {selectedStudent.overallAttendance}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Current Streak:</span>
+                      <span className="text-sm font-medium">
+                        {selectedStudent.currentStreak} days
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Status:</span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          selectedStudent.status
+                        )}`}
+                      >
+                        {selectedStudent.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Monthly Breakdown
+                  </label>
+                  <div className="mt-2 space-y-3">
+                    {Object.entries(selectedStudent.monthlyData).map(
+                      ([month, data]) => (
+                        <div key={month} className="bg-gray-50 p-3 rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium">
+                              {new Date(month + "-01").toLocaleDateString(
+                                "en-US",
+                                { month: "long", year: "numeric" }
+                              )}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {data.present + data.absent + data.late} days
+                            </span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <div className="flex-1 bg-green-200 h-2 rounded">
+                              <div
+                                className="bg-green-500 h-2 rounded"
+                                style={{
+                                  width: `${
+                                    (data.present /
+                                      (data.present +
+                                        data.absent +
+                                        data.late)) *
+                                    100
+                                  }%`,
+                                }}
+                              ></div>
+                            </div>
+                            <div className="flex-1 bg-red-200 h-2 rounded">
+                              <div
+                                className="bg-red-500 h-2 rounded"
+                                style={{
+                                  width: `${
+                                    (data.absent /
+                                      (data.present +
+                                        data.absent +
+                                        data.late)) *
+                                    100
+                                  }%`,
+                                }}
+                              ></div>
+                            </div>
+                            <div className="flex-1 bg-yellow-200 h-2 rounded">
+                              <div
+                                className="bg-yellow-500 h-2 rounded"
+                                style={{
+                                  width: `${
+                                    (data.late /
+                                      (data.present +
+                                        data.absent +
+                                        data.late)) *
+                                    100
+                                  }%`,
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600 mt-1">
+                            <span>P: {data.present}</span>
+                            <span>A: {data.absent}</span>
+                            <span>L: {data.late}</span>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default StudentAttendance;

@@ -18,16 +18,16 @@ const Input = forwardRef(
     ref
   ) => {
     const baseClasses =
-      "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed";
+      "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-800 text-gray-900 dark:text-white";
 
     const inputClasses = error
-      ? `${baseClasses} border-red-300 focus:ring-red-500`
-      : `${baseClasses} border-gray-300 hover:border-gray-400`;
+      ? `${baseClasses} border-red-300 dark:border-red-600 focus:ring-red-500`
+      : `${baseClasses} border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500`;
 
     return (
       <div className="mb-4">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -36,7 +36,7 @@ const Input = forwardRef(
         <div className="relative">
           {Icon && (
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Icon className="h-5 w-5 text-gray-400" />
+              <Icon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
           )}
 

@@ -9,7 +9,7 @@ const Card = ({
   onClick,
   ...props
 }) => {
-  const baseClasses = `bg-white rounded-lg transition-all duration-200 ${padding} ${shadow}`;
+  const baseClasses = `bg-white dark:bg-gray-800 rounded-lg transition-all duration-200 ${padding} ${shadow}`;
 
   const hoverClasses = hover
     ? "hover:shadow-lg hover:-translate-y-1 cursor-pointer"
@@ -29,7 +29,9 @@ const CardHeader = ({ children, className = "" }) => (
 );
 
 const CardTitle = ({ children, className = "" }) => (
-  <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
+  <h3
+    className={`text-lg font-semibold text-gray-900 dark:text-white ${className}`}
+  >
     {children}
   </h3>
 );
@@ -39,7 +41,9 @@ const CardContent = ({ children, className = "" }) => (
 );
 
 const CardFooter = ({ children, className = "" }) => (
-  <div className={`mt-4 pt-4 border-t border-gray-200 ${className}`}>
+  <div
+    className={`mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 ${className}`}
+  >
     {children}
   </div>
 );

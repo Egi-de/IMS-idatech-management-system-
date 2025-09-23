@@ -31,14 +31,7 @@ const Dashboard = () => {
 
   // Mock data - in real app, this would come from API
   useEffect(() => {
-    setStats({
-      totalStudents: 1250,
-      totalEmployees: 45,
-      iotStudents: 680,
-      sodStudents: 570,
-    });
-
-    setRecentActivities([
+    const activities = [
       {
         id: 1,
         action: "New student enrolled in IoT program",
@@ -74,9 +67,17 @@ const Dashboard = () => {
         timestamp: "2024-01-15 10:45:00",
         icon: "fas fa-chart-bar text-purple-600",
       },
-    ]);
+    ];
 
-    setFilteredActivities(recentActivities);
+    setStats({
+      totalStudents: 1250,
+      totalEmployees: 45,
+      iotStudents: 680,
+      sodStudents: 570,
+    });
+
+    setRecentActivities(activities);
+    setFilteredActivities(activities);
   }, []);
 
   // Filter and sort activities
@@ -171,7 +172,9 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Dashboard Overview
+        </h1>
         <div className="flex space-x-3">
           <Button variant="outline" size="small">
             <ArrowUpIcon className="h-4 w-4 mr-2" />
@@ -194,7 +197,7 @@ const Dashboard = () => {
                   <stat.icon className={`h-6 w-6 ${stat.textColor}`} />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {stat.title}
                   </h3>
                   <p className={`text-2xl font-bold ${stat.textColor}`}>
@@ -269,15 +272,15 @@ const Dashboard = () => {
               filteredActivities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                 >
                   <div className="flex items-center space-x-3">
                     <i className={activity.icon}></i>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {activity.action}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         by {activity.user} •{" "}
                         {new Date(activity.timestamp).toLocaleString()}
                       </p>
@@ -285,7 +288,7 @@ const Dashboard = () => {
                   </div>
                   <button
                     onClick={() => handleDeleteActivity(activity.id)}
-                    className="text-red-600 hover:text-red-900 p-1 rounded transition-colors"
+                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded transition-colors"
                     title="Delete activity"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -293,8 +296,8 @@ const Dashboard = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-500" />
                 <p>No activities found matching your criteria.</p>
               </div>
             )}

@@ -60,7 +60,7 @@ const Login = () => {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gray-800">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img
@@ -68,8 +68,12 @@ const Login = () => {
               alt="IDA Tech Logo"
               className="h-16 w-auto mx-auto mb-4"
             />
-            <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
+              Welcome Back
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
+              Sign in to your account
+            </p>
           </div>
 
           {/* Google Login Button */}
@@ -104,9 +108,11 @@ const Login = () => {
 
           {/* Divider */}
           <div className="flex items-center mb-6">
-            <div className="flex-1 border-t border-gray-300"></div>
-            <span className="px-3 text-gray-500 text-sm">or</span>
-            <div className="flex-1 border-t border-gray-300"></div>
+            <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+            <span className="px-3 text-gray-500 dark:text-gray-400 text-sm">
+              or
+            </span>
+            <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
           </div>
 
           {error && (
@@ -157,11 +163,11 @@ const Login = () => {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-gray-600">
+          <p className="mt-6 text-center text-gray-600 dark:text-gray-300">
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition duration-200"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold hover:underline transition duration-200"
             >
               Sign up here
             </Link>
