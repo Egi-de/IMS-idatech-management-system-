@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "../components/Card";
 import Button from "../components/Button";
+import Input from "../components/Input";
+import Select from "../components/Select";
+import Modal from "../components/Modal";
+import Toast from "../components/Toast";
 import FinancialChart from "../components/FinancialChart";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
 
 const employees = [
   {
@@ -189,63 +196,269 @@ const transactions = [
 ];
 
 const Reports = () => {
-  const [reportData, setReportData] = useState({
-    totalStudents: 0,
-    totalEmployees: 0,
-    totalExpenses: 0,
-    iotStudents: 0,
-    sodStudents: 0,
+  // Calculate overview card data
+  const totalStudents = students.length;
+  const newStudentsThisMonth = students.filter((s) => {
+    const enrollDate = new Date(s.enrollmentDate);
+    const now = new Date();
+    return (
+      enrollDate.getFullYear() === now.getFullYear() &&
+      enrollDate.getMonth() === now.getMonth()
+    );
+  }).length;
+  const deletedInactiveStudents = students.filter(
+    (s) => s.status === "Deleted" || s.status === "Inactive"
+  ).length;
+  // Assuming payment status is tracked in students with a 'paymentStatus' field
+  // Since not present, simulate with random or default values for demo
+  const studentsPaid = students.filter(
+    (s) => s.paymentStatus === "Paid"
+  ).length;
+  const pendingPayments = students.filter(
+    (s) => s.paymentStatus === "Pending"
+  ).length;
+
+  const [formData, setFormData] = useState({
+    reportType: "students",
+    fromDate: "",
+    toDate: "",
+    exportFormat: "csv",
   });
 
-  useEffect(() => {
-    // Calculate totals from imported data
-    const totalStudents = students.length;
-    const iotStudents = students.filter(
-      (s) => s.program === "IoT Development"
-    ).length;
-    const sodStudents = students.filter(
-      (s) => s.program === "Software Development"
-    ).length;
-    const totalEmployees = employees.length;
-    const totalExpenses =
-      employees.reduce((sum, emp) => sum + emp.salary, 0) +
-      transactions
-        .filter((t) => t.type === "Expense")
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const [generatedReport, setGeneratedReport] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailData, setEmailData] = useState({
+    recipient: "",
+    subject: "",
+    message: "",
+  });
+  const [toast, setToast] = useState(null);
 
-    setReportData({
-      totalStudents,
-      totalEmployees,
-      totalExpenses,
-      iotStudents,
-      sodStudents,
-    });
-  }, []);
-
-  const handleExportPDF = () => {
-    // Simple PDF export using browser print
-    window.print();
+  const isDateInRange = (dateStr, from, to) => {
+    if (!from || !to) return false;
+    const date = new Date(dateStr);
+    const fromD = new Date(from);
+    const toD = new Date(to);
+    return date >= fromD && date <= toD;
   };
 
-  const handleExportExcel = () => {
-    // Simple CSV export
-    const csvData = [
-      ["Category", "Value"],
-      ["Total Students", reportData.totalStudents],
-      ["IoT Students", reportData.iotStudents],
-      ["SoD Students", reportData.sodStudents],
-      ["Total Employees", reportData.totalEmployees],
-      ["Total Expenses", reportData.totalExpenses],
-    ];
+  const generateReport = async () => {
+    setIsLoading(true);
+    // Simulate processing time for large reports
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const csvContent = csvData.map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "reports.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const { reportType, fromDate, toDate } = formData;
+    let data = [];
+    let dateField = "";
+    if (reportType === "students") {
+      data = students;
+      dateField = "enrollmentDate";
+    } else if (reportType === "employees") {
+      data = employees;
+      dateField = "hireDate";
+    } else if (reportType === "financial") {
+      data = transactions;
+      dateField = "date";
+    }
+
+    // Group by month
+    const monthlyData = {};
+    data.forEach((item) => {
+      const date = new Date(item[dateField]);
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+      if (!monthlyData[monthKey]) monthlyData[monthKey] = [];
+      monthlyData[monthKey].push(item);
+    });
+
+    const report = Object.keys(monthlyData)
+      .sort()
+      .map((month) => ({
+        month,
+        items: monthlyData[month],
+        count: monthlyData[month].length,
+      }));
+
+    setGeneratedReport({ type: reportType, data: report, fromDate, toDate });
+    setIsLoading(false);
+  };
+
+  const applyQuickFilter = (filterType) => {
+    const today = new Date();
+    let fromDate = "";
+    let toDate = today.toISOString().split("T")[0]; // Today's date
+
+    switch (filterType) {
+      case "thisMonth": {
+        const firstDayThisMonth = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          1
+        );
+        fromDate = firstDayThisMonth.toISOString().split("T")[0];
+        break;
+      }
+      case "last7Days": {
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        fromDate = sevenDaysAgo.toISOString().split("T")[0];
+        break;
+      }
+      case "last30Days": {
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        fromDate = thirtyDaysAgo.toISOString().split("T")[0];
+        break;
+      }
+      case "thisYear": {
+        const firstDayThisYear = new Date(today.getFullYear(), 0, 1);
+        fromDate = firstDayThisYear.toISOString().split("T")[0];
+        break;
+      }
+      default:
+        break;
+    }
+
+    setFormData({ ...formData, fromDate, toDate });
+  };
+
+  const sendEmail = () => {
+    if (!generatedReport) return;
+
+    // Simulate email sending
+    setToast({
+      message: `Report emailed successfully to ${emailData.recipient}`,
+      type: "success",
+    });
+
+    setShowEmailModal(false);
+    setEmailData({ recipient: "", subject: "", message: "" });
+  };
+
+  const exportReport = () => {
+    if (!generatedReport) return;
+    const { type, data, fromDate, toDate } = generatedReport;
+    let csvData = [];
+    if (type === "students") {
+      csvData = [
+        [
+          "Month",
+          "Enrollments",
+          "Name",
+          "Program",
+          "Status",
+          "Enrollment Date",
+          "GPA",
+        ],
+      ];
+      data.forEach((monthData) => {
+        monthData.items.forEach((student) => {
+          csvData.push([
+            monthData.month,
+            monthData.count,
+            student.name,
+            student.program,
+            student.status,
+            student.enrollmentDate,
+            student.gpa,
+          ]);
+        });
+      });
+    } else if (type === "employees") {
+      csvData = [
+        [
+          "Month",
+          "Hires",
+          "Name",
+          "Position",
+          "Department",
+          "Salary",
+          "Hire Date",
+          "Status",
+        ],
+      ];
+      data.forEach((monthData) => {
+        monthData.items.forEach((employee) => {
+          csvData.push([
+            monthData.month,
+            monthData.count,
+            employee.name,
+            employee.position,
+            employee.department,
+            employee.salary,
+            employee.hireDate,
+            employee.status,
+          ]);
+        });
+      });
+    } else if (type === "financial") {
+      csvData = [
+        [
+          "Month",
+          "Transactions",
+          "Type",
+          "Category",
+          "Description",
+          "Amount",
+          "Date",
+          "Status",
+        ],
+      ];
+      data.forEach((monthData) => {
+        monthData.items.forEach((transaction) => {
+          csvData.push([
+            monthData.month,
+            monthData.count,
+            transaction.type,
+            transaction.category,
+            transaction.description,
+            transaction.amount,
+            transaction.date,
+            transaction.status,
+          ]);
+        });
+      });
+    }
+
+    if (formData.exportFormat === "csv") {
+      const csv = Papa.unparse(csvData);
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type}_report.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (formData.exportFormat === "excel") {
+      const ws = XLSX.utils.aoa_to_sheet(csvData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Report");
+      XLSX.writeFile(wb, `${type}_report.xlsx`);
+    } else if (formData.exportFormat === "pdf") {
+      const doc = new jsPDF();
+      doc.text(
+        `${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
+        10,
+        10
+      );
+      doc.text(`From: ${fromDate} To: ${toDate}`, 10, 20);
+      let y = 30;
+      data.forEach((monthData) => {
+        doc.text(
+          `Month: ${monthData.month} - Count: ${monthData.count}`,
+          10,
+          y
+        );
+        y += 10;
+        if (y > 280) {
+          doc.addPage();
+          y = 10;
+        }
+      });
+      doc.save(`${type}_report.pdf`);
+    }
   };
 
   return (
@@ -254,98 +467,373 @@ const Reports = () => {
         Reports
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Student Overview
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Total Students: {reportData.totalStudents}
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <Card className="p-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+            🎓 Total Students
+          </h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {totalStudents}
           </p>
-          <p className="text-gray-600 dark:text-gray-400">
-            IoT Students: {reportData.iotStudents}
-          </p>
-          <p className="text-gray-600 dark:text-gray-400">
-            SoD Students: {reportData.sodStudents}
-          </p>
-          <Link to="/students">
-            <Button className="mt-4">View Students</Button>
-          </Link>
         </Card>
-
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Employee Overview
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Total Employees: {reportData.totalEmployees}
+        <Card className="p-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+            New Students (This Month)
+          </h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {newStudentsThisMonth}
           </p>
-          <Link to="/employees">
-            <Button className="mt-4">View Employees</Button>
-          </Link>
         </Card>
-
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Financial Overview
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Total Expenses: ${reportData.totalExpenses.toLocaleString()}
+        <Card className="p-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+            Deleted / Inactive
+          </h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {deletedInactiveStudents}
           </p>
-          <Link to="/financial">
-            <Button className="mt-4">View Financial</Button>
-          </Link>
         </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Detailed Reports
-          </h2>
-          <ul className="space-y-2">
-            <li>
-              <Link to="/students" className="text-blue-500 hover:underline">
-                Student Detail Reports
-              </Link>
-            </li>
-            <li>
-              <Link to="/employees" className="text-blue-500 hover:underline">
-                Employee Detail Reports
-              </Link>
-            </li>
-            <li>
-              <Link to="/financial" className="text-blue-500 hover:underline">
-                Financial Detail Reports
-              </Link>
-            </li>
-          </ul>
+        <Card className="p-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+            Students Paid
+          </h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {studentsPaid}
+          </p>
         </Card>
-
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Export Options
-          </h2>
-          <ul className="space-y-2">
-            <li>
-              <Button
-                className="text-blue-500 hover:underline"
-                onClick={handleExportPDF}
-              >
-                Export Financial Report (PDF)
-              </Button>
-            </li>
-            <li>
-              <Button
-                className="text-blue-500 hover:underline"
-                onClick={handleExportExcel}
-              >
-                Export Financial Report (Excel)
-              </Button>
-            </li>
-          </ul>
+        <Card className="p-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+            Pending Payments
+          </h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {pendingPayments}
+          </p>
         </Card>
       </div>
+
+      <Card className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          Generate Custom Report
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <Select
+            label="Report Type"
+            value={formData.reportType}
+            onChange={(e) =>
+              setFormData({ ...formData, reportType: e.target.value })
+            }
+            options={[
+              { value: "students", label: "Students" },
+              { value: "employees", label: "Employees" },
+              { value: "financial", label: "Financial" },
+            ]}
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              From Date
+            </label>
+            <Input
+              type="date"
+              value={formData.fromDate}
+              onChange={(e) =>
+                setFormData({ ...formData, fromDate: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              To Date
+            </label>
+            <Input
+              type="date"
+              value={formData.toDate}
+              onChange={(e) =>
+                setFormData({ ...formData, toDate: e.target.value })
+              }
+            />
+          </div>
+          <Select
+            label="Export Format"
+            value={formData.exportFormat}
+            onChange={(e) =>
+              setFormData({ ...formData, exportFormat: e.target.value })
+            }
+            options={[
+              { value: "csv", label: "CSV" },
+              { value: "excel", label: "Excel" },
+              { value: "pdf", label: "PDF" },
+            ]}
+          />
+        </div>
+        <div className="flex flex-col  gap-4">
+          <div className="flex  gap-4">
+            <Button onClick={generateReport} disabled={isLoading}>
+              {isLoading ? "Generating..." : "Generate Report"}
+            </Button>
+            {generatedReport && (
+              <>
+                <Button onClick={exportReport}>
+                  Export as {formData.exportFormat.toUpperCase()}
+                </Button>
+                <Button
+                  onClick={() => setShowEmailModal(true)}
+                  variant="secondary"
+                >
+                  Email Report
+                </Button>
+              </>
+            )}
+          </div>
+          <div className="flex gap-4  items-center flex-wrap">
+            <span className="text-sm text-gray-600 dark:text-gray-400 mr-2">
+              Quick Filters:
+            </span>
+            <Button
+              onClick={() => applyQuickFilter("thisMonth")}
+              variant="outline"
+              size="sm"
+              className="transition-colors duration-300 p-2 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500"
+            >
+              This Month
+            </Button>
+            <Button
+              onClick={() => applyQuickFilter("last7Days")}
+              variant="outline"
+              size="sm"
+              className="transition-colors duration-300 p-2 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500"
+            >
+              Last 7 Days
+            </Button>
+            <Button
+              onClick={() => applyQuickFilter("last30Days")}
+              variant="outline"
+              size="sm"
+              className="transition-colors duration-300 p-2 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500"
+            >
+              Last 30 Days
+            </Button>
+            <Button
+              onClick={() => applyQuickFilter("thisYear")}
+              variant="outline"
+              size="sm"
+              className="transition-colors duration-300 p-2 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500"
+            >
+              This Year
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {generatedReport && (
+        <Card className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Generated{" "}
+            {generatedReport.type.charAt(0).toUpperCase() +
+              generatedReport.type.slice(1)}{" "}
+            Report
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            From: {generatedReport.fromDate} To: {generatedReport.toDate}
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white dark:bg-gray-800">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 border">Month</th>
+                  <th className="px-4 py-2 border">Count</th>
+                  {generatedReport.type === "students" && (
+                    <>
+                      <th className="px-4 py-2 border">Name</th>
+                      <th className="px-4 py-2 border">Program</th>
+                      <th className="px-4 py-2 border">Status</th>
+                      <th className="px-4 py-2 border">Enrollment Date</th>
+                      <th className="px-4 py-2 border">GPA</th>
+                    </>
+                  )}
+                  {generatedReport.type === "employees" && (
+                    <>
+                      <th className="px-4 py-2 border">Name</th>
+                      <th className="px-4 py-2 border">Position</th>
+                      <th className="px-4 py-2 border">Department</th>
+                      <th className="px-4 py-2 border">Salary</th>
+                      <th className="px-4 py-2 border">Hire Date</th>
+                      <th className="px-4 py-2 border">Status</th>
+                    </>
+                  )}
+                  {generatedReport.type === "financial" && (
+                    <>
+                      <th className="px-4 py-2 border">Type</th>
+                      <th className="px-4 py-2 border">Category</th>
+                      <th className="px-4 py-2 border">Description</th>
+                      <th className="px-4 py-2 border">Amount</th>
+                      <th className="px-4 py-2 border">Date</th>
+                      <th className="px-4 py-2 border">Status</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {generatedReport.data.map((monthData, index) => (
+                  <React.Fragment key={index}>
+                    {monthData.items.map((item, idx) => {
+                      const isHighlighted = isDateInRange(
+                        generatedReport.type === "students"
+                          ? item.enrollmentDate
+                          : generatedReport.type === "employees"
+                          ? item.hireDate
+                          : item.date,
+                        generatedReport.fromDate,
+                        generatedReport.toDate
+                      );
+                      return (
+                        <tr
+                          key={idx}
+                          className={
+                            isHighlighted
+                              ? "bg-yellow-200 dark:bg-yellow-800"
+                              : ""
+                          }
+                        >
+                          {idx === 0 && (
+                            <td
+                              className="px-4 py-2 border"
+                              rowSpan={monthData.items.length}
+                            >
+                              {monthData.month}
+                            </td>
+                          )}
+                          {idx === 0 && (
+                            <td
+                              className="px-4 py-2 border"
+                              rowSpan={monthData.items.length}
+                            >
+                              {monthData.count}
+                            </td>
+                          )}
+                          {generatedReport.type === "students" && (
+                            <>
+                              <td className="px-4 py-2 border">{item.name}</td>
+                              <td className="px-4 py-2 border">
+                                {item.program}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {item.status}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {item.enrollmentDate}
+                              </td>
+                              <td className="px-4 py-2 border">{item.gpa}</td>
+                            </>
+                          )}
+                          {generatedReport.type === "employees" && (
+                            <>
+                              <td className="px-4 py-2 border">{item.name}</td>
+                              <td className="px-4 py-2 border">
+                                {item.position}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {item.department}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                ${item.salary}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {item.hireDate}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {item.status}
+                              </td>
+                            </>
+                          )}
+                          {generatedReport.type === "financial" && (
+                            <>
+                              <td className="px-4 py-2 border">{item.type}</td>
+                              <td className="px-4 py-2 border">
+                                {item.category}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                {item.description}
+                              </td>
+                              <td className="px-4 py-2 border">
+                                ${item.amount}
+                              </td>
+                              <td className="px-4 py-2 border">{item.date}</td>
+                              <td className="px-4 py-2 border">
+                                {item.status}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Email Modal */}
+      <Modal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        title="Email Report"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Recipient Email"
+            type="email"
+            value={emailData.recipient}
+            onChange={(e) =>
+              setEmailData({ ...emailData, recipient: e.target.value })
+            }
+            placeholder="Enter recipient email"
+          />
+          <Input
+            label="Subject"
+            value={emailData.subject}
+            onChange={(e) =>
+              setEmailData({ ...emailData, subject: e.target.value })
+            }
+            placeholder="Enter email subject"
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Message
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              rows={4}
+              value={emailData.message}
+              onChange={(e) =>
+                setEmailData({ ...emailData, message: e.target.value })
+              }
+              placeholder="Enter your message"
+            />
+          </div>
+          <div className="flex justify-end gap-4">
+            <Button
+              onClick={() => setShowEmailModal(false)}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button onClick={sendEmail}>Send Email</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Removed these cards as per user request */}
 
       {/* Removed Overview Chart as per user request */}
     </div>
