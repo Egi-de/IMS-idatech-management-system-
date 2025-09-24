@@ -20,7 +20,11 @@ import {
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 
+import { useTrashBin } from "../contexts/TrashBinContext";
+
 const Employees = () => {
+  const { addToTrash } = useTrashBin();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -153,8 +157,15 @@ const Employees = () => {
   };
 
   const handleDeleteEmployee = (employeeId) => {
-    // Implement delete functionality
-    console.log("Delete employee:", employeeId);
+    const employeeToDelete = employees.find((emp) => emp.id === employeeId);
+    if (employeeToDelete) {
+      addToTrash({
+        name: `Deleted Employee: ${employeeToDelete.name}`,
+        details: `Position: ${employeeToDelete.position}, Department: ${employeeToDelete.department}`,
+      });
+      // Implement actual deletion logic here (e.g., API call)
+      console.log("Delete employee:", employeeId);
+    }
   };
 
   const handleInputChange = (e) => {

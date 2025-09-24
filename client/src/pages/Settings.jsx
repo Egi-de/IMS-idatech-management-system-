@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTrashBin } from "../contexts/TrashBinContext";
+
 import {
   ArrowLeftIcon,
   CogIcon,
   BellIcon,
   ShieldCheckIcon,
-  GlobeAltIcon,
   PaintBrushIcon,
-  UserGroupIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 
 const Settings = () => {
+  const { trashItems, restoreFromTrash } = useTrashBin();
+
   const [settings, setSettings] = useState({
     notifications: {
       emailNotifications: true,
@@ -53,6 +56,7 @@ const Settings = () => {
     { id: "privacy", name: "Privacy", icon: ShieldCheckIcon },
     { id: "appearance", name: "Appearance", icon: PaintBrushIcon },
     { id: "security", name: "Security", icon: CogIcon },
+    { id: "trash", name: "Trash Bin", icon: TrashIcon },
   ];
 
   const renderTabContent = () => {
@@ -460,6 +464,47 @@ const Settings = () => {
                 </div>
               </div>
             </div>
+          </div>
+        );
+
+      case "trash":
+        return (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Trash Bin
+            </h3>
+            {trashItems.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400">
+                Trash is empty.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                {trashItems.map((item) => (
+                  <li
+                    key={item.id}
+                    className="py-4 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        {item.name}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {item.details}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        Deleted at: {item.deletedAt}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => restoreFromTrash(item.id)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                      Restore
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         );
 
