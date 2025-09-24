@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDarkMode } from "../hooks/useDarkMode";
+import { toast } from "react-toastify";
 import {
   MagnifyingGlassIcon,
   BellIcon,
@@ -22,11 +22,17 @@ import {
   BellIcon as BellIconSolid,
 } from "@heroicons/react/24/solid";
 
-const Header = ({ onMenuToggle }) => {
+const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const notificationDropdownRef = useRef(null);
-  const { isDarkMode, toggleDarkMode } = useDarkMode();
+
+  // Toggle dark mode function
+  const toggleDarkMode = () => {
+    console.log("Toggling dark mode from", isDarkMode, "to", !isDarkMode);
+    setIsDarkMode(!isDarkMode);
+    console.log("Dark mode toggled, new state:", !isDarkMode);
+  };
 
   // State management
   const [searchQuery, setSearchQuery] = useState("");
@@ -257,7 +263,10 @@ const Header = ({ onMenuToggle }) => {
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    navigate("/login");
+    toast.success("Logged out successfully!");
+    setTimeout(() => {
+      navigate("/login");
+    }, 1000);
     setShowProfileMenu(false);
   };
 
@@ -281,19 +290,26 @@ const Header = ({ onMenuToggle }) => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 relative">
+    <header
+      id="header"
+      className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 relative"
+    >
       <div className="flex items-center justify-between">
         {/* Left side: Logo and menu button */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-13">
-            <img src="/idalog.jpg" alt="IDA Tech Logo" className="h-8 w-auto" />
+        <div className="flex items-center space-x-40">
+          <div className="flex items-center gap-16">
+            <img
+              src="/idalogo.png"
+              alt="IDA Tech Logo"
+              className="h-10 w-auto mx-auto mb-4"
+            />
             <button
               onClick={onMenuToggle}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 "
               title="Toggle sidebar"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

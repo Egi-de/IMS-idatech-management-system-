@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
+import { toast } from "react-toastify";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
@@ -98,6 +99,7 @@ const StudentEnrollment = () => {
   };
 
   const handleDeleteEnrollment = (enrollmentId) => {
+    toast.success("Enrollment deleted successfully!");
     console.log("Delete enrollment:", enrollmentId);
   };
 
@@ -420,7 +422,18 @@ const StudentEnrollment = () => {
         )}
 
         {(modalType === "add" || modalType === "edit") && (
-          <form className="space-y-4">
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (modalType === "add") {
+                toast.success("Enrollment created successfully!");
+              } else {
+                toast.success("Enrollment updated successfully!");
+              }
+              setShowModal(false);
+            }}
+          >
             <div className="grid grid-cols-2 gap-4">
               <Input label="Student Name" placeholder="Enter student name" />
               <Input label="Student ID" placeholder="Enter student ID" />

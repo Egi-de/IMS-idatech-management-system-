@@ -1,17 +1,24 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { UserIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
+import {
+  UserIcon,
+  LockClosedIcon,
+  EnvelopeIcon,
+} from "@heroicons/react/24/outline";
 import Button from "../components/Button";
 import Input from "../components/Input";
 
-const Login = () => {
+const Register = () => {
   const [formData, setFormData] = useState({
     username: "",
-    password: "",
+    email: "",
+    password1: "",
+    password2: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -24,24 +31,64 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
+
+    // Client-side validation
+    if (
+      !formData.username ||
+      !formData.email ||
+      !formData.password1 ||
+      !formData.password2
+    ) {
+      toast.error("Please fill in all fields");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password1 !== formData.password2) {
+      toast.error("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password1.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/auth/register/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password1: formData.password1,
+          password2: formData.password2,
+        }),
+      });
 
-      // For demo purposes, accept any username/password
-      if (formData.username && formData.password) {
-        // Store auth token (in real app, this would come from API)
-        localStorage.setItem("authToken", "demo-token");
-        toast.success("Login successful! Redirecting to dashboard...");
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 1000);
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(
+          "Registration successful! Please log in with your credentials."
+        );
+        setFormData({
+          username: "",
+          email: "",
+          password1: "",
+          password2: "",
+        });
       } else {
-        toast.error("Please enter both username and password");
+        toast.error(data.error || "Registration failed. Please try again.");
       }
-    } catch {
-      setError("Login failed. Please try again.");
+    } catch (error) {
+      toast.error("Network error. Please check your connection and try again.");
+      console.error("Registration error:", error);
     } finally {
       setLoading(false);
     }
@@ -49,21 +96,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
-        <div
-          className="absolute inset-0 bg-cover bg-center filter"
-          style={{
-            backgroundImage: "url(/idatechprofile.jpg)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          <div className="absolute inset-0 bg-gray-10 bg-opacity-10"></div>
-        </div>
-      </div>
-
-      {/* Right side - Form */}
+      {/* Left side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gray-800">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
@@ -73,20 +106,20 @@ const Login = () => {
               className="h-16 w-auto mx-auto mb-4"
             />
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
-              Welcome Back
+              Create Account
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mt-2">
-              Sign in to your account
+              Sign up to get started
             </p>
           </div>
 
-          {/* Google Login Button */}
+          {/* Google Signup Button */}
           <Button
             variant="outline"
             className="w-full mb-6"
             onClick={() => {
               // Implement Google OAuth
-              console.log("Google login clicked");
+              console.log("Google signup clicked");
             }}
           >
             <svg className="h-5 w-5 mr-3" viewBox="0 0 24 24">
@@ -138,6 +171,25 @@ const Login = () => {
             </div>
           )}
 
+          {success && (
+            <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg border border-green-200">
+              <div className="flex items-center">
+                <svg
+                  className="h-5 w-5 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {success}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <Input
               label="Username"
@@ -151,11 +203,33 @@ const Login = () => {
             />
 
             <Input
+              label="Email"
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              icon={EnvelopeIcon}
+              required
+            />
+
+            <Input
               label="Password"
               type="password"
-              name="password"
+              name="password1"
               placeholder="Enter your password"
-              value={formData.password}
+              value={formData.password1}
+              onChange={handleChange}
+              icon={LockClosedIcon}
+              required
+            />
+
+            <Input
+              label="Confirm Password"
+              type="password"
+              name="password2"
+              placeholder="Confirm your password"
+              value={formData.password2}
               onChange={handleChange}
               icon={LockClosedIcon}
               required
@@ -163,23 +237,37 @@ const Login = () => {
 
             <Button type="submit" className="w-full" loading={loading}>
               <LockClosedIcon className="h-4 w-4 mr-2" />
-              Sign In
+              Create Account
             </Button>
           </form>
 
           <p className="mt-6 text-center text-gray-600 dark:text-gray-300">
-            Don't have an account?{" "}
+            Already have an account?{" "}
             <Link
-              to="/register"
+              to="/login"
               className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold hover:underline transition duration-200"
             >
-              Sign up here
+              Sign in here
             </Link>
           </p>
+        </div>
+      </div>
+
+      {/* Right side - Image */}
+      <div className="hidden lg:flex lg:w-1/2 relative">
+        <div
+          className="absolute inset-0 bg-cover bg-center filter"
+          style={{
+            backgroundImage: "url(/idatechprofile.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div className="absolute inset-0 bg-gray-10 bg-opacity-10"></div>
         </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Register;

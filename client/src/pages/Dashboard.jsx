@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
+import { toast } from "react-toastify";
 import {
   AcademicCapIcon,
   UsersIcon,
@@ -11,6 +12,7 @@ import {
   FunnelIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
 const Dashboard = () => {
@@ -133,6 +135,100 @@ const Dashboard = () => {
     });
   };
 
+  // Export dashboard data to CSV
+  const handleExport = () => {
+    try {
+      // Prepare stats data for export
+      const statsData = [
+        ["Metric", "Value"],
+        ["Total Students", stats.totalStudents],
+        ["Total Employees", stats.totalEmployees],
+        ["IoT Students", stats.iotStudents],
+        ["SoD Students", stats.sodStudents],
+      ];
+
+      // Prepare activities data for export
+      const activitiesData = [
+        ["Action", "User", "Timestamp"],
+        ...recentActivities.map((activity) => [
+          activity.action,
+          activity.user,
+          activity.timestamp,
+        ]),
+      ];
+
+      // Create CSV content
+      const csvContent = [
+        "=== DASHBOARD STATS ===",
+        statsData.map((row) => row.join(",")).join("\n"),
+        "",
+        "=== RECENT ACTIVITIES ===",
+        activitiesData.map((row) => row.join(",")).join("\n"),
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `dashboard_export_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Dashboard data exported successfully!");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export dashboard data");
+    }
+  };
+
+  // Refresh dashboard data
+  const handleRefresh = async () => {
+    try {
+      toast.info("Refreshing dashboard data...");
+
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Generate new random stats (simulating real-time data)
+      const newStats = {
+        totalStudents: 1250 + Math.floor(Math.random() * 50) - 25, // ±25 variation
+        totalEmployees: 45 + Math.floor(Math.random() * 6) - 3, // ±3 variation
+        iotStudents: 680 + Math.floor(Math.random() * 30) - 15, // ±15 variation
+        sodStudents: 570 + Math.floor(Math.random() * 30) - 15, // ±15 variation
+      };
+
+      // Add a new random activity
+      const newActivities = [
+        {
+          id: Date.now(),
+          action: `System updated at ${new Date().toLocaleTimeString()}`,
+          user: "System",
+          timestamp: new Date()
+            .toISOString()
+            .replace("T", " ")
+            .substring(0, 19),
+          icon: "fas fa-sync-alt text-blue-600",
+        },
+        ...recentActivities.slice(0, 4), // Keep only the 4 most recent
+      ];
+
+      setStats(newStats);
+      setRecentActivities(newActivities);
+      setFilteredActivities(newActivities);
+
+      toast.success("Dashboard refreshed successfully!");
+    } catch (error) {
+      console.error("Refresh error:", error);
+      toast.error("Failed to refresh dashboard data");
+    }
+  };
+
   const statCards = [
     {
       title: "Total Students",
@@ -176,12 +272,12 @@ const Dashboard = () => {
           Dashboard Overview
         </h1>
         <div className="flex space-x-3">
-          <Button variant="outline" size="small">
+          <Button variant="outline" size="small" onClick={handleExport}>
             <ArrowUpIcon className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button size="small">
-            <MagnifyingGlassIcon className="h-4 w-4 mr-2" />
+          <Button size="small" onClick={handleRefresh}>
+            <ArrowPathIcon className="h-4 w-4 mr-2" />
             Refresh
           </Button>
         </div>
@@ -228,7 +324,7 @@ const Dashboard = () => {
                   onChange={(e) =>
                     setFilters((prev) => ({ ...prev, search: e.target.value }))
                   }
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                 />
               </div>
             </div>
@@ -238,7 +334,7 @@ const Dashboard = () => {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, user: e.target.value }))
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             >
               <option value="">All Users</option>
               <option value="Admin User">Admin User</option>
@@ -252,7 +348,7 @@ const Dashboard = () => {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, sortBy: e.target.value }))
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             >
               <option value="timestamp_desc">Newest First</option>
               <option value="timestamp_asc">Oldest First</option>

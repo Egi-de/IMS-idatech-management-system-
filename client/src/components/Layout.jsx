@@ -2,11 +2,20 @@ import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
-const Layout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const Layout = ({ children, isDarkMode, setIsDarkMode }) => {
+  // Sidebar state with localStorage persistence
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem("sidebarOpen");
+    const initialValue = saved ? JSON.parse(saved) : false;
+    console.log("Initial sidebar state:", initialValue);
+    return initialValue;
+  });
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    const newState = !sidebarOpen;
+    setSidebarOpen(newState);
+    localStorage.setItem("sidebarOpen", JSON.stringify(newState));
+    console.log("Sidebar toggled to:", newState);
   };
 
   // Close sidebar on mobile when clicking outside
@@ -23,6 +32,7 @@ const Layout = ({ children }) => {
           !header.contains(event.target)
         ) {
           setSidebarOpen(false);
+          localStorage.setItem("sidebarOpen", JSON.stringify(false));
         }
       }
     };
@@ -33,7 +43,11 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header onMenuToggle={toggleSidebar} />
+      <Header
+        onMenuToggle={toggleSidebar}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+      />
       <div className="flex h-screen">
         {/* Sidebar - hidden on mobile when closed, visible on desktop */}
         <div
