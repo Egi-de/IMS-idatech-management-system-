@@ -196,27 +196,15 @@ const transactions = [
 ];
 
 const Reports = () => {
-  // Calculate overview card data
+  // Initial overview cards data (before generating any report)
   const totalStudents = students.length;
-  const newStudentsThisMonth = students.filter((s) => {
-    const enrollDate = new Date(s.enrollmentDate);
-    const now = new Date();
-    return (
-      enrollDate.getFullYear() === now.getFullYear() &&
-      enrollDate.getMonth() === now.getMonth()
-    );
-  }).length;
-  const deletedInactiveStudents = students.filter(
-    (s) => s.status === "Deleted" || s.status === "Inactive"
-  ).length;
-  // Assuming payment status is tracked in students with a 'paymentStatus' field
-  // Since not present, simulate with random or default values for demo
-  const studentsPaid = students.filter(
-    (s) => s.paymentStatus === "Paid"
-  ).length;
-  const pendingPayments = students.filter(
-    (s) => s.paymentStatus === "Pending"
-  ).length;
+  const totalEmployees = employees.length;
+  const totalIncome = transactions
+    .filter((t) => t.type === "Income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = transactions
+    .filter((t) => t.type === "Expense")
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const [formData, setFormData] = useState({
     reportType: "students",
@@ -237,6 +225,7 @@ const Reports = () => {
 
   const isDateInRange = (dateStr, from, to) => {
     if (!from || !to) return false;
+    if (!dateStr) return false;
     const date = new Date(dateStr);
     const fromD = new Date(from);
     const toD = new Date(to);
@@ -467,49 +456,37 @@ const Reports = () => {
         Reports
       </h1>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <Card className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            🎓 Total Students
-          </h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {totalStudents}
-          </p>
-        </Card>
-        <Card className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            New Students (This Month)
-          </h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {newStudentsThisMonth}
-          </p>
-        </Card>
-        <Card className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            Deleted / Inactive
-          </h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {deletedInactiveStudents}
-          </p>
-        </Card>
-        <Card className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            Students Paid
-          </h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {studentsPaid}
-          </p>
-        </Card>
-        <Card className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            Pending Payments
-          </h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {pendingPayments}
-          </p>
-        </Card>
-      </div>
+      {!generatedReport && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+          <Card className="p-6 text-center">
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Students
+            </h3>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">
+              {totalStudents}
+            </p>
+          </Card>
+          <Card className="p-6 text-center">
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Employees
+            </h3>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white">
+              {totalEmployees}
+            </p>
+          </Card>
+          <Card className="p-6 text-center">
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Financial
+            </h3>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+              Income: ${totalIncome.toLocaleString()}
+            </p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              Expense: ${totalExpenses.toLocaleString()}
+            </p>
+          </Card>
+        </div>
+      )}
 
       <Card className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -625,153 +602,412 @@ const Reports = () => {
       </Card>
 
       {generatedReport && (
-        <Card className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Generated{" "}
-            {generatedReport.type.charAt(0).toUpperCase() +
-              generatedReport.type.slice(1)}{" "}
-            Report
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            From: {generatedReport.fromDate} To: {generatedReport.toDate}
-          </p>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white dark:bg-gray-800">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 border">Month</th>
-                  <th className="px-4 py-2 border">Count</th>
-                  {generatedReport.type === "students" && (
-                    <>
-                      <th className="px-4 py-2 border">Name</th>
-                      <th className="px-4 py-2 border">Program</th>
-                      <th className="px-4 py-2 border">Status</th>
-                      <th className="px-4 py-2 border">Enrollment Date</th>
-                      <th className="px-4 py-2 border">GPA</th>
-                    </>
-                  )}
-                  {generatedReport.type === "employees" && (
-                    <>
-                      <th className="px-4 py-2 border">Name</th>
-                      <th className="px-4 py-2 border">Position</th>
-                      <th className="px-4 py-2 border">Department</th>
-                      <th className="px-4 py-2 border">Salary</th>
-                      <th className="px-4 py-2 border">Hire Date</th>
-                      <th className="px-4 py-2 border">Status</th>
-                    </>
-                  )}
-                  {generatedReport.type === "financial" && (
-                    <>
-                      <th className="px-4 py-2 border">Type</th>
-                      <th className="px-4 py-2 border">Category</th>
-                      <th className="px-4 py-2 border">Description</th>
-                      <th className="px-4 py-2 border">Amount</th>
-                      <th className="px-4 py-2 border">Date</th>
-                      <th className="px-4 py-2 border">Status</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {generatedReport.data.map((monthData, index) => (
-                  <React.Fragment key={index}>
-                    {monthData.items.map((item, idx) => {
-                      const isHighlighted = isDateInRange(
-                        generatedReport.type === "students"
-                          ? item.enrollmentDate
-                          : generatedReport.type === "employees"
-                          ? item.hireDate
-                          : item.date,
-                        generatedReport.fromDate,
-                        generatedReport.toDate
-                      );
-                      return (
-                        <tr
-                          key={idx}
-                          className={
-                            isHighlighted
-                              ? "bg-yellow-200 dark:bg-yellow-800"
-                              : ""
-                          }
-                        >
-                          {idx === 0 && (
-                            <td
-                              className="px-4 py-2 border"
-                              rowSpan={monthData.items.length}
-                            >
-                              {monthData.month}
-                            </td>
-                          )}
-                          {idx === 0 && (
-                            <td
-                              className="px-4 py-2 border"
-                              rowSpan={monthData.items.length}
-                            >
-                              {monthData.count}
-                            </td>
-                          )}
-                          {generatedReport.type === "students" && (
-                            <>
-                              <td className="px-4 py-2 border">{item.name}</td>
-                              <td className="px-4 py-2 border">
-                                {item.program}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {item.status}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {item.enrollmentDate}
-                              </td>
-                              <td className="px-4 py-2 border">{item.gpa}</td>
-                            </>
-                          )}
-                          {generatedReport.type === "employees" && (
-                            <>
-                              <td className="px-4 py-2 border">{item.name}</td>
-                              <td className="px-4 py-2 border">
-                                {item.position}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {item.department}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                ${item.salary}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {item.hireDate}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {item.status}
-                              </td>
-                            </>
-                          )}
-                          {generatedReport.type === "financial" && (
-                            <>
-                              <td className="px-4 py-2 border">{item.type}</td>
-                              <td className="px-4 py-2 border">
-                                {item.category}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {item.description}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                ${item.amount}
-                              </td>
-                              <td className="px-4 py-2 border">{item.date}</td>
-                              <td className="px-4 py-2 border">
-                                {item.status}
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Summary Cards for Generated Report */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+            {generatedReport.type === "students" && (
+              <>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Total Enrollments
+                  </h3>
+                  <p className="text-4xl font-bold text-gray-900 dark:text-white">
+                    {generatedReport.data.reduce(
+                      (sum, month) =>
+                        sum +
+                        month.items.filter((item) =>
+                          isDateInRange(
+                            item.enrollmentDate,
+                            generatedReport.fromDate,
+                            generatedReport.toDate
+                          )
+                        ).length,
+                      0
+                    )}
+                  </p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Active Students
+                  </h3>
+                  <p className="text-4xl font-bold text-green-600 dark:text-green-400">
+                    {generatedReport.data.reduce(
+                      (sum, month) =>
+                        sum +
+                        month.items.filter(
+                          (s) =>
+                            s.status === "Active" &&
+                            isDateInRange(
+                              s.enrollmentDate,
+                              generatedReport.fromDate,
+                              generatedReport.toDate
+                            )
+                        ).length,
+                      0
+                    )}
+                  </p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Average GPA
+                  </h3>
+                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                    {(
+                      generatedReport.data.reduce(
+                        (sum, month) =>
+                          sum +
+                          month.items.reduce(
+                            (gpaSum, s) =>
+                              isDateInRange(
+                                s.enrollmentDate,
+                                generatedReport.fromDate,
+                                generatedReport.toDate
+                              )
+                                ? gpaSum + s.gpa
+                                : gpaSum,
+                            0
+                          ),
+                        0
+                      ) /
+                      generatedReport.data.reduce(
+                        (sum, month) =>
+                          sum +
+                          month.items.filter((item) =>
+                            isDateInRange(
+                              item.enrollmentDate,
+                              generatedReport.fromDate,
+                              generatedReport.toDate
+                            )
+                          ).length,
+                        0
+                      )
+                    ).toFixed(2)}
+                  </p>
+                </Card>
+              </>
+            )}
+            {generatedReport.type === "employees" && (
+              <>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Total Hires
+                  </h3>
+                  <p className="text-4xl font-bold text-gray-900 dark:text-white">
+                    {generatedReport.data.reduce(
+                      (sum, month) =>
+                        sum +
+                        month.items.filter((item) =>
+                          isDateInRange(
+                            item.hireDate,
+                            generatedReport.fromDate,
+                            generatedReport.toDate
+                          )
+                        ).length,
+                      0
+                    )}
+                  </p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Active Employees
+                  </h3>
+                  <p className="text-4xl font-bold text-green-600 dark:text-green-400">
+                    {generatedReport.data.reduce(
+                      (sum, month) =>
+                        sum +
+                        month.items.filter(
+                          (e) =>
+                            e.status === "Active" &&
+                            isDateInRange(
+                              e.hireDate,
+                              generatedReport.fromDate,
+                              generatedReport.toDate
+                            )
+                        ).length,
+                      0
+                    )}
+                  </p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Average Salary
+                  </h3>
+                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                    $
+                    {Math.round(
+                      generatedReport.data.reduce(
+                        (sum, month) =>
+                          sum +
+                          month.items.reduce(
+                            (salarySum, e) =>
+                              isDateInRange(
+                                e.hireDate,
+                                generatedReport.fromDate,
+                                generatedReport.toDate
+                              )
+                                ? salarySum + e.salary
+                                : salarySum,
+                            0
+                          ),
+                        0
+                      ) /
+                        generatedReport.data.reduce(
+                          (sum, month) =>
+                            sum +
+                            month.items.filter((item) =>
+                              isDateInRange(
+                                item.hireDate,
+                                generatedReport.fromDate,
+                                generatedReport.toDate
+                              )
+                            ).length,
+                          0
+                        )
+                    ).toLocaleString()}
+                  </p>
+                </Card>
+              </>
+            )}
+            {generatedReport.type === "financial" && (
+              <>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Total Transactions
+                  </h3>
+                  <p className="text-4xl font-bold text-gray-900 dark:text-white">
+                    {generatedReport.data.reduce(
+                      (sum, month) =>
+                        sum +
+                        month.items.filter((item) =>
+                          isDateInRange(
+                            item.date,
+                            generatedReport.fromDate,
+                            generatedReport.toDate
+                          )
+                        ).length,
+                      0
+                    )}
+                  </p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Net Income
+                  </h3>
+                  <p className="text-4xl font-bold text-green-600 dark:text-green-400">
+                    $
+                    {generatedReport.data
+                      .reduce(
+                        (sum, month) =>
+                          sum +
+                          month.items.reduce(
+                            (net, t) =>
+                              isDateInRange(
+                                t.date,
+                                generatedReport.fromDate,
+                                generatedReport.toDate
+                              )
+                                ? net + t.amount
+                                : net,
+                            0
+                          ),
+                        0
+                      )
+                      .toLocaleString()}
+                  </p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Completed Transactions
+                  </h3>
+                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                    {generatedReport.data.reduce(
+                      (sum, month) =>
+                        sum +
+                        month.items.filter(
+                          (t) =>
+                            t.status === "Completed" &&
+                            isDateInRange(
+                              t.date,
+                              generatedReport.fromDate,
+                              generatedReport.toDate
+                            )
+                        ).length,
+                      0
+                    )}
+                  </p>
+                </Card>
+              </>
+            )}
           </div>
-        </Card>
+
+          <Card className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Generated{" "}
+              {generatedReport.type.charAt(0).toUpperCase() +
+                generatedReport.type.slice(1)}{" "}
+              Report
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              From: {generatedReport.fromDate} To: {generatedReport.toDate}
+            </p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white dark:bg-gray-800">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 border">Month</th>
+                    <th className="px-4 py-2 border">Count</th>
+                    {generatedReport.type === "students" && (
+                      <>
+                        <th className="px-4 py-2 border">Name</th>
+                        <th className="px-4 py-2 border">Program</th>
+                        <th className="px-4 py-2 border">Status</th>
+                        <th className="px-4 py-2 border">Enrollment Date</th>
+                        <th className="px-4 py-2 border">GPA</th>
+                      </>
+                    )}
+                    {generatedReport.type === "employees" && (
+                      <>
+                        <th className="px-4 py-2 border">Name</th>
+                        <th className="px-4 py-2 border">Position</th>
+                        <th className="px-4 py-2 border">Department</th>
+                        <th className="px-4 py-2 border">Salary</th>
+                        <th className="px-4 py-2 border">Hire Date</th>
+                        <th className="px-4 py-2 border">Status</th>
+                      </>
+                    )}
+                    {generatedReport.type === "financial" && (
+                      <>
+                        <th className="px-4 py-2 border">Type</th>
+                        <th className="px-4 py-2 border">Category</th>
+                        <th className="px-4 py-2 border">Description</th>
+                        <th className="px-4 py-2 border">Amount</th>
+                        <th className="px-4 py-2 border">Date</th>
+                        <th className="px-4 py-2 border">Status</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedReport.data.map((monthData, index) => (
+                    <React.Fragment key={index}>
+                      {monthData.items.map((item, idx) => {
+                        const isHighlighted = isDateInRange(
+                          generatedReport.type === "students"
+                            ? item.enrollmentDate
+                            : generatedReport.type === "employees"
+                            ? item.hireDate
+                            : item.date,
+                          generatedReport.fromDate,
+                          generatedReport.toDate
+                        );
+                        return (
+                          <tr
+                            key={idx}
+                            className={
+                              isHighlighted
+                                ? "bg-yellow-200 dark:bg-yellow-800"
+                                : idx % 2 === 0
+                                ? "bg-gray-50 dark:bg-gray-700"
+                                : "bg-white dark:bg-gray-800"
+                            }
+                          >
+                            {idx === 0 && (
+                              <td
+                                className="px-4 py-2 border"
+                                rowSpan={monthData.items.length}
+                              >
+                                {monthData.month}
+                              </td>
+                            )}
+                            {idx === 0 && (
+                              <td
+                                className="px-4 py-2 border"
+                                rowSpan={monthData.items.length}
+                              >
+                                {monthData.items.filter((item) =>
+                                  isDateInRange(
+                                    generatedReport.type === "students"
+                                      ? item.enrollmentDate
+                                      : generatedReport.type === "employees"
+                                      ? item.hireDate
+                                      : item.date,
+                                    generatedReport.fromDate,
+                                    generatedReport.toDate
+                                  )
+                                ).length || monthData.items.length}
+                              </td>
+                            )}
+                            {generatedReport.type === "students" && (
+                              <>
+                                <td className="px-4 py-2 border">
+                                  {item.name}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.program}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.status}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.enrollmentDate}
+                                </td>
+                                <td className="px-4 py-2 border">{item.gpa}</td>
+                              </>
+                            )}
+                            {generatedReport.type === "employees" && (
+                              <>
+                                <td className="px-4 py-2 border">
+                                  {item.name}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.position}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.department}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  ${item.salary}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.hireDate}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.status}
+                                </td>
+                              </>
+                            )}
+                            {generatedReport.type === "financial" && (
+                              <>
+                                <td className="px-4 py-2 border">
+                                  {item.type}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.category}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.description}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  ${item.amount}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.date}
+                                </td>
+                                <td className="px-4 py-2 border">
+                                  {item.status}
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
 
       {/* Email Modal */}
@@ -833,7 +1069,7 @@ const Reports = () => {
         />
       )}
 
-      {/* Removed these cards as per user request */}
+      {/* Restoring summary cards to show numbers based on filtered data */}
 
       {/* Removed Overview Chart as per user request */}
     </div>
