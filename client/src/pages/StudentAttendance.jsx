@@ -15,6 +15,8 @@ import {
   PencilIcon,
   UserIcon,
   ChartBarIcon,
+  UserGroupIcon,
+  DocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 
 const StudentAttendance = () => {
@@ -24,6 +26,15 @@ const StudentAttendance = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+
+  // Attendance marking states
+  const [showMarkAttendanceModal, setShowMarkAttendanceModal] = useState(false);
+  const [attendanceDate, setAttendanceDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [selectedStudents, setSelectedStudents] = useState({});
+  const [bulkStatus, setBulkStatus] = useState("present");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Enhanced mock attendance data
   const [attendanceData] = useState([
@@ -116,6 +127,115 @@ const StudentAttendance = () => {
     return "text-red-600";
   };
 
+  // Attendance marking functions
+  const handleMarkAttendance = () => {
+    setShowMarkAttendanceModal(true);
+    // Initialize all students as not selected
+    const initialSelections = {};
+    attendanceData.forEach((student) => {
+      initialSelections[student.id] = false;
+    });
+    setSelectedStudents(initialSelections);
+  };
+
+  const handleStudentSelection = (studentId) => {
+    setSelectedStudents((prev) => ({
+      ...prev,
+      [studentId]: !prev[studentId],
+    }));
+  };
+
+  const handleBulkStatusChange = (status) => {
+    setBulkStatus(status);
+  };
+
+  const handleSelectAll = () => {
+    const allSelected = {};
+    attendanceData.forEach((student) => {
+      allSelected[student.id] = true;
+    });
+    setSelectedStudents(allSelected);
+  };
+
+  const handleSelectNone = () => {
+    const noneSelected = {};
+    attendanceData.forEach((student) => {
+      noneSelected[student.id] = false;
+    });
+    setSelectedStudents(noneSelected);
+  };
+
+  const handleSubmitAttendance = async () => {
+    setIsSubmitting(true);
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Get selected students
+    const studentsToUpdate = attendanceData.filter(
+      (student) => selectedStudents[student.id]
+    );
+
+    // Update attendance data (in a real app, this would be an API call)
+    studentsToUpdate.forEach((student) => {
+      const currentMonth = new Date(attendanceDate).toISOString().slice(0, 7);
+
+      // Update monthly data
+      if (!student.monthlyData[currentMonth]) {
+        student.monthlyData[currentMonth] = { present: 0, absent: 0, late: 0 };
+      }
+
+      // Update counts based on status
+      if (bulkStatus === "present") {
+        student.presentDays += 1;
+        student.monthlyData[currentMonth].present += 1;
+        student.currentStreak += 1;
+        student.lastAttendance = attendanceDate;
+      } else if (bulkStatus === "absent") {
+        student.absentDays += 1;
+        student.monthlyData[currentMonth].absent += 1;
+        student.currentStreak = 0;
+      } else if (bulkStatus === "late") {
+        student.lateDays += 1;
+        student.monthlyData[currentMonth].late += 1;
+        // Late doesn't break streak but doesn't count as present
+      } else if (bulkStatus === "excused") {
+        student.excusedAbsences += 1;
+        student.monthlyData[currentMonth].absent += 1;
+        student.currentStreak = 0;
+      }
+
+      // Recalculate overall attendance percentage
+      const totalDays =
+        student.presentDays + student.absentDays + student.lateDays;
+      student.overallAttendance =
+        totalDays > 0 ? Math.round((student.presentDays / totalDays) * 100) : 0;
+
+      // Update status based on new percentage
+      if (student.overallAttendance >= 90) {
+        student.status = "Excellent";
+      } else if (student.overallAttendance >= 80) {
+        student.status = "Good";
+      } else if (student.overallAttendance >= 70) {
+        student.status = "Average";
+      } else {
+        student.status = "Needs Improvement";
+      }
+    });
+
+    setIsSubmitting(false);
+    setShowMarkAttendanceModal(false);
+
+    // Reset form
+    setSelectedStudents({});
+    setBulkStatus("present");
+
+    // Show success message (in a real app, you'd use a toast notification)
+    alert(
+      `Attendance marked successfully for ${studentsToUpdate.length} students!`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -128,7 +248,7 @@ const StudentAttendance = () => {
             Track student attendance and participation records
           </p>
         </div>
-        <Button>
+        <Button onClick={handleMarkAttendance}>
           <CalendarIcon className="h-4 w-4 mr-2" />
           Mark Attendance
         </Button>
@@ -503,6 +623,160 @@ const StudentAttendance = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Mark Attendance Modal */}
+      <Modal
+        isOpen={showMarkAttendanceModal}
+        onClose={() => setShowMarkAttendanceModal(false)}
+        title="Mark Attendance"
+        size="large"
+      >
+        <div className="space-y-6">
+          {/* Date Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Date
+            </label>
+            <Input
+              type="date"
+              value={attendanceDate}
+              onChange={(e) => setAttendanceDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Bulk Status Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Mark All Selected Students As
+            </label>
+            <select
+              value={bulkStatus}
+              onChange={(e) => handleBulkStatusChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="late">Late</option>
+              <option value="excused">Excused Absence</option>
+            </select>
+          </div>
+
+          {/* Student Selection */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Students
+              </label>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={handleSelectAll}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={handleSelectNone}
+                >
+                  Select None
+                </Button>
+              </div>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+              {attendanceData.map((student) => (
+                <div
+                  key={student.id}
+                  className={`flex items-center justify-between p-4 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    selectedStudents[student.id]
+                      ? "bg-blue-50 dark:bg-blue-900/20"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents[student.id] || false}
+                      onChange={() => handleStudentSelection(student.id)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <UserIcon className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">
+                        {student.studentName}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {student.studentId} • {student.program}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div
+                      className={`text-sm font-medium ${getAttendanceColor(
+                        student.overallAttendance
+                      )}`}
+                    >
+                      {student.overallAttendance}%
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {student.currentStreak} day streak
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Selected Students:{" "}
+                {Object.values(selectedStudents).filter(Boolean).length}
+              </span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Will be marked as: <strong>{bulkStatus}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowMarkAttendanceModal(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitAttendance}
+              disabled={
+                isSubmitting ||
+                Object.values(selectedStudents).filter(Boolean).length === 0
+              }
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <DocumentCheckIcon className="h-4 w-4 mr-2" />
+                  Mark Attendance
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

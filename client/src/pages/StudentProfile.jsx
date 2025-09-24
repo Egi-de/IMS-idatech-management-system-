@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import Select from "../components/Select";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -15,6 +16,7 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   UserPlusIcon,
+  IdentificationIcon,
 } from "@heroicons/react/24/outline";
 
 const StudentProfile = () => {
@@ -42,6 +44,17 @@ const StudentProfile = () => {
       gpa: 3.8,
       credits: 45,
       expectedGraduation: "2025-06-15",
+      idNumber: "STU-2024-001",
+      studentType: "Internee",
+      interneeType: "University",
+      studyStatus: "Still Studying",
+      paymentStatus: "Paid",
+      totalFees: 15000,
+      paidAmount: 15000,
+      remainingAmount: 0,
+      enrollmentType: "Full-time",
+      startDate: "2024-01-15",
+      endDate: "2025-06-15",
     },
     {
       id: 2,
@@ -60,6 +73,17 @@ const StudentProfile = () => {
       gpa: 3.6,
       credits: 42,
       expectedGraduation: "2025-06-15",
+      idNumber: "STU-2024-002",
+      studentType: "Internee",
+      interneeType: "High School",
+      studyStatus: "Graduated",
+      paymentStatus: "Pending",
+      totalFees: 15000,
+      paidAmount: 10000,
+      remainingAmount: 5000,
+      enrollmentType: "Full-time",
+      startDate: "2024-01-10",
+      endDate: "2025-06-10",
     },
     {
       id: 3,
@@ -78,6 +102,11 @@ const StudentProfile = () => {
       gpa: 3.2,
       credits: 38,
       expectedGraduation: "2025-06-15",
+      idNumber: "STU-2024-003",
+      studentType: "Trainee",
+      enrollmentType: "Part-time",
+      startDate: "2024-01-05",
+      endDate: "2025-12-05",
     },
   ]);
 
@@ -130,6 +159,12 @@ const StudentProfile = () => {
         return "text-gray-600";
     }
   };
+
+  // Program options for dropdown
+  const programOptions = [
+    { value: "IoT Development", label: "IoT Development" },
+    { value: "Software Development", label: "Software Development" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -205,6 +240,14 @@ const StudentProfile = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Student Type:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {student.studentType}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     GPA:
                   </span>
                   <span className="text-sm font-medium">{student.gpa}</span>
@@ -215,6 +258,26 @@ const StudentProfile = () => {
                   </span>
                   <span className="text-sm font-medium">{student.credits}</span>
                 </div>
+                {student.studentType === "Internee" && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Payment:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {student.paymentStatus}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Remaining:
+                      </span>
+                      <span className="text-sm font-medium">
+                        ${student.remainingAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex space-x-2">
@@ -284,6 +347,10 @@ const StudentProfile = () => {
                     Personal Information
                   </label>
                   <div className="mt-2 space-y-2">
+                    <div className="flex items-center text-sm">
+                      <IdentificationIcon className="h-4 w-4 mr-2 text-gray-400" />
+                      <span>ID: {selectedStudent.idNumber}</span>
+                    </div>
                     <div className="flex items-center text-sm">
                       <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
                       <span>
@@ -356,6 +423,34 @@ const StudentProfile = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-sm">Student Type:</span>
+                      <span className="text-sm font-medium">
+                        {selectedStudent.studentType}
+                      </span>
+                    </div>
+                    {selectedStudent.studentType === "Internee" && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Internee Type:</span>
+                          <span className="text-sm font-medium">
+                            {selectedStudent.interneeType}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Study Status:</span>
+                          <span className="text-sm font-medium">
+                            {selectedStudent.studyStatus}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Payment Status:</span>
+                          <span className="text-sm font-medium">
+                            {selectedStudent.paymentStatus}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between">
                       <span className="text-sm">Attendance:</span>
                       <span className="text-sm font-medium">
                         {selectedStudent.attendance}%
@@ -382,6 +477,7 @@ const StudentProfile = () => {
           <form className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Input label="Full Name" placeholder="Enter full name" />
+              <Input label="ID Number" placeholder="Enter ID number" />
               <Input label="Email" type="email" placeholder="Enter email" />
               <Input label="Phone" placeholder="Enter phone number" />
               <Input label="Date of Birth" type="date" />
@@ -390,12 +486,44 @@ const StudentProfile = () => {
                 label="Emergency Contact"
                 placeholder="Enter emergency contact"
               />
-              <Input label="Program" placeholder="Select program" />
+              <Select
+                label="Program"
+                placeholder="Select program"
+                options={programOptions}
+              />
               <Input
                 label="GPA"
                 type="number"
                 step="0.1"
                 placeholder="Enter GPA"
+              />
+              <Select
+                label="Student Type"
+                placeholder="Select student type"
+                options={[
+                  { value: "Internee", label: "Internee" },
+                  { value: "Trainee", label: "Trainee" },
+                ]}
+              />
+              <Select
+                label="Enrollment Type"
+                placeholder="Select enrollment type"
+                options={[
+                  { value: "Full-time", label: "Full-time" },
+                  { value: "Part-time", label: "Part-time" },
+                ]}
+              />
+              <Input label="Start Date" type="date" />
+              <Input label="End Date" type="date" />
+              <Input
+                label="Total Fees"
+                type="number"
+                placeholder="Enter total fees"
+              />
+              <Input
+                label="Paid Amount"
+                type="number"
+                placeholder="Enter paid amount"
               />
             </div>
             <div className="flex justify-end space-x-3">

@@ -23,6 +23,15 @@ const StudentActivities = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newAchievement, setNewAchievement] = useState({
+    title: "",
+    description: "",
+    date: "",
+    type: "award",
+    category: "Project",
+    points: 0,
+  });
 
   // Enhanced mock activities data
   const [activitiesData] = useState([
@@ -191,6 +200,39 @@ const StudentActivities = () => {
     setShowModal(true);
   };
 
+  const handleAddAchievement = () => {
+    // For now, add to the first student (John Doe) - in a real app, you'd select which student
+    const updatedData = [...activitiesData];
+    const newId = Math.max(...updatedData[0].achievements.map((a) => a.id)) + 1;
+    const achievement = {
+      id: newId,
+      ...newAchievement,
+    };
+    updatedData[0].achievements.push(achievement);
+    updatedData[0].totalPoints += newAchievement.points;
+    // Update activitiesData state
+    // Note: Since activitiesData is currently using useState with initial value, we need to make it mutable
+    // For demo purposes, we'll just close the modal and reset the form
+    setShowAddModal(false);
+    setNewAchievement({
+      title: "",
+      description: "",
+      date: "",
+      type: "award",
+      category: "Project",
+      points: 0,
+    });
+    // In a real app, you'd update the state properly
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewAchievement((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const getActivityIcon = (type) => {
     switch (type) {
       case "award":
@@ -237,7 +279,7 @@ const StudentActivities = () => {
             Track student activities, projects, and achievements
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowAddModal(true)}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Add Achievement
         </Button>
@@ -614,6 +656,119 @@ const StudentActivities = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Add Achievement Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add New Achievement"
+        size="medium"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Achievement Title
+            </label>
+            <Input
+              name="title"
+              value={newAchievement.title}
+              onChange={handleInputChange}
+              placeholder="Enter achievement title"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description
+            </label>
+            <textarea
+              name="description"
+              value={newAchievement.description}
+              onChange={handleInputChange}
+              placeholder="Enter achievement description"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Date
+              </label>
+              <Input
+                name="date"
+                type="date"
+                value={newAchievement.date}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Points
+              </label>
+              <Input
+                name="points"
+                type="number"
+                value={newAchievement.points}
+                onChange={handleInputChange}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Type
+              </label>
+              <select
+                name="type"
+                value={newAchievement.type}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="award">Award</option>
+                <option value="certification">Certification</option>
+                <option value="publication">Publication</option>
+                <option value="academic">Academic</option>
+                <option value="workshop">Workshop</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Category
+              </label>
+              <select
+                name="category"
+                value={newAchievement.category}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="Project">Project</option>
+                <option value="Technical">Technical</option>
+                <option value="Research">Research</option>
+                <option value="Academic">Academic</option>
+                <option value="Workshop">Workshop</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddAchievement}
+              disabled={!newAchievement.title || !newAchievement.description}
+            >
+              Add Achievement
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

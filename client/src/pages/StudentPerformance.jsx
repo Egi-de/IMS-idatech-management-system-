@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import { toast } from "react-toastify";
 import {
   ChartBarIcon,
   AcademicCapIcon,
@@ -22,6 +23,7 @@ const StudentPerformance = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Enhanced mock performance data
   const [performanceData] = useState([
@@ -128,6 +130,139 @@ const StudentPerformance = () => {
     setShowModal(true);
   };
 
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+
+    try {
+      // Calculate summary statistics
+      const totalStudents = performanceData.length;
+      const averageGPA = (
+        performanceData.reduce((acc, student) => acc + student.currentGPA, 0) /
+        totalStudents
+      ).toFixed(2);
+      const averageCumulativeGPA = (
+        performanceData.reduce(
+          (acc, student) => acc + student.cumulativeGPA,
+          0
+        ) / totalStudents
+      ).toFixed(2);
+
+      const totalAssignments = performanceData.reduce(
+        (acc, student) => acc + student.assignments.total,
+        0
+      );
+      const completedAssignments = performanceData.reduce(
+        (acc, student) => acc + student.assignments.completed,
+        0
+      );
+
+      const totalProjects = performanceData.reduce(
+        (acc, student) => acc + student.projects.total,
+        0
+      );
+      const completedProjects = performanceData.reduce(
+        (acc, student) => acc + student.projects.completed,
+        0
+      );
+
+      const averageAttendance = (
+        performanceData.reduce((acc, student) => acc + student.attendance, 0) /
+        totalStudents
+      ).toFixed(1);
+
+      const averageCredits = Math.round(
+        performanceData.reduce(
+          (acc, student) => acc + student.completedCredits,
+          0
+        ) / totalStudents
+      );
+
+      // Create CSV content
+      const csvContent = [
+        // Header
+        "=== STUDENT PERFORMANCE REPORT ===",
+        `Generated on: ${new Date().toLocaleString()}`,
+        "",
+        // Summary Statistics
+        "=== SUMMARY STATISTICS ===",
+        ["Metric", "Value"].join(","),
+        ["Total Students", totalStudents].join(","),
+        ["Average Current GPA", averageGPA].join(","),
+        ["Average Cumulative GPA", averageCumulativeGPA].join(","),
+        [
+          "Assignments Completion Rate",
+          `${completedAssignments}/${totalAssignments} (${(
+            (completedAssignments / totalAssignments) *
+            100
+          ).toFixed(1)}%)`,
+        ].join(","),
+        [
+          "Projects Completion Rate",
+          `${completedProjects}/${totalProjects} (${(
+            (completedProjects / totalProjects) *
+            100
+          ).toFixed(1)}%)`,
+        ].join(","),
+        ["Average Attendance", `${averageAttendance}%`].join(","),
+        ["Average Credits Completed", averageCredits].join(","),
+        "",
+        // Student Details
+        "=== STUDENT DETAILS ===",
+        [
+          "Student Name",
+          "Student ID",
+          "Program",
+          "Current GPA",
+          "Cumulative GPA",
+          "Credits Completed",
+          "Assignments Completed",
+          "Projects Completed",
+          "Attendance",
+          "Academic Standing",
+          "Participation",
+        ].join(","),
+        ...performanceData.map((student) =>
+          [
+            student.studentName,
+            student.studentId,
+            student.program,
+            student.currentGPA,
+            student.cumulativeGPA,
+            `${student.completedCredits}/${student.totalCredits}`,
+            `${student.assignments.completed}/${student.assignments.total}`,
+            `${student.projects.completed}/${student.projects.total}`,
+            `${student.attendance}%`,
+            student.academicStanding,
+            student.participation,
+          ].join(",")
+        ),
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `student_performance_report_${
+          new Date().toISOString().split("T")[0]
+        }.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Student performance report generated successfully!");
+    } catch (error) {
+      console.error("Report generation error:", error);
+      toast.error("Failed to generate report. Please try again.");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const getGPAColor = (gpa) => {
     if (gpa >= 3.5) return "text-green-600";
     if (gpa >= 3.0) return "text-blue-600";
@@ -182,9 +317,13 @@ const StudentPerformance = () => {
             Track student academic performance and grades
           </p>
         </div>
-        <Button>
+        <Button
+          onClick={handleGenerateReport}
+          disabled={isGeneratingReport}
+          loading={isGeneratingReport}
+        >
           <DocumentTextIcon className="h-4 w-4 mr-2" />
-          Generate Report
+          {isGeneratingReport ? "Generating..." : "Generate Report"}
         </Button>
       </div>
 

@@ -21,61 +21,77 @@ import {
 } from "@heroicons/react/24/outline";
 
 const Students = () => {
+  const [students] = useState([
+    {
+      id: 1,
+      name: "Alice Johnson",
+      email: "alice.johnson@idatech.com",
+      phone: "+1-234-567-8901",
+      program: "IoT Development",
+      year: "2023",
+      status: "Active",
+      avatar: "/api/placeholder/40/40",
+      address: "123 Main Street, City, State 12345",
+      emergencyContact: "John Johnson (+1-234-567-8902)",
+      gpa: 3.8,
+      enrollmentDate: "2023-01-15",
+      courses: ["IoT Fundamentals", "Embedded Systems", "Wireless Networks"],
+    },
+    {
+      id: 2,
+      name: "Bob Smith",
+      email: "bob.smith@idatech.com",
+      phone: "+1-234-567-8903",
+      program: "Software Development",
+      year: "2023",
+      status: "Active",
+      avatar: "/api/placeholder/40/40",
+      address: "456 Oak Avenue, City, State 12345",
+      emergencyContact: "Jane Smith (+1-234-567-8904)",
+      gpa: 3.6,
+      enrollmentDate: "2023-02-10",
+      courses: ["Data Structures", "Algorithms", "Web Development"],
+    },
+    {
+      id: 3,
+      name: "Charlie Brown",
+      email: "charlie.brown@idatech.com",
+      phone: "+1-234-567-8905",
+      program: "IoT Development",
+      year: "2022",
+      status: "Active",
+      avatar: "/api/placeholder/40/40",
+      address: "789 Pine Road, City, State 12345",
+      emergencyContact: "Lucy Brown (+1-234-567-8906)",
+      gpa: 3.9,
+      enrollmentDate: "2022-09-01",
+      courses: ["IoT Security", "Cloud Computing", "Machine Learning"],
+    },
+    {
+      id: 4,
+      name: "Diana Prince",
+      email: "diana.prince@idatech.com",
+      phone: "+1-234-567-8907",
+      program: "Software Development",
+      year: "2022",
+      status: "On Leave",
+      avatar: "/api/placeholder/40/40",
+      address: "321 Elm Street, City, State 12345",
+      emergencyContact: "Steve Prince (+1-234-567-8908)",
+      gpa: 3.7,
+      enrollmentDate: "2022-08-15",
+      courses: ["Mobile Development", "Database Design", "UI/UX Design"],
+    },
+  ]);
   const [activeTab, setActiveTab] = useState("profile");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add");
 
-  // Mock student data
-  const [students] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@email.com",
-      phone: "+1-234-567-8901",
-      enrollmentDate: "2024-01-15",
-      program: "IoT Development",
-      status: "Active",
-      attendance: 95,
-      performance: "Excellent",
-      avatar: "/api/placeholder/40/40",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@email.com",
-      phone: "+1-234-567-8902",
-      enrollmentDate: "2024-01-10",
-      program: "Software Development",
-      status: "Active",
-      attendance: 88,
-      performance: "Good",
-      avatar: "/api/placeholder/40/40",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.johnson@email.com",
-      phone: "+1-234-567-8903",
-      enrollmentDate: "2024-01-05",
-      program: "IoT Development",
-      status: "Inactive",
-      attendance: 75,
-      performance: "Average",
-      avatar: "/api/placeholder/40/40",
-    },
-  ]);
-
   const tabs = [
     { id: "profile", name: "Student Profile", icon: AcademicCapIcon },
     { id: "enrollment", name: "Enrollment Details", icon: DocumentTextIcon },
-    {
-      id: "attendance",
-      name: "Attendance & Participation",
-      icon: CalendarIcon,
-    },
-    { id: "performance", name: "Performance / Grades", icon: ChartBarIcon },
     { id: "activities", name: "Activities & Achievements", icon: StarIcon },
     {
       id: "feedback",
@@ -118,21 +134,6 @@ const Students = () => {
         return "text-yellow-600 bg-yellow-100";
       default:
         return "text-gray-600 bg-gray-100";
-    }
-  };
-
-  const getPerformanceColor = (performance) => {
-    switch (performance) {
-      case "Excellent":
-        return "text-green-600";
-      case "Good":
-        return "text-blue-600";
-      case "Average":
-        return "text-yellow-600";
-      case "Poor":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
     }
   };
 
@@ -190,22 +191,6 @@ const Students = () => {
                     )}`}
                   >
                     {student.status}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Attendance:</span>
-                  <span className="text-sm font-medium">
-                    {student.attendance}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Performance:</span>
-                  <span
-                    className={`text-sm font-medium ${getPerformanceColor(
-                      student.performance
-                    )}`}
-                  >
-                    {student.performance}
                   </span>
                 </div>
               </div>
@@ -289,181 +274,6 @@ const Students = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderAttendance = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Attendance & Participation</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">92%</div>
-              <div className="text-sm text-gray-600">Overall Attendance</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">156</div>
-              <div className="text-sm text-gray-600">Present Days</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">14</div>
-              <div className="text-sm text-gray-600">Absent Days</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardContent>
-          <div className="space-y-4">
-            {students.map((student) => (
-              <div
-                key={student.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-              >
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={student.avatar}
-                    alt={student.name}
-                    className="h-10 w-10 rounded-full"
-                  />
-                  <div>
-                    <h3 className="font-medium">{student.name}</h3>
-                    <p className="text-sm text-gray-600">{student.program}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold">
-                    {student.attendance}%
-                  </div>
-                  <div
-                    className={`text-sm ${
-                      student.attendance >= 90
-                        ? "text-green-600"
-                        : student.attendance >= 80
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {student.attendance >= 90
-                      ? "Excellent"
-                      : student.attendance >= 80
-                      ? "Good"
-                      : "Needs Improvement"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderPerformance = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Performance / Grades</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">A</div>
-              <div className="text-sm text-gray-600">Average Grade</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">3.7</div>
-              <div className="text-sm text-gray-600">GPA</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">85%</div>
-              <div className="text-sm text-gray-600">Pass Rate</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">12</div>
-              <div className="text-sm text-gray-600">Assignments</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardContent>
-          <div className="space-y-4">
-            {students.map((student) => (
-              <div key={student.id} className="p-4 border rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={student.avatar}
-                      alt={student.name}
-                      className="h-10 w-10 rounded-full"
-                    />
-                    <div>
-                      <h3 className="font-medium">{student.name}</h3>
-                      <p className="text-sm text-gray-600">{student.program}</p>
-                    </div>
-                  </div>
-                  <div
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getPerformanceColor(
-                      student.performance
-                    )} bg-gray-100`}
-                  >
-                    {student.performance}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Attendance:</span>
-                    <span className="ml-2 font-medium">
-                      {student.attendance}%
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Assignments:</span>
-                    <span className="ml-2 font-medium">8/10</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Projects:</span>
-                    <span className="ml-2 font-medium">A-</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Final Grade:</span>
-                    <span className="ml-2 font-medium">A</span>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </CardContent>
       </Card>
@@ -709,10 +519,6 @@ const Students = () => {
         return renderStudentProfile();
       case "enrollment":
         return renderEnrollmentDetails();
-      case "attendance":
-        return renderAttendance();
-      case "performance":
-        return renderPerformance();
       case "activities":
         return renderActivities();
       case "feedback":

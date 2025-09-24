@@ -21,6 +21,20 @@ const StudentFeedback = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newFeedback, setNewFeedback] = useState({
+    studentId: "",
+    type: "instructor",
+    instructor: "",
+    peer: "",
+    course: "",
+    rating: 5,
+    comments: "",
+    recommendations: "",
+    strengths: [],
+    improvements: [],
+    goals: "",
+  });
 
   // Enhanced mock feedback data
   const [feedbackData] = useState([
@@ -191,6 +205,66 @@ const StudentFeedback = () => {
     setShowModal(true);
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewFeedback((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAddFeedback = (e) => {
+    e.preventDefault();
+    if (!newFeedback.studentId || !newFeedback.comments) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    // Find the student to add feedback to
+    const student = feedbackData.find(
+      (s) => s.studentId === newFeedback.studentId
+    );
+    if (student) {
+      const feedbackEntry = {
+        id: Date.now(),
+        type: newFeedback.type,
+        date: new Date().toISOString().split("T")[0],
+        rating: newFeedback.rating,
+        comments: newFeedback.comments,
+        recommendations: newFeedback.recommendations,
+        strengths: newFeedback.strengths,
+        improvements: newFeedback.improvements,
+        goals: newFeedback.goals,
+        ...(newFeedback.type === "instructor" && {
+          instructor: newFeedback.instructor,
+        }),
+        ...(newFeedback.type === "peer" && { peer: newFeedback.peer }),
+        ...(newFeedback.course && { course: newFeedback.course }),
+      };
+
+      // Add feedback to student
+      student.feedback.push(feedbackEntry);
+      student.feedbackCount += 1;
+      student.lastFeedback = new Date().toISOString().split("T")[0];
+
+      // Reset form and close modal
+      setNewFeedback({
+        studentId: "",
+        type: "instructor",
+        instructor: "",
+        peer: "",
+        course: "",
+        rating: 5,
+        comments: "",
+        recommendations: "",
+        strengths: [],
+        improvements: [],
+        goals: "",
+      });
+      setShowAddModal(false);
+    }
+  };
+
   const getRatingColor = (rating) => {
     if (rating >= 4.0) return "text-green-600";
     if (rating >= 3.0) return "text-yellow-600";
@@ -246,7 +320,7 @@ const StudentFeedback = () => {
             Manage student feedback, evaluations, and performance reviews
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowAddModal(true)}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Add Feedback
         </Button>
@@ -637,6 +711,174 @@ const StudentFeedback = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Add Feedback Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add New Feedback"
+        size="large"
+      >
+        <form onSubmit={handleAddFeedback} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Student ID *
+              </label>
+              <select
+                name="studentId"
+                value={newFeedback.studentId}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select Student</option>
+                {feedbackData.map((student) => (
+                  <option key={student.studentId} value={student.studentId}>
+                    {student.studentId} - {student.studentName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Feedback Type
+              </label>
+              <select
+                name="type"
+                value={newFeedback.type}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="instructor">Instructor</option>
+                <option value="peer">Peer</option>
+                <option value="self">Self</option>
+              </select>
+            </div>
+
+            {newFeedback.type === "instructor" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Instructor Name
+                </label>
+                <input
+                  type="text"
+                  name="instructor"
+                  value={newFeedback.instructor}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter instructor name"
+                />
+              </div>
+            )}
+
+            {newFeedback.type === "peer" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Peer Name
+                </label>
+                <input
+                  type="text"
+                  name="peer"
+                  value={newFeedback.peer}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter peer name"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Course (Optional)
+              </label>
+              <input
+                type="text"
+                name="course"
+                value={newFeedback.course}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter course name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Rating
+              </label>
+              <select
+                name="rating"
+                value={newFeedback.rating}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={5}>5 - Excellent</option>
+                <option value={4}>4 - Very Good</option>
+                <option value={3}>3 - Good</option>
+                <option value={2}>2 - Fair</option>
+                <option value={1}>1 - Poor</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Comments *
+            </label>
+            <textarea
+              name="comments"
+              value={newFeedback.comments}
+              onChange={handleInputChange}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter detailed feedback comments"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Recommendations (Optional)
+            </label>
+            <textarea
+              name="recommendations"
+              value={newFeedback.recommendations}
+              onChange={handleInputChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter recommendations for improvement"
+            />
+          </div>
+
+          {newFeedback.type === "self" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Goals (Optional)
+              </label>
+              <textarea
+                name="goals"
+                value={newFeedback.goals}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter personal goals"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowAddModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Add Feedback</Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

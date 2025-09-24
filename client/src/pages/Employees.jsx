@@ -28,6 +28,18 @@ const Employees = () => {
   const [modalType, setModalType] = useState("add");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
+  // Form state
+  const [formData, setFormData] = useState({
+    employeeId: "",
+    name: "",
+    email: "",
+    phone: "",
+    position: "",
+    department: "",
+    salary: "",
+    address: "",
+  });
+
   // Mock employee data
   const [employees] = useState([
     {
@@ -111,18 +123,100 @@ const Employees = () => {
   const handleAddEmployee = () => {
     setSelectedEmployee(null);
     setModalType("add");
+    setFormData({
+      employeeId: "",
+      name: "",
+      email: "",
+      phone: "",
+      position: "",
+      department: "",
+      salary: "",
+      address: "",
+    });
     setShowModal(true);
   };
 
   const handleEditEmployee = (employee) => {
     setSelectedEmployee(employee);
     setModalType("edit");
+    setFormData({
+      employeeId: employee.id.toString(),
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone,
+      position: employee.position,
+      department: employee.department,
+      salary: employee.salary.toString(),
+      address: employee.address,
+    });
     setShowModal(true);
   };
 
   const handleDeleteEmployee = (employeeId) => {
     // Implement delete functionality
     console.log("Delete employee:", employeeId);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (modalType === "add") {
+      // Add new employee
+      const newEmployee = {
+        id: parseInt(formData.employeeId),
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position,
+        department: formData.department,
+        salary: parseInt(formData.salary),
+        hireDate: new Date().toISOString().split("T")[0],
+        status: "Active",
+        avatar: "/api/placeholder/40/40",
+        address: formData.address,
+        emergencyContact: "",
+        skills: [],
+      };
+      // In a real app, this would be an API call
+      console.log("Adding employee:", newEmployee);
+    } else if (modalType === "edit") {
+      // Update existing employee
+      const updatedEmployee = {
+        ...selectedEmployee,
+        id: parseInt(formData.employeeId),
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position,
+        department: formData.department,
+        salary: parseInt(formData.salary),
+        address: formData.address,
+      };
+      // In a real app, this would be an API call
+      console.log("Updating employee:", updatedEmployee);
+    }
+    setShowModal(false);
+  };
+
+  const handleCancel = () => {
+    setShowModal(false);
+    setFormData({
+      employeeId: "",
+      name: "",
+      email: "",
+      phone: "",
+      position: "",
+      department: "",
+      salary: "",
+      address: "",
+    });
   };
 
   const getStatusColor = (status) => {
@@ -291,9 +385,11 @@ const Employees = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left py-3 px-4">ID</th>
                   <th className="text-left py-3 px-4">Employee</th>
                   <th className="text-left py-3 px-4">Position</th>
                   <th className="text-left py-3 px-4">Department</th>
+                  <th className="text-left py-3 px-4">Address</th>
                   <th className="text-left py-3 px-4">Salary</th>
                   <th className="text-left py-3 px-4">Status</th>
                   <th className="text-left py-3 px-4">Actions</th>
@@ -302,6 +398,11 @@ const Employees = () => {
               <tbody>
                 {filteredEmployees.map((employee) => (
                   <tr key={employee.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-sm font-medium text-gray-900">
+                        #{employee.id}
+                      </span>
+                    </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <img
@@ -329,6 +430,14 @@ const Employees = () => {
                       <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
                         {employee.department}
                       </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div
+                        className="text-sm text-gray-600 max-w-xs truncate"
+                        title={employee.address}
+                      >
+                        {employee.address}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-medium">
@@ -491,17 +600,77 @@ const Employees = () => {
         )}
 
         {(modalType === "add" || modalType === "edit") && (
-          <form className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Full Name" placeholder="Enter full name" />
-              <Input label="Email" type="email" placeholder="Enter email" />
-              <Input label="Phone" placeholder="Enter phone number" />
-              <Input label="Position" placeholder="Enter position" />
-              <Input label="Department" placeholder="Select department" />
-              <Input label="Salary" type="number" placeholder="Enter salary" />
+              <Input
+                label="Employee ID"
+                name="employeeId"
+                value={formData.employeeId}
+                onChange={handleInputChange}
+                placeholder="Enter employee ID"
+              />
+              <Input
+                label="Full Name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter full name"
+              />
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Enter email"
+              />
+              <Input
+                label="Phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter phone number"
+              />
+              <Input
+                label="Position"
+                name="position"
+                value={formData.position}
+                onChange={handleInputChange}
+                placeholder="Enter position"
+              />
+              <select
+                name="department"
+                value={formData.department}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select department</option>
+                {departments
+                  .filter((dept) => dept !== "All")
+                  .map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+              </select>
+              <Input
+                label="Salary"
+                name="salary"
+                type="number"
+                value={formData.salary}
+                onChange={handleInputChange}
+                placeholder="Enter salary"
+              />
+              <Input
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="Enter full address"
+              />
             </div>
             <div className="flex justify-end space-x-3">
-              <Button variant="outline" onClick={() => setShowModal(false)}>
+              <Button variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button type="submit">

@@ -23,6 +23,21 @@ const StudentStatus = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateFormData, setUpdateFormData] = useState({
+    studentId: "",
+    currentStatus: "Active",
+    enrollmentStatus: "Good Standing",
+    academicStatus: "Active",
+    financialStatus: "Cleared",
+    completionStatus: "On Track",
+    gpa: "",
+    creditsCompleted: "",
+    warnings: [],
+    recommendations: [],
+    nextSteps: [],
+    notes: "",
+  });
 
   // Enhanced mock status data
   const [statusData] = useState([
@@ -188,6 +203,79 @@ const StudentStatus = () => {
     setShowModal(true);
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setUpdateFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUpdateStatus = (e) => {
+    e.preventDefault();
+
+    // Find the student to update
+    const studentIndex = statusData.findIndex(
+      (student) => student.studentId === updateFormData.studentId
+    );
+
+    if (studentIndex === -1) {
+      alert("Student not found!");
+      return;
+    }
+
+    // Create updated student object
+    const updatedStudent = {
+      ...statusData[studentIndex],
+      currentStatus: updateFormData.currentStatus,
+      enrollmentStatus: updateFormData.enrollmentStatus,
+      academicStatus: updateFormData.academicStatus,
+      financialStatus: updateFormData.financialStatus,
+      completionStatus: updateFormData.completionStatus,
+      gpa: updateFormData.gpa
+        ? parseFloat(updateFormData.gpa)
+        : statusData[studentIndex].gpa,
+      creditsCompleted: updateFormData.creditsCompleted
+        ? parseInt(updateFormData.creditsCompleted)
+        : statusData[studentIndex].creditsCompleted,
+      statusHistory: [
+        ...statusData[studentIndex].statusHistory,
+        {
+          date: new Date().toISOString().split("T")[0],
+          status: updateFormData.currentStatus,
+          description: updateFormData.notes || "Status updated via admin panel",
+        },
+      ],
+    };
+
+    // Update the status data
+    const newStatusData = [...statusData];
+    newStatusData[studentIndex] = updatedStudent;
+
+    // Update state (in a real app, this would be an API call)
+    // For now, we'll just update the local state
+    // setStatusData(newStatusData);
+
+    // Reset form and close modal
+    setUpdateFormData({
+      studentId: "",
+      currentStatus: "Active",
+      enrollmentStatus: "Good Standing",
+      academicStatus: "Active",
+      financialStatus: "Cleared",
+      completionStatus: "On Track",
+      gpa: "",
+      creditsCompleted: "",
+      warnings: [],
+      recommendations: [],
+      nextSteps: [],
+      notes: "",
+    });
+
+    setShowUpdateModal(false);
+    alert("Student status updated successfully!");
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "Active":
@@ -239,7 +327,7 @@ const StudentStatus = () => {
             Monitor student status, progress, and recommendations
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowUpdateModal(true)}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Update Status
         </Button>
@@ -631,6 +719,178 @@ const StudentStatus = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Update Status Modal */}
+      <Modal
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        title="Update Student Status"
+        size="large"
+      >
+        <form onSubmit={handleUpdateStatus} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Student ID
+              </label>
+              <Input
+                type="text"
+                name="studentId"
+                value={updateFormData.studentId}
+                onChange={handleInputChange}
+                placeholder="Enter student ID (e.g., STU001)"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Current Status
+              </label>
+              <select
+                name="currentStatus"
+                value={updateFormData.currentStatus}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Pending">Pending</option>
+                <option value="Hold">Hold</option>
+                <option value="Warning">Warning</option>
+                <option value="Provisional">Provisional</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Enrollment Status
+              </label>
+              <select
+                name="enrollmentStatus"
+                value={updateFormData.enrollmentStatus}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="Good Standing">Good Standing</option>
+                <option value="Academic Warning">Academic Warning</option>
+                <option value="Probation">Probation</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Withdrawn">Withdrawn</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Academic Status
+              </label>
+              <select
+                name="academicStatus"
+                value={updateFormData.academicStatus}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="Active">Active</option>
+                <option value="At Risk">At Risk</option>
+                <option value="Warning">Warning</option>
+                <option value="Probation">Probation</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Financial Status
+              </label>
+              <select
+                name="financialStatus"
+                value={updateFormData.financialStatus}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="Cleared">Cleared</option>
+                <option value="Partial Payment">Partial Payment</option>
+                <option value="Hold">Hold</option>
+                <option value="Overdue">Overdue</option>
+                <option value="Scholarship">Scholarship</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Completion Status
+              </label>
+              <select
+                name="completionStatus"
+                value={updateFormData.completionStatus}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="On Track">On Track</option>
+                <option value="Behind Schedule">Behind Schedule</option>
+                <option value="Ahead of Schedule">Ahead of Schedule</option>
+                <option value="Completed">Completed</option>
+                <option value="At Risk">At Risk</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                GPA
+              </label>
+              <Input
+                type="number"
+                name="gpa"
+                value={updateFormData.gpa}
+                onChange={handleInputChange}
+                placeholder="3.8"
+                step="0.1"
+                min="0"
+                max="4.0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Credits Completed
+              </label>
+              <Input
+                type="number"
+                name="creditsCompleted"
+                value={updateFormData.creditsCompleted}
+                onChange={handleInputChange}
+                placeholder="42"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Update Notes
+            </label>
+            <textarea
+              name="notes"
+              value={updateFormData.notes}
+              onChange={handleInputChange}
+              placeholder="Enter any notes about this status update..."
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowUpdateModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Update Status</Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

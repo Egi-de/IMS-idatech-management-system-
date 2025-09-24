@@ -35,6 +35,9 @@ const StudentEnrollment = () => {
       program: "IoT Development",
       enrollmentDate: "2024-01-15",
       status: "Active",
+      studentType: "Internee",
+      interneeType: "University",
+      studyStatus: "Still Studying",
       paymentStatus: "Paid",
       totalFees: 15000,
       paidAmount: 15000,
@@ -52,7 +55,10 @@ const StudentEnrollment = () => {
       program: "Software Development",
       enrollmentDate: "2024-01-10",
       status: "Active",
-      paymentStatus: "Partial",
+      studentType: "Internee",
+      interneeType: "High School",
+      studyStatus: "Graduated",
+      paymentStatus: "Pending",
       totalFees: 15000,
       paidAmount: 10000,
       remainingAmount: 5000,
@@ -69,10 +75,7 @@ const StudentEnrollment = () => {
       program: "IoT Development",
       enrollmentDate: "2024-01-05",
       status: "Inactive",
-      paymentStatus: "Pending",
-      totalFees: 15000,
-      paidAmount: 0,
-      remainingAmount: 15000,
+      studentType: "Trainee",
       enrollmentType: "Part-time",
       startDate: "2024-01-05",
       endDate: "2025-12-05",
@@ -225,24 +228,36 @@ const StudentEnrollment = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Payment:
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                      enrollment.paymentStatus
-                    )}`}
-                  >
-                    {enrollment.paymentStatus}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Remaining:
+                    Student Type:
                   </span>
                   <span className="text-sm font-medium">
-                    ${enrollment.remainingAmount.toLocaleString()}
+                    {enrollment.studentType}
                   </span>
                 </div>
+                {enrollment.studentType === "Internee" && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Payment:
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                          enrollment.paymentStatus
+                        )}`}
+                      >
+                        {enrollment.paymentStatus}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Remaining:
+                      </span>
+                      <span className="text-sm font-medium">
+                        ${enrollment.remainingAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex space-x-2">
@@ -363,15 +378,37 @@ const StudentEnrollment = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm">Payment Status:</span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                          selectedEnrollment.paymentStatus
-                        )}`}
-                      >
-                        {selectedEnrollment.paymentStatus}
+                      <span className="text-sm">Student Type:</span>
+                      <span className="text-sm font-medium">
+                        {selectedEnrollment.studentType}
                       </span>
                     </div>
+                    {selectedEnrollment.studentType === "Internee" && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Internee Type:</span>
+                          <span className="text-sm font-medium">
+                            {selectedEnrollment.interneeType}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Study Status:</span>
+                          <span className="text-sm font-medium">
+                            {selectedEnrollment.studyStatus}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Payment Status:</span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                              selectedEnrollment.paymentStatus
+                            )}`}
+                          >
+                            {selectedEnrollment.paymentStatus}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -439,17 +476,41 @@ const StudentEnrollment = () => {
               <Input label="Student ID" placeholder="Enter student ID" />
               <Input label="Email" type="email" placeholder="Enter email" />
               <Input label="Program" placeholder="Select program" />
+              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Student Type</option>
+                <option value="Internee">Internee</option>
+                <option value="Trainee">Trainee</option>
+              </select>
               <Input
                 label="Enrollment Type"
                 placeholder="Full-time/Part-time"
               />
+              <Input label="Enrollment Date" type="date" />
+              <Input label="Start Date" type="date" />
+              <Input label="End Date" type="date" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Internee Type</option>
+                <option value="University">University</option>
+                <option value="High School">High School</option>
+              </select>
+              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Study Status</option>
+                <option value="Still Studying">Still Studying</option>
+                <option value="Graduated">Graduated</option>
+              </select>
               <Input
                 label="Total Fees"
                 type="number"
                 placeholder="Enter total fees"
               />
-              <Input label="Enrollment Date" type="date" />
-              <Input label="Start Date" type="date" />
+              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Payment Status</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Not Paid">Not Paid</option>
+              </select>
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => setShowModal(false)}>

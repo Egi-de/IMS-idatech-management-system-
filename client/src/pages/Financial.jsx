@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import FinancialChart from "../components/FinancialChart";
 import {
   CurrencyDollarIcon,
   PlusIcon,
@@ -29,8 +30,14 @@ const Financial = () => {
   const [modalType, setModalType] = useState("add");
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
+  // Recent Transactions states
+  const [recentSearchQuery, setRecentSearchQuery] = useState("");
+  const [recentFilterType, setRecentFilterType] = useState("");
+  const [recentFilterStatus, setRecentFilterStatus] = useState("");
+  const [recentSortBy, setRecentSortBy] = useState("date");
+
   // Mock financial data
-  const [transactions] = useState([
+  const [transactions, setTransactions] = useState([
     {
       id: 1,
       type: "Income",
@@ -117,8 +124,9 @@ const Financial = () => {
   };
 
   const handleDeleteTransaction = (transactionId) => {
-    // Implement delete functionality
-    console.log("Delete transaction:", transactionId);
+    // Remove transaction from state
+    setTransactions(transactions.filter((t) => t.id !== transactionId));
+    console.log("Deleted transaction:", transactionId);
   };
 
   const getTypeColor = (type) => {
@@ -233,21 +241,13 @@ const Financial = () => {
         </Card>
       </div>
 
-      {/* Income vs Expenses Chart Placeholder */}
+      {/* Income vs Expenses Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Income vs Expenses Overview</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <div className="text-center">
-              <ChartBarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Chart visualization would go here</p>
-              <p className="text-sm text-gray-500">
-                Integration with Chart.js or similar library
-              </p>
-            </div>
-          </div>
+        <CardContent className="pb-8">
+          <FinancialChart income={totalIncome} expenses={totalExpenses} />
         </CardContent>
       </Card>
 
@@ -257,57 +257,169 @@ const Financial = () => {
           <CardTitle>Recent Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {transactions.slice(0, 5).map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div
-                    className={`p-2 rounded-full ${
-                      transaction.type === "Income"
-                        ? "bg-green-100"
-                        : "bg-red-100"
-                    }`}
-                  >
-                    {transaction.type === "Income" ? (
-                      <ArrowUpIcon className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 text-red-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {transaction.description}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {transaction.category} •{" "}
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p
-                    className={`font-semibold ${
-                      transaction.type === "Income"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {transaction.type === "Income" ? "+" : ""}$
-                    {Math.abs(transaction.amount).toLocaleString()}
-                  </p>
-                  <p
-                    className={`text-xs px-2 py-1 rounded-full ${getStatusColor(
-                      transaction.status
-                    )}`}
-                  >
-                    {transaction.status}
-                  </p>
+          {/* Search, Filter, Sort Controls */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-64">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search transactions..."
+                    value={recentSearchQuery}
+                    onChange={(e) => setRecentSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
               </div>
-            ))}
+
+              <select
+                value={recentFilterType}
+                onChange={(e) => setRecentFilterType(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Types</option>
+                <option value="Income">Income</option>
+                <option value="Expense">Expense</option>
+              </select>
+
+              <select
+                value={recentFilterStatus}
+                onChange={(e) => setRecentFilterStatus(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Statuses</option>
+                <option value="Completed">Completed</option>
+                <option value="Pending">Pending</option>
+                <option value="Failed">Failed</option>
+              </select>
+
+              <select
+                value={recentSortBy}
+                onChange={(e) => setRecentSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="amount">Sort by Amount</option>
+                <option value="type">Sort by Type</option>
+              </select>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRecentSearchQuery("");
+                  setRecentFilterType("");
+                  setRecentFilterStatus("");
+                  setRecentSortBy("date");
+                }}
+              >
+                <FunnelIcon className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            </div>
+          </div>
+
+          {/* Filtered and Sorted Transactions */}
+          <div className="space-y-3">
+            {(() => {
+              // Filter transactions
+              let filtered = transactions.filter((transaction) => {
+                const matchesSearch =
+                  transaction.description
+                    .toLowerCase()
+                    .includes(recentSearchQuery.toLowerCase()) ||
+                  transaction.category
+                    .toLowerCase()
+                    .includes(recentSearchQuery.toLowerCase()) ||
+                  transaction.reference
+                    .toLowerCase()
+                    .includes(recentSearchQuery.toLowerCase());
+                const matchesType =
+                  recentFilterType === "" ||
+                  transaction.type === recentFilterType;
+                const matchesStatus =
+                  recentFilterStatus === "" ||
+                  transaction.status === recentFilterStatus;
+
+                return matchesSearch && matchesType && matchesStatus;
+              });
+
+              // Sort transactions
+              filtered.sort((a, b) => {
+                switch (recentSortBy) {
+                  case "date":
+                    return new Date(b.date) - new Date(a.date);
+                  case "amount":
+                    return Math.abs(b.amount) - Math.abs(a.amount);
+                  case "type":
+                    return a.type.localeCompare(b.type);
+                  default:
+                    return 0;
+                }
+              });
+
+              // Take first 5
+              return filtered.slice(0, 5).map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`p-2 rounded-full ${
+                        transaction.type === "Income"
+                          ? "bg-green-100"
+                          : "bg-red-100"
+                      }`}
+                    >
+                      {transaction.type === "Income" ? (
+                        <ArrowUpIcon className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <ArrowDownIcon className="h-4 w-4 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {transaction.description}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {transaction.category} •{" "}
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <p
+                        className={`font-semibold ${
+                          transaction.type === "Income"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {transaction.type === "Income" ? "+" : ""}$
+                        {Math.abs(transaction.amount).toLocaleString()}
+                      </p>
+                      <p
+                        className={`text-xs px-2 py-1 rounded-full ${getStatusColor(
+                          transaction.status
+                        )}`}
+                      >
+                        {transaction.status}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleDeleteTransaction(transaction.id)}
+                      className="ml-2"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </CardContent>
       </Card>
