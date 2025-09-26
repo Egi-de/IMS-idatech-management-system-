@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
@@ -22,6 +22,8 @@ import {
 
 import { useTrashBin } from "../contexts/TrashBinContext";
 
+const API_BASE = "http://127.0.0.1:8000/api";
+
 const Employees = () => {
   const { addToTrash } = useTrashBin();
 
@@ -31,92 +33,58 @@ const Employees = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
-    employeeId: "",
     name: "",
     email: "",
     phone: "",
     position: "",
-    department: "",
+    department_id: "",
     salary: "",
     address: "",
+    status: "active",
   });
 
-  // Mock employee data
-  const [employees] = useState([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah.johnson@idatech.com",
-      phone: "+1-234-567-8901",
-      position: "Senior IoT Developer",
-      department: "Engineering",
-      salary: 85000,
-      hireDate: "2023-03-15",
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      address: "123 Tech Street, Silicon Valley, CA 94025",
-      emergencyContact: "John Johnson (+1-234-567-8902)",
-      skills: ["Python", "IoT", "Machine Learning", "AWS"],
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "michael.chen@idatech.com",
-      phone: "+1-234-567-8903",
-      position: "HR Manager",
-      department: "Human Resources",
-      salary: 75000,
-      hireDate: "2023-01-10",
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      address: "456 HR Avenue, San Francisco, CA 94102",
-      emergencyContact: "Lisa Chen (+1-234-567-8904)",
-      skills: ["HR Management", "Recruitment", "Employee Relations"],
-    },
-    {
-      id: 3,
-      name: "Emily Rodriguez",
-      email: "emily.rodriguez@idatech.com",
-      phone: "+1-234-567-8905",
-      position: "Financial Analyst",
-      department: "Finance",
-      salary: 70000,
-      hireDate: "2023-05-20",
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      address: "789 Finance Blvd, New York, NY 10001",
-      emergencyContact: "Carlos Rodriguez (+1-234-567-8906)",
-      skills: ["Financial Analysis", "Excel", "SAP", "Budgeting"],
-    },
-    {
-      id: 4,
-      name: "David Kim",
-      email: "david.kim@idatech.com",
-      phone: "+1-234-567-8907",
-      position: "Software Developer",
-      department: "Engineering",
-      salary: 65000,
-      hireDate: "2023-08-01",
-      status: "On Leave",
-      avatar: "/api/placeholder/40/40",
-      address: "321 Code Lane, Seattle, WA 98101",
-      emergencyContact: "Susan Kim (+1-234-567-8908)",
-      skills: ["JavaScript", "React", "Node.js", "Database Design"],
-    },
-  ]);
-
-  const departments = [
-    "All",
-    "Engineering",
-    "Human Resources",
-    "Finance",
-    "Marketing",
-    "Operations",
+  const statuses = [
+    { value: "active", label: "Active" },
+    { value: "on_leave", label: "On Leave" },
+    { value: "resigned", label: "Resigned" },
+    { value: "terminated", label: "Terminated" },
   ];
-  const statuses = ["All", "Active", "On Leave", "Terminated"];
+
+  useEffect(() => {
+    fetchEmployees();
+    fetchDepartments();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/employees/`);
+      if (!response.ok) throw new Error("Failed to fetch employees");
+      const data = await response.json();
+      setEmployees(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/departments/`);
+      if (!response.ok) throw new Error("Failed to fetch departments");
+      const data = await response.json();
+      setDepartments(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const handleViewEmployee = (employee) => {
     setSelectedEmployee(employee);
@@ -128,14 +96,14 @@ const Employees = () => {
     setSelectedEmployee(null);
     setModalType("add");
     setFormData({
-      employeeId: "",
       name: "",
       email: "",
       phone: "",
       position: "",
-      department: "",
+      department_id: "",
       salary: "",
       address: "",
+      status: "active",
     });
     setShowModal(true);
   };
@@ -144,27 +112,31 @@ const Employees = () => {
     setSelectedEmployee(employee);
     setModalType("edit");
     setFormData({
-      employeeId: employee.id.toString(),
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
       position: employee.position,
-      department: employee.department,
+      department_id: employee.department.id.toString(),
       salary: employee.salary.toString(),
       address: employee.address,
+      status: employee.status,
     });
     setShowModal(true);
   };
 
-  const handleDeleteEmployee = (employeeId) => {
-    const employeeToDelete = employees.find((emp) => emp.id === employeeId);
-    if (employeeToDelete) {
-      addToTrash({
-        name: `Deleted Employee: ${employeeToDelete.name}`,
-        details: `Position: ${employeeToDelete.position}, Department: ${employeeToDelete.department}`,
+  const handleDeleteEmployee = async (employeeId) => {
+    try {
+      const response = await fetch(`${API_BASE}/employees/${employeeId}/`, {
+        method: "DELETE",
       });
-      // Implement actual deletion logic here (e.g., API call)
-      console.log("Delete employee:", employeeId);
+      if (!response.ok) throw new Error("Failed to delete employee");
+      addToTrash({
+        name: `Deleted Employee: ${employees.find((emp) => emp.id === employeeId)?.name}`,
+        details: `Position: ${employees.find((emp) => emp.id === employeeId)?.position}, Department: ${employees.find((emp) => emp.id === employeeId)?.department.name}`,
+      });
+      fetchEmployees(); // Refetch after delete
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -176,67 +148,60 @@ const Employees = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (modalType === "add") {
-      // Add new employee
-      const newEmployee = {
-        id: parseInt(formData.employeeId),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        position: formData.position,
-        department: formData.department,
-        salary: parseInt(formData.salary),
-        hireDate: new Date().toISOString().split("T")[0],
-        status: "Active",
-        avatar: "/api/placeholder/40/40",
-        address: formData.address,
-        emergencyContact: "",
-        skills: [],
-      };
-      // In a real app, this would be an API call
-      console.log("Adding employee:", newEmployee);
-    } else if (modalType === "edit") {
-      // Update existing employee
-      const updatedEmployee = {
-        ...selectedEmployee,
-        id: parseInt(formData.employeeId),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        position: formData.position,
-        department: formData.department,
-        salary: parseInt(formData.salary),
-        address: formData.address,
-      };
-      // In a real app, this would be an API call
-      console.log("Updating employee:", updatedEmployee);
+    const data = {
+      ...formData,
+      department_id: parseInt(formData.department_id),
+      salary: parseFloat(formData.salary),
+    };
+
+    try {
+      let response;
+      if (modalType === "add") {
+        response = await fetch(`${API_BASE}/employees/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      } else if (modalType === "edit") {
+        response = await fetch(`${API_BASE}/employees/${selectedEmployee.id}/`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      }
+      if (!response.ok) throw new Error("Failed to save employee");
+      fetchEmployees(); // Refetch after add/edit
+      setShowModal(false);
+    } catch (err) {
+      setError(err.message);
     }
-    setShowModal(false);
   };
 
   const handleCancel = () => {
     setShowModal(false);
     setFormData({
-      employeeId: "",
       name: "",
       email: "",
       phone: "",
       position: "",
-      department: "",
+      department_id: "",
       salary: "",
       address: "",
+      status: "active",
     });
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Active":
+      case "active":
         return "text-green-600 bg-green-100";
-      case "On Leave":
+      case "on_leave":
         return "text-yellow-600 bg-yellow-100";
-      case "Terminated":
+      case "resigned":
+        return "text-blue-600 bg-blue-100";
+      case "terminated":
         return "text-red-600 bg-red-100";
       default:
         return "text-gray-600 bg-gray-100";
@@ -251,7 +216,7 @@ const Employees = () => {
     const matchesDepartment =
       filterDepartment === "" ||
       filterDepartment === "All" ||
-      employee.department === filterDepartment;
+      employee.department.name === filterDepartment;
     const matchesStatus =
       filterStatus === "" ||
       filterStatus === "All" ||
@@ -260,8 +225,11 @@ const Employees = () => {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const totalSalary = employees.reduce((sum, emp) => sum + emp.salary, 0);
-  const departmentsCount = new Set(employees.map((emp) => emp.department)).size;
+  const totalSalary = employees.reduce((sum, emp) => sum + parseFloat(emp.salary), 0);
+  const departmentsCount = new Set(employees.map((emp) => emp.department.name)).size;
+
+  if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div></div>;
+  if (error) return <div className="text-red-600 text-center">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -355,9 +323,10 @@ const Employees = () => {
               onChange={(e) => setFilterDepartment(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <option value="">All Departments</option>
               {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
+                <option key={dept.id} value={dept.name}>
+                  {dept.name}
                 </option>
               ))}
             </select>
@@ -367,9 +336,10 @@ const Employees = () => {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <option value="">All Statuses</option>
               {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
+                <option key={status.value} value={status.value}>
+                  {status.label}
                 </option>
               ))}
             </select>
@@ -411,13 +381,13 @@ const Employees = () => {
                   <tr key={employee.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <span className="font-mono text-sm font-medium text-gray-900">
-                        #{employee.id}
+                        {employee.employeeId}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <img
-                          src={employee.avatar}
+                          src="/api/placeholder/40/40"
                           alt={employee.name}
                           className="h-10 w-10 rounded-full"
                         />
@@ -434,12 +404,12 @@ const Employees = () => {
                     <td className="py-3 px-4">
                       <div className="font-medium">{employee.position}</div>
                       <div className="text-sm text-gray-600">
-                        Since {new Date(employee.hireDate).toLocaleDateString()}
+                        Since {new Date(employee.date_joined).toLocaleDateString()}
                       </div>
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                        {employee.department}
+                        {employee.department.name}
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -452,7 +422,7 @@ const Employees = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-medium">
-                        ${employee.salary.toLocaleString()}
+                        ${parseFloat(employee.salary).toLocaleString()}
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -461,7 +431,7 @@ const Employees = () => {
                           employee.status
                         )}`}
                       >
-                        {employee.status}
+                        {statuses.find(s => s.value === employee.status)?.label || employee.status}
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -515,7 +485,7 @@ const Employees = () => {
             {/* Basic Information */}
             <div className="flex items-center space-x-4">
               <img
-                src={selectedEmployee.avatar}
+                src="/api/placeholder/40/40"
                 alt={selectedEmployee.name}
                 className="h-20 w-20 rounded-full"
               />
@@ -525,7 +495,7 @@ const Employees = () => {
                 </h3>
                 <p className="text-gray-600">{selectedEmployee.position}</p>
                 <p className="text-sm text-gray-500">
-                  {selectedEmployee.department}
+                  {selectedEmployee.department.name}
                 </p>
               </div>
             </div>
@@ -558,15 +528,21 @@ const Employees = () => {
                 </h4>
                 <div className="space-y-3">
                   <div>
+                    <span className="text-gray-600">Employee ID:</span>
+                    <span className="ml-2 font-medium">
+                      {selectedEmployee.employeeId}
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-gray-600">Hire Date:</span>
                     <span className="ml-2 font-medium">
-                      {new Date(selectedEmployee.hireDate).toLocaleDateString()}
+                      {new Date(selectedEmployee.date_joined).toLocaleDateString()}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Salary:</span>
                     <span className="ml-2 font-medium">
-                      ${selectedEmployee.salary.toLocaleString()}
+                      ${parseFloat(selectedEmployee.salary).toLocaleString()}
                     </span>
                   </div>
                   <div>
@@ -576,35 +552,10 @@ const Employees = () => {
                         selectedEmployee.status
                       )}`}
                     >
-                      {selectedEmployee.status}
+                      {statuses.find(s => s.value === selectedEmployee.status)?.label || selectedEmployee.status}
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Emergency Contact */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Emergency Contact
-              </h4>
-              <p className="text-gray-600">
-                {selectedEmployee.emergencyContact}
-              </p>
-            </div>
-
-            {/* Skills */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">Skills</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedEmployee.skills.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                  >
-                    {skill}
-                  </span>
-                ))}
               </div>
             </div>
           </div>
@@ -613,19 +564,22 @@ const Employees = () => {
         {(modalType === "add" || modalType === "edit") && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Employee ID"
-                name="employeeId"
-                value={formData.employeeId}
-                onChange={handleInputChange}
-                placeholder="Enter employee ID"
-              />
+              {modalType === "edit" && (
+                <Input
+                  label="Employee ID"
+                  name="employeeId"
+                  value={selectedEmployee?.employeeId || ""}
+                  readOnly
+                  placeholder="Auto-generated"
+                />
+              )}
               <Input
                 label="Full Name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Enter full name"
+                required
               />
               <Input
                 label="Email"
@@ -634,6 +588,7 @@ const Employees = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email"
+                required
               />
               <Input
                 label="Phone"
@@ -648,29 +603,31 @@ const Employees = () => {
                 value={formData.position}
                 onChange={handleInputChange}
                 placeholder="Enter position"
+                required
               />
               <select
-                name="department"
-                value={formData.department}
+                name="department_id"
+                value={formData.department_id}
                 onChange={handleInputChange}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               >
                 <option value="">Select department</option>
-                {departments
-                  .filter((dept) => dept !== "All")
-                  .map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
               </select>
               <Input
                 label="Salary"
                 name="salary"
                 type="number"
+                step="0.01"
                 value={formData.salary}
                 onChange={handleInputChange}
                 placeholder="Enter salary"
+                required
               />
               <Input
                 label="Address"
@@ -679,6 +636,19 @@ const Employees = () => {
                 onChange={handleInputChange}
                 placeholder="Enter full address"
               />
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                {statuses.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={handleCancel}>
