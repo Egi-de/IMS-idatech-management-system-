@@ -30,6 +30,56 @@ const defaultSubjects = [
   "Web Development",
   "Data Structures",
 ];
+
+// Mock data for fallback
+const mockStudentsData = [
+  {
+    id: 1,
+    studentName: "John Doe",
+    studentId: "STU001",
+    email: "john@example.com",
+    program: "Software Development",
+    currentGPA: 3.7,
+    cumulativeGPA: 3.6,
+    totalCredits: 120,
+    completedCredits: 90,
+    currentSemester: "Fall 2024",
+    grades: {
+      Mathematics: 92,
+      Programming: 85,
+      "Database Systems": 88,
+      "Web Development": 90,
+      "Data Structures": 84,
+    },
+    assignments: { completed: 8, total: 10, averageScore: 88 },
+    projects: { completed: 5, total: 6, averageGrade: "A-" },
+    attendance: 95,
+    participation: "Excellent",
+  },
+  {
+    id: 2,
+    studentName: "Jane Smith",
+    studentId: "STU002",
+    email: "jane@example.com",
+    program: "Data Science",
+    currentGPA: 2.8,
+    cumulativeGPA: 3.0,
+    totalCredits: 120,
+    completedCredits: 75,
+    currentSemester: "Fall 2024",
+    grades: {
+      Mathematics: 75,
+      Programming: 72,
+      "Database Systems": 78,
+      "Web Development": 80,
+      "Data Structures": 70,
+    },
+    assignments: { completed: 6, total: 10, averageScore: 75 },
+    projects: { completed: 3, total: 6, averageGrade: "B" },
+    attendance: 85,
+    participation: "Good",
+  },
+];
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import * as XLSX from "xlsx";
 import {
@@ -214,21 +264,18 @@ const StudentPerformance = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showGradeManagementModal, setShowGradeManagementModal] =
-    useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gridApi, setGridApi] = useState(null);
-  const [gradeManagementGridApi, setGradeManagementGridApi] = useState(null);
 
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterGPA, setFilterGPA] = useState("");
   const [filterCompletion, setFilterCompletion] = useState("All");
 
-  // Custom modal state for enhanced grade management
+  // States for enhanced grade management (now in main view)
   const [subjects, setSubjects] = useState(defaultSubjects);
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
@@ -237,9 +284,14 @@ const StudentPerformance = () => {
   const [newSubjectCode, setNewSubjectCode] = useState("");
   const [editSubjectName, setEditSubjectName] = useState("");
   const [editSubjectCode, setEditSubjectCode] = useState("");
+
+  // Modal-specific states for grade management
   const [modalSearchQuery, setModalSearchQuery] = useState("");
   const [modalFilterStatus, setModalFilterStatus] = useState("All");
   const [modalFilterGPA, setModalFilterGPA] = useState("");
+  const [gradeManagementGridApi, setGradeManagementGridApi] = useState(null);
+  const [showGradeManagementModal, setShowGradeManagementModal] =
+    useState(false);
 
   // Inner save function
   const saveStudent = useCallback(async (studentId, updates) => {
@@ -260,17 +312,29 @@ const StudentPerformance = () => {
 
   // Calculate overall mark and derived fields
   const calculateDerivedFields = useCallback((student) => {
-    const marks = Object.values(student.grades || {});
+    student.assignments = student.assignments || {
+      completed: 0,
+      total: 0,
+      averageScore: 0,
+    };
+    student.projects = student.projects || {
+      completed: 0,
+      total: 0,
+      averageGrade: "B",
+    };
+    student.grades = student.grades || {};
+
+    const marks = Object.values(student.grades);
     const overallMark =
       marks.length > 0 ? marks.reduce((a, b) => a + b, 0) / marks.length : 0;
     const grade = getGrade(marks);
     const gpa = getGPA(grade);
     const assignmentsPercent =
-      student.assignments?.total > 0
+      student.assignments.total > 0
         ? (student.assignments.completed / student.assignments.total) * 100
         : 0;
     const projectsPercent =
-      student.projects?.total > 0
+      student.projects.total > 0
         ? (student.projects.completed / student.projects.total) * 100
         : 0;
     const standing = getStanding(gpa, assignmentsPercent);
@@ -331,42 +395,7 @@ const StudentPerformance = () => {
 
         // Fallback mock data if no students
         if (mappedStudents.length === 0) {
-          mappedStudents = [
-            {
-              id: 1,
-              studentName: "John Doe",
-              studentId: "STU001",
-              email: "john@example.com",
-              program: "Software Development",
-              currentGPA: 3.7,
-              cumulativeGPA: 3.6,
-              totalCredits: 120,
-              completedCredits: 90,
-              currentSemester: "Fall 2024",
-              grades: { Mathematics: 92, Programming: 85 },
-              assignments: { completed: 2, total: 3, averageScore: 88 },
-              projects: { completed: 5, total: 6, averageGrade: "A-" },
-              attendance: 95,
-              participation: "Excellent",
-            },
-            {
-              id: 2,
-              studentName: "Jane Smith",
-              studentId: "STU002",
-              email: "jane@example.com",
-              program: "Data Science",
-              currentGPA: 2.8,
-              cumulativeGPA: 3.0,
-              totalCredits: 120,
-              completedCredits: 75,
-              currentSemester: "Fall 2024",
-              grades: { "Database Systems": 78, Programming: 72 },
-              assignments: { completed: 1, total: 3, averageScore: 75 },
-              projects: { completed: 3, total: 6, averageGrade: "B" },
-              attendance: 85,
-              participation: "Good",
-            },
-          ].map(calculateDerivedFields);
+          mappedStudents = mockStudentsData.map(calculateDerivedFields);
           console.log("Using mock data for demo");
         }
         setStudents(mappedStudents);
@@ -375,42 +404,7 @@ const StudentPerformance = () => {
         toast.error("Failed to fetch students.");
         console.error(err);
         // Fallback to mock data on error to ensure modal renders
-        const mockStudents = [
-          {
-            id: 1,
-            studentName: "John Doe",
-            studentId: "STU001",
-            email: "john@example.com",
-            program: "Software Development",
-            currentGPA: 3.7,
-            cumulativeGPA: 3.6,
-            totalCredits: 120,
-            completedCredits: 90,
-            currentSemester: "Fall 2024",
-            grades: { Mathematics: 92, Programming: 85 },
-            assignments: { completed: 2, total: 3, averageScore: 88 },
-            projects: { completed: 5, total: 6, averageGrade: "A-" },
-            attendance: 95,
-            participation: "Excellent",
-          },
-          {
-            id: 2,
-            studentName: "Jane Smith",
-            studentId: "STU002",
-            email: "jane@example.com",
-            program: "Data Science",
-            currentGPA: 2.8,
-            cumulativeGPA: 3.0,
-            totalCredits: 120,
-            completedCredits: 75,
-            currentSemester: "Fall 2024",
-            grades: { "Database Systems": 78, Programming: 72 },
-            assignments: { completed: 1, total: 3, averageScore: 75 },
-            projects: { completed: 3, total: 6, averageGrade: "B" },
-            attendance: 85,
-            participation: "Good",
-          },
-        ].map(calculateDerivedFields);
+        const mockStudents = mockStudentsData.map(calculateDerivedFields);
         setStudents(mockStudents);
         console.log("Using mock data due to API error");
       } finally {
@@ -445,16 +439,6 @@ const StudentPerformance = () => {
         width: 150,
         cellRenderer: ProgressCellRenderer,
         editable: true,
-        cellEditor: "agTextCellEditor",
-        valueSetter: (params) => {
-          const value = parseFloat(params.newValue);
-          if (isNaN(value) || value < 0 || value > 100) {
-            toast.error("Invalid percentage. Must be 0-100.");
-            return false;
-          }
-          params.data.assignmentsPercent = value;
-          return true;
-        },
       },
       {
         headerName: "Marks",
@@ -618,8 +602,24 @@ const StudentPerformance = () => {
   // Grade management column definitions
   const gradeManagementColumnDefs = useMemo(() => {
     const cols = [
-      { headerName: "Name", field: "studentName", width: 150 },
-      { headerName: "Student ID", field: "studentId", width: 120 },
+      {
+        headerName: "#",
+        width: 50,
+        valueGetter: "node.rowIndex + 1",
+        pinned: "left",
+        suppressMenu: true,
+        editable: false,
+        sortable: false,
+        filter: false,
+        resizable: false,
+      },
+      { headerName: "Name", field: "studentName", width: 150, pinned: "left" },
+      {
+        headerName: "Student ID",
+        field: "studentId",
+        width: 120,
+        pinned: "left",
+      },
       {
         headerName: "Assignments",
         field: "assignments.completed",
@@ -631,10 +631,13 @@ const StudentPerformance = () => {
           const percent = params.data.assignmentsPercent || 0;
           return `${a.completed}/${a.total} (${percent}%)`;
         },
-        valueParser: (params) => parseInt(params.newValue) || 0,
         valueSetter: (params) => {
           const value = parseInt(params.newValue);
-          const total = (params.data.assignments || {}).total || 0;
+          let total = params.data.assignments?.total || 5; // Default total 5 if 0
+          if (total === 0) {
+            params.data.assignments = { ...params.data.assignments, total: 5 };
+            total = 5;
+          }
           if (isNaN(value) || value < 0 || value > total) {
             toast.error(
               `Completed assignments must be between 0 and ${total}.`
@@ -642,7 +645,7 @@ const StudentPerformance = () => {
             return false;
           }
           if (!params.data.assignments)
-            params.data.assignments = { completed: 0, total: 0 };
+            params.data.assignments = { completed: 0, total: total };
           params.data.assignments.completed = value;
           return true;
         },
@@ -658,16 +661,19 @@ const StudentPerformance = () => {
           const percent = params.data.projectsPercent || 0;
           return `${p.completed}/${p.total} (${percent}%)`;
         },
-        valueParser: (params) => parseInt(params.newValue) || 0,
         valueSetter: (params) => {
           const value = parseInt(params.newValue);
-          const total = (params.data.projects || {}).total || 0;
+          let total = params.data.projects?.total || 5; // Default total 5 if 0
+          if (total === 0) {
+            params.data.projects = { ...params.data.projects, total: 5 };
+            total = 5;
+          }
           if (isNaN(value) || value < 0 || value > total) {
             toast.error(`Completed projects must be between 0 and ${total}.`);
             return false;
           }
           if (!params.data.projects)
-            params.data.projects = { completed: 0, total: 0 };
+            params.data.projects = { completed: 0, total: total };
           params.data.projects.completed = value;
           return true;
         },
@@ -678,31 +684,28 @@ const StudentPerformance = () => {
       headerName: subject,
       width: 100,
       editable: true,
-      cellEditor: "agNumberCellEditor",
+      sortable: true,
       cellRenderer: ColoredGradeRenderer,
-      headerClass: (params) =>
-        selectedColumn === params.column.getColId() ? "bg-blue-100" : "",
+      cellEditor: "agNumberCellEditor",
+      cellEditorParams: {
+        min: 0,
+        max: 100,
+      },
       valueGetter: (params) => params.data.grades?.[subject] || 0,
-      valueParser: (params) => parseFloat(params.newValue) || 0,
       valueSetter: (params) => {
         const value = parseFloat(params.newValue);
         if (isNaN(value) || value < 0 || value > 100) {
-          toast.error("Invalid mark. Must be 0-100.");
+          toast.error("Mark must be between 0 and 100.");
           return false;
         }
         if (!params.data.grades) params.data.grades = {};
         params.data.grades[subject] = value;
-        // Recalculate derived fields immediately
-        const updatedData = calculateDerivedFields(params.data);
-        Object.assign(params.data, updatedData);
-        if (gradeManagementGridApi) {
-          gradeManagementGridApi.refreshCells({
-            rowNodes: [params.node],
-            force: true,
-          });
-        }
         return true;
       },
+      headerClass: (params) =>
+        selectedColumn === params.column.getColId()
+          ? "ag-header-cell-selected"
+          : "",
     }));
     const derivedCols = [
       { headerName: "Overall Mark", field: "overallMark", width: 120 },
@@ -714,40 +717,35 @@ const StudentPerformance = () => {
     console.log("Grade Management ColumnDefs length:", fullCols.length);
     console.log("First few columns:", fullCols.slice(0, 3));
     return fullCols;
-  }, [
-    subjects,
-    selectedColumn,
-    gradeManagementGridApi,
-    calculateDerivedFields,
-  ]);
+  }, [subjects, selectedColumn]);
 
-  // Handle grade management cell value changes
+  // Handle grade management cell value changes (with validation)
   const onGradeManagementCellValueChanged = (params) => {
-    const { data, colDef } = params;
-    if (
-      colDef.field === "assignments.completed" ||
-      colDef.field === "projects.completed" ||
-      !colDef.field // for subject columns without field
-    ) {
-      // Recalculate derived fields
-      const updatedData = calculateDerivedFields(data);
-      Object.assign(data, updatedData);
-      // Update grid
-      if (gradeManagementGridApi) {
-        gradeManagementGridApi.refreshCells({
-          rowNodes: [params.node],
-          force: true,
-        });
-      }
-      // Update state to trigger re-render
-      setStudents((prev) => [...prev]);
-      // Debounced save
-      debouncedSave(data.id, {
-        assignments: data.assignments,
-        projects: data.projects,
-        grades: data.grades,
+    const { data } = params;
+
+    // Recalculate derived fields after successful valueSetter
+    const updatedData = calculateDerivedFields(data);
+    Object.assign(data, updatedData);
+
+    // Update grid
+    if (gradeManagementGridApi) {
+      gradeManagementGridApi.refreshCells({
+        rowNodes: [params.node],
+        force: true,
       });
     }
+
+    // Update state to reflect changes
+    setStudents((prev) =>
+      prev.map((s) => (s.id === data.id ? updatedData : s))
+    );
+
+    // Debounced save
+    debouncedSave(data.id, {
+      assignments: data.assignments,
+      projects: data.projects,
+      grades: data.grades,
+    });
   };
 
   // Batch save function for Save Changes button
@@ -955,25 +953,36 @@ const StudentPerformance = () => {
     }
   };
 
-  // Handle cell value changes
+  // Handle cell value changes (with validation)
   const onCellValueChanged = (params) => {
-    const { data, colDef, newValue } = params;
+    const { data, colDef, newValue, oldValue } = params;
     if (colDef.field === "assignmentsPercent") {
+      const value = parseFloat(newValue);
+      if (isNaN(value) || value < 0 || value > 100) {
+        toast.error("Invalid percentage. Must be 0-100.");
+        // Revert
+        params.node.setDataValue(colDef.field, oldValue);
+        return;
+      }
+
       // Recalculate standing
-      const assignmentsPercent = parseFloat(newValue);
-      data.standing = getStanding(data.gpa, assignmentsPercent);
+      data.standing = getStanding(data.gpa, value);
+
+      // Update assignments completed based on percentage
+      if (data.assignments?.total > 0) {
+        data.assignments.completed = Math.round(
+          (value / 100) * data.assignments.total
+        );
+      }
 
       // Update grid
-      gridApi.refreshCells({ rowNodes: [params.node], force: true });
+      if (gridApi) {
+        gridApi.refreshCells({ rowNodes: [params.node], force: true });
+      }
 
       // Debounced save
       debouncedSave(data.id, {
-        assignments: {
-          ...data.assignments,
-          completed: Math.round(
-            (assignmentsPercent / 100) * data.assignments.total
-          ),
-        },
+        assignments: data.assignments,
       });
     }
   };
@@ -1212,7 +1221,10 @@ const StudentPerformance = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="ag-theme-alpine" style={{ height: 600, width: "100%" }}>
+        <div
+          className="ag-theme-alpine border rounded-lg"
+          style={{ height: 500, width: "100%" }}
+        >
           <AgGridReact
             rowData={filteredStudents}
             columnDefs={columnDefs}
@@ -1221,18 +1233,17 @@ const StudentPerformance = () => {
               setGridApi(params.api);
             }}
             onCellValueChanged={onCellValueChanged}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-            }}
             getRowStyle={(params) => ({
               backgroundColor:
                 getStandingColor(params.data.standing).split(" ")[1] ||
                 "#ffffff",
             })}
             pagination={true}
-            paginationPageSize={20}
+            paginationPageSize={Math.min(20, filteredStudents.length)}
+            suppressNoRowsOverlay={false}
+            enableRangeSelection={true}
+            enableFillHandle={true}
+            allowContextMenuWithControlKey={true}
           />
         </div>
       )}
@@ -1725,6 +1736,19 @@ const StudentPerformance = () => {
                 className="ag-theme-alpine border rounded-lg"
                 style={{ height: 500, width: "100%" }}
               >
+                <style jsx>{`
+                  .ag-header-cell-selected {
+                    background-color: #dbeafe !important;
+                    border: 2px solid #3b82f6 !important;
+                  }
+                  .ag-row-selected {
+                    background-color: #e3f2fd !important;
+                  }
+                  .ag-header-cell {
+                    font-weight: bold;
+                    background-color: #f8f9fa;
+                  }
+                `}</style>
                 <AgGridReact
                   rowData={modalFilteredStudents}
                   columnDefs={gradeManagementColumnDefs}
@@ -1738,10 +1762,17 @@ const StudentPerformance = () => {
                   }}
                   onHeaderClicked={(params) => {
                     const colId = params.column.getColId();
+                    console.log(`Header clicked: ${colId}`);
                     if (subjects.includes(colId)) {
-                      setSelectedColumn(
-                        colId === selectedColumn ? null : colId
-                      );
+                      const newSelected =
+                        colId === selectedColumn ? null : colId;
+                      setSelectedColumn(newSelected);
+                      // Refresh column defs to apply headerClass styling
+                      if (gradeManagementGridApi) {
+                        gradeManagementGridApi.setColumnDefs(
+                          gradeManagementColumnDefs
+                        );
+                      }
                     }
                   }}
                   onCellValueChanged={onGradeManagementCellValueChanged}
@@ -1749,7 +1780,23 @@ const StudentPerformance = () => {
                     resizable: true,
                     sortable: true,
                     filter: true,
+                    suppressMovable: false,
+                    editable: false, // Default false, override per column
+                    cellEditor: "agNumberCellEditor",
+                    cellEditorParams: { min: 0, max: 100 },
+                    singleClickEdit: false, // Switch to double-click for reliability
+                    stopEditingWhenCellsLoseFocus: true,
+                    suppressKeyboardEvent: (params) =>
+                      params.event && params.event.key === "Escape",
+                    cellStyle: {
+                      borderRight: "1px solid #e5e7eb",
+                      borderBottom: "1px solid #e5e7eb",
+                      lineHeight: "1.2",
+                    },
                   }}
+                  rowSelection="multiple"
+                  enableRangeSelection={true}
+                  suppressRowClickSelection={false}
                   getRowStyle={(params) => ({
                     backgroundColor:
                       getStandingColor(params.data.standing).split(" ")[1] ||
@@ -1761,9 +1808,6 @@ const StudentPerformance = () => {
                     modalFilteredStudents.length
                   )}
                   suppressNoRowsOverlay={false}
-                  enableRangeSelection={true}
-                  enableFillHandle={true}
-                  allowContextMenuWithControlKey={true}
                 />
               </div>
             </div>

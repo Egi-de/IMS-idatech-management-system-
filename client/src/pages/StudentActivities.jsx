@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import Select from "../components/Select";
 import {
   StarIcon,
   TrophyIcon,
@@ -17,8 +18,13 @@ import {
   UserIcon,
   PlusIcon,
   CalendarIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
-import { getStudentActivities } from "../services/api";
+import {
+  getStudentActivities,
+  updateStudent,
+  deleteStudent,
+} from "../services/api";
 
 const StudentActivities = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +35,7 @@ const StudentActivities = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newAchievement, setNewAchievement] = useState({
+    studentId: "",
     title: "",
     description: "",
     date: "",
@@ -36,6 +43,21 @@ const StudentActivities = () => {
     category: "Project",
     points: 0,
   });
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editData, setEditData] = useState({
+    totalPoints: 0,
+    totalProjects: 0,
+    certifications: 0,
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   // Fetch activities data on component mount
   useEffect(() => {
@@ -61,29 +83,86 @@ const StudentActivities = () => {
     setShowModal(true);
   };
 
-  const handleAddAchievement = () => {
-    // For now, add to the first student (John Doe) - in a real app, you'd select which student
-    const updatedData = [...activitiesData];
-    const newId = Math.max(...updatedData[0].achievements.map((a) => a.id)) + 1;
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    setEditData({
+      totalPoints: student.totalPoints,
+      totalProjects: student.totalProjects,
+      certifications: student.certifications,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleAddAchievement = async () => {
+    if (
+      !newAchievement.studentId ||
+      !newAchievement.title ||
+      !newAchievement.description
+    ) {
+      setAddError("Please fill in all required fields.");
+      return;
+    }
+
+    const selectedStudentId = parseInt(newAchievement.studentId);
+    const selectedStudent = activitiesData.find(
+      (s) => s.id === selectedStudentId
+    );
+    if (!selectedStudent) {
+      setAddError("Selected student not found.");
+      return;
+    }
+
+    const newId =
+      Math.max(...selectedStudent.achievements.map((a) => a.id || 0), 0) + 1;
     const achievement = {
       id: newId,
-      ...newAchievement,
+      title: newAchievement.title,
+      description: newAchievement.description,
+      date: newAchievement.date,
+      type: newAchievement.type,
+      category: newAchievement.category,
+      points: parseInt(newAchievement.points) || 0,
     };
-    updatedData[0].achievements.push(achievement);
-    updatedData[0].totalPoints += newAchievement.points;
-    // Update activitiesData state
-    // Note: Since activitiesData is currently using useState with initial value, we need to make it mutable
-    // For demo purposes, we'll just close the modal and reset the form
-    setShowAddModal(false);
-    setNewAchievement({
-      title: "",
-      description: "",
-      date: "",
-      type: "award",
-      category: "Project",
-      points: 0,
-    });
-    // In a real app, you'd update the state properly
+
+    const updatedAchievements = [...selectedStudent.achievements, achievement];
+    const updatedTotalPoints =
+      selectedStudent.totalPoints + (parseInt(newAchievement.points) || 0);
+
+    setAddLoading(true);
+    setAddError(null);
+
+    try {
+      await updateStudent(selectedStudentId, {
+        achievements: updatedAchievements,
+        totalPoints: updatedTotalPoints,
+      });
+
+      // Refetch data
+      const response = await getStudentActivities();
+      setActivitiesData(response.data);
+
+      // Reset form
+      setNewAchievement({
+        studentId: "",
+        title: "",
+        description: "",
+        date: "",
+        type: "award",
+        category: "Project",
+        points: 0,
+      });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error("Error adding achievement:", err);
+      console.error("Error response:", err.response?.data || err.message);
+      setAddError(
+        err.response?.data?.detail ||
+          err.response?.data?.error ||
+          "Failed to add achievement. Please try again."
+      );
+    } finally {
+      setAddLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -92,6 +171,78 @@ const StudentActivities = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingStudent) return;
+
+    setEditLoading(true);
+    setEditError(null);
+
+    try {
+      await updateStudent(editingStudent.id, {
+        totalPoints: parseInt(editData.totalPoints) || 0,
+        totalProjects: parseInt(editData.totalProjects) || 0,
+        certifications: parseInt(editData.certifications) || 0,
+      });
+
+      // Refetch data
+      const response = await getStudentActivities();
+      setActivitiesData(response.data);
+
+      setShowEditModal(false);
+      setEditingStudent(null);
+    } catch (err) {
+      console.error("Error updating student:", err);
+      setEditError(
+        err.response?.data?.detail ||
+          err.response?.data?.error ||
+          "Failed to update student. Please try again."
+      );
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = (student) => {
+    setStudentToDelete(student);
+    setShowDeleteModal(true);
+    setDeleteError(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+
+    setDeleteLoading(true);
+    setDeleteError(null);
+
+    try {
+      await deleteStudent(studentToDelete.id);
+
+      // Refetch data
+      const response = await getStudentActivities();
+      setActivitiesData(response.data);
+
+      setShowDeleteModal(false);
+      setStudentToDelete(null);
+    } catch (err) {
+      console.error("Error deleting student:", err);
+      setDeleteError(
+        err.response?.data?.detail ||
+          err.response?.data?.error ||
+          "Failed to delete student. Please try again."
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const getActivityIcon = (type) => {
@@ -274,83 +425,123 @@ const StudentActivities = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activitiesData.map((student) => (
-              <div
-                key={student.id}
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <UserIcon className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {student.studentName}
+            {(() => {
+              const studentsWithAchievements = activitiesData.filter(
+                (student) =>
+                  student.achievements && student.achievements.length > 0
+              );
+              if (studentsWithAchievements.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      No achievements yet
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {student.studentId} • {student.program}
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Get started by adding a student's first achievement.
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {student.achievements.length} achievements •{" "}
-                      {student.totalProjects} projects
-                    </p>
+                    <Button onClick={() => setShowAddModal(true)}>
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      Add First Achievement
+                    </Button>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-600">
-                      {student.totalPoints}
+                );
+              }
+              return studentsWithAchievements.map((student) => (
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <UserIcon className="h-6 w-6 text-blue-600" />
                     </div>
-                    <div className="text-xs text-gray-600">Points</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-blue-600">
-                      {student.totalProjects}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {student.studentName}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {student.studentId} • {student.program}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {student.achievements.length} achievements •{" "}
+                        {student.totalProjects} projects
+                      </p>
                     </div>
-                    <div className="text-xs text-gray-600">Projects</div>
                   </div>
 
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-green-600">
-                      {student.certifications}
-                    </div>
-                    <div className="text-xs text-gray-600">Certs</div>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    {student.achievements.slice(0, 3).map((achievement) => {
-                      const IconComponent = getActivityIcon(achievement.type);
-                      return (
-                        <div
-                          key={achievement.id}
-                          className={`p-2 rounded-full ${getActivityColor(
-                            achievement.type
-                          )}`}
-                          title={achievement.title}
-                        >
-                          <IconComponent className="h-4 w-4" />
-                        </div>
-                      );
-                    })}
-                    {student.achievements.length > 3 && (
-                      <div className="p-2 rounded-full bg-gray-200 text-gray-600 text-xs font-medium">
-                        +{student.achievements.length - 3}
+                  <div className="flex items-center space-x-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {student.totalPoints}
                       </div>
-                    )}
-                  </div>
+                      <div className="text-xs text-gray-600">Points</div>
+                    </div>
 
-                  <Button
-                    variant="outline"
-                    size="small"
-                    onClick={() => handleViewDetails(student)}
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </Button>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-blue-600">
+                        {student.totalProjects}
+                      </div>
+                      <div className="text-xs text-gray-600">Projects</div>
+                    </div>
+
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-green-600">
+                        {student.certifications}
+                      </div>
+                      <div className="text-xs text-gray-600">Certs</div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      {student.achievements.slice(0, 3).map((achievement) => {
+                        const IconComponent = getActivityIcon(achievement.type);
+                        return (
+                          <div
+                            key={achievement.id}
+                            className={`p-2 rounded-full ${getActivityColor(
+                              achievement.type
+                            )}`}
+                            title={achievement.title}
+                          >
+                            <IconComponent className="h-4 w-4" />
+                          </div>
+                        );
+                      })}
+                      {student.achievements.length > 3 && (
+                        <div className="p-2 rounded-full bg-gray-200 text-gray-600 text-xs font-medium">
+                          +{student.achievements.length - 3}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleEdit(student)}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleViewDetails(student)}
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleDelete(student)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </CardContent>
       </Card>
@@ -550,11 +741,34 @@ const StudentActivities = () => {
       {/* Add Achievement Modal */}
       <Modal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => {
+          setShowAddModal(false);
+          setAddError(null);
+        }}
         title="Add New Achievement"
         size="medium"
       >
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Select Student
+            </label>
+            <Select
+              value={newAchievement.studentId}
+              onChange={(e) =>
+                setNewAchievement((prev) => ({
+                  ...prev,
+                  studentId: e.target.value,
+                }))
+              }
+              placeholder="Choose a student"
+              options={activitiesData.map((student) => ({
+                value: student.id,
+                label: `${student.studentName} - ${student.program}`,
+              }))}
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Achievement Title
@@ -646,15 +860,185 @@ const StudentActivities = () => {
             </div>
           </div>
 
+          {addError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{addError}</p>
+            </div>
+          )}
+
           <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddModal(false);
+                setAddError(null);
+              }}
+              disabled={addLoading}
+            >
               Cancel
             </Button>
             <Button
               onClick={handleAddAchievement}
-              disabled={!newAchievement.title || !newAchievement.description}
+              disabled={
+                addLoading ||
+                !newAchievement.studentId ||
+                !newAchievement.title ||
+                !newAchievement.description
+              }
             >
-              Add Achievement
+              {addLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Adding...
+                </>
+              ) : (
+                "Add Achievement"
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Student Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditError(null);
+          setEditingStudent(null);
+        }}
+        title="Edit Student Statistics"
+        size="medium"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Total Points
+            </label>
+            <Input
+              name="totalPoints"
+              type="number"
+              value={editData.totalPoints}
+              onChange={handleEditInputChange}
+              placeholder="0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Total Projects
+            </label>
+            <Input
+              name="totalProjects"
+              type="number"
+              value={editData.totalProjects}
+              onChange={handleEditInputChange}
+              placeholder="0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Certifications
+            </label>
+            <Input
+              name="certifications"
+              type="number"
+              value={editData.certifications}
+              onChange={handleEditInputChange}
+              placeholder="0"
+            />
+          </div>
+
+          {editError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{editError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEditModal(false);
+                setEditError(null);
+                setEditingStudent(null);
+              }}
+              disabled={editLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={editLoading}>
+              {editLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Updating...
+                </>
+              ) : (
+                "Update Student"
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteError(null);
+          setStudentToDelete(null);
+        }}
+        title="Confirm Delete"
+        size="small"
+      >
+        <div className="space-y-4">
+          <div className="text-center">
+            <TrashIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">
+              Delete Student?
+            </h3>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete{" "}
+              <span className="font-medium">
+                {studentToDelete?.studentName}
+              </span>
+              ? This action cannot be undone.
+            </p>
+          </div>
+
+          {deleteError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{deleteError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteError(null);
+                setStudentToDelete(null);
+              }}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Student"
+              )}
             </Button>
           </div>
         </div>

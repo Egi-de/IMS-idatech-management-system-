@@ -7,33 +7,38 @@ from .serializers import StudentSerializer
 from datetime import datetime
 
 class StudentListCreateView(generics.ListCreateAPIView):
-    queryset = Student.objects.all().order_by('-created_at')
+    queryset = Student.objects.filter(is_deleted=False).order_by('-created_at')
     serializer_class = StudentSerializer
 
 class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Student.objects.all()
+    queryset = Student.objects.filter(is_deleted=False)
     serializer_class = StudentSerializer
 
     def perform_update(self, serializer):
         serializer.save(partial=True)
 
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save()
+
 class StudentSummaryView(APIView):
     def get(self, request):
-        total_students = Student.objects.count()
-        active_students = Student.objects.filter(status='Active').count()
-        total_gpa = Student.objects.aggregate(avg_gpa=Avg('gpa'))['avg_gpa'] or 0
-        total_attendance = Student.objects.aggregate(avg_attendance=Avg('overallAttendance'))['avg_attendance'] or 0
-        total_points = Student.objects.aggregate(sum_points=Sum('totalPoints'))['sum_points'] or 0
-        total_projects = Student.objects.aggregate(sum_projects=Sum('totalProjects'))['sum_projects'] or 0
+        students = Student.objects.filter(is_deleted=False)
+        total_students = students.count()
+        active_students = students.filter(status='Active').count()
+        total_gpa = students.aggregate(avg_gpa=Avg('gpa'))['avg_gpa'] or 0
+        total_attendance = students.aggregate(avg_attendance=Avg('overallAttendance'))['avg_attendance'] or 0
+        total_points = students.aggregate(sum_points=Sum('totalPoints'))['sum_points'] or 0
+        total_projects = students.aggregate(sum_projects=Sum('totalProjects'))['sum_projects'] or 0
 
         program_breakdown = list(
-            Student.objects.values('program')
+            students.values('program')
             .annotate(count=Count('id'))
             .order_by('-count')
         )
 
         status_breakdown = list(
-            Student.objects.values('status')
+            students.values('status')
             .annotate(count=Count('id'))
             .order_by('-count')
         )
@@ -51,7 +56,7 @@ class StudentSummaryView(APIView):
 
 class StudentActivitiesView(APIView):
     def get(self, request):
-        students = Student.objects.all()
+        students = Student.objects.filter(is_deleted=False)
         activities_data = []
 
         for student in students:
@@ -73,7 +78,7 @@ class StudentActivitiesView(APIView):
 
 class StudentAttendanceView(APIView):
     def get(self, request):
-        students = Student.objects.all()
+        students = Student.objects.filter(is_deleted=False)
         attendance_data = []
 
         for student in students:
@@ -114,7 +119,7 @@ class StudentAttendanceView(APIView):
         updated_count = 0
         for student_id in student_ids:
             try:
-                student = Student.objects.get(id=student_id)
+                student = Student.objects.get(id=student_id, is_deleted=False)
                 # Update counters based on status
                 if status == 'present':
                     student.presentDays += 1
@@ -160,3 +165,31 @@ class StudentAttendanceView(APIView):
             'message': f'Attendance marked successfully for {updated_count} students.',
             'updated_count': updated_count
         })
+
+
+class RestoreStudentView(APIView):
+    def patch(self, request, pk):
+        try:
+            student = Student.objects.get(pk=pk, is_deleted=True)
+            student.is_deleted = False
+            student.save()
+            serializer = StudentSerializer(student)
+            return Response(serializer.data)
+        except Student.DoesNotExist:
+            return Response({'error': 'Deleted student not found.'}, status=404)
+
+
+class DeletedStudentsView(APIView):
+    def get(self, request):
+        students = Student.objects.filter(is_deleted=True)
+        deleted_data = []
+        for student in students:
+            deleted_data.append({
+                'id': student.id,
+                'studentName': student.name,
+                'studentId': student.idNumber,
+                'email': student.email,
+                'program': student.program,
+                'deleted_at': student.created_at,  # Approximate, or add deleted_at field if needed
+            })
+        return Response(deleted_data)

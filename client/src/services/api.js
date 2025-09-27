@@ -42,9 +42,13 @@ export const generatePDFReport = (params) =>
 export const getStudents = () => studentApi.get("/api/students/");
 export const createStudent = (data) => studentApi.post("/api/students/", data);
 export const updateStudent = (id, data) =>
-  studentApi.put(`/api/students/${id}/`, data);
+  studentApi.patch(`/api/students/${id}/`, data);
 export const deleteStudent = (id) => studentApi.delete(`/api/students/${id}/`);
 export const getStudentById = (id) => studentApi.get(`/api/students/${id}/`);
+export const getDeletedStudents = () =>
+  studentApi.get("/api/students/deleted/");
+export const restoreStudent = (id) =>
+  studentApi.patch(`/api/students/${id}/restore/`);
 
 // Student Summary API
 export const getStudentSummary = () => studentApi.get("/api/students/summary/");
