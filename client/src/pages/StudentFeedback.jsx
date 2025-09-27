@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { getStudents, updateStudent } from "../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
@@ -36,169 +37,112 @@ const StudentFeedback = () => {
     goals: "",
   });
 
-  // Enhanced mock feedback data
-  const [feedbackData] = useState([
-    {
-      id: 1,
-      studentName: "John Doe",
-      studentId: "STU001",
-      email: "john.doe@email.com",
-      program: "IoT Development",
-      overallRating: 4.2,
-      feedbackCount: 8,
-      lastFeedback: "2024-01-15",
-      performanceRating: 4.5,
-      participationRating: 4.0,
-      attitudeRating: 4.8,
-      skillRating: 4.2,
-      feedback: [
-        {
-          id: 1,
-          type: "instructor",
-          instructor: "Dr. Sarah Wilson",
-          course: "IoT Fundamentals",
-          date: "2024-01-15",
-          rating: 4.5,
-          comments:
-            "Excellent performance in IoT projects. Shows great initiative and problem-solving skills. Could benefit from more leadership opportunities.",
-          recommendations:
-            "Consider advanced IoT specialization courses. Would benefit from leadership training.",
-          strengths: ["Problem Solving", "Technical Skills", "Initiative"],
-          improvements: ["Leadership", "Communication"],
-        },
-        {
-          id: 2,
-          type: "peer",
-          peer: "Jane Smith",
-          course: "Embedded Systems",
-          date: "2024-01-10",
-          rating: 4.0,
-          comments:
-            "Great team player and always willing to help others. Very knowledgeable in embedded systems.",
-          recommendations: "Keep up the excellent work!",
-          strengths: ["Teamwork", "Knowledge", "Helpfulness"],
-          improvements: [],
-        },
-        {
-          id: 3,
-          type: "self",
-          date: "2024-01-05",
-          rating: 4.0,
-          comments:
-            "I feel confident in my IoT skills but want to improve my presentation skills for project demonstrations.",
-          goals: "Complete advanced IoT certification and lead a team project.",
-          strengths: ["Technical Skills", "Dedication"],
-          improvements: ["Presentation Skills", "Leadership"],
-        },
-      ],
-      averageRating: 4.2,
-      improvementAreas: ["Leadership", "Communication", "Presentation Skills"],
-      strengths: [
-        "Problem Solving",
-        "Technical Skills",
-        "Initiative",
-        "Teamwork",
-      ],
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      studentId: "STU002",
-      email: "jane.smith@email.com",
-      program: "Software Development",
-      overallRating: 4.0,
-      feedbackCount: 6,
-      lastFeedback: "2024-01-14",
-      performanceRating: 4.2,
-      participationRating: 3.8,
-      attitudeRating: 4.5,
-      skillRating: 4.0,
-      feedback: [
-        {
-          id: 1,
-          type: "instructor",
-          instructor: "Prof. Michael Chen",
-          course: "Data Structures",
-          date: "2024-01-14",
-          rating: 4.2,
-          comments:
-            "Strong analytical skills and good understanding of algorithms. Shows good progress in software development.",
-          recommendations: "Focus on advanced algorithms and design patterns.",
-          strengths: ["Analytical Skills", "Programming", "Progress"],
-          improvements: ["Advanced Topics"],
-        },
-        {
-          id: 2,
-          type: "self",
-          date: "2024-01-08",
-          rating: 3.8,
-          comments:
-            "I need to work on time management for assignments and improve my debugging skills.",
-          goals:
-            "Complete all assignments on time and improve debugging efficiency.",
-          strengths: ["Understanding", "Effort"],
-          improvements: ["Time Management", "Debugging"],
-        },
-      ],
-      averageRating: 4.0,
-      improvementAreas: ["Time Management", "Debugging", "Advanced Topics"],
-      strengths: [
-        "Analytical Skills",
-        "Programming",
-        "Understanding",
-        "Effort",
-      ],
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      studentId: "STU003",
-      email: "mike.johnson@email.com",
-      program: "IoT Development",
-      overallRating: 3.2,
-      feedbackCount: 4,
-      lastFeedback: "2024-01-10",
-      performanceRating: 3.0,
-      participationRating: 3.5,
-      attitudeRating: 3.8,
-      skillRating: 3.0,
-      feedback: [
-        {
-          id: 1,
-          type: "instructor",
-          instructor: "Dr. Sarah Wilson",
-          course: "IoT Fundamentals",
-          date: "2024-01-10",
-          rating: 3.0,
-          comments:
-            "Needs improvement in understanding core IoT concepts. Attendance has been inconsistent.",
-          recommendations:
-            "Focus on regular attendance and seek help during office hours. Consider tutoring support.",
-          strengths: ["Attitude", "Effort"],
-          improvements: ["Core Concepts", "Attendance", "Understanding"],
-        },
-        {
-          id: 2,
-          type: "self",
-          date: "2024-01-05",
-          rating: 3.5,
-          comments:
-            "I'm struggling with some of the technical concepts but I'm trying my best to catch up.",
-          goals:
-            "Improve understanding of IoT fundamentals and maintain regular attendance.",
-          strengths: ["Effort", "Attitude"],
-          improvements: ["Technical Understanding", "Attendance"],
-        },
-      ],
-      averageRating: 3.2,
-      improvementAreas: [
-        "Core Concepts",
-        "Attendance",
-        "Technical Understanding",
-      ],
-      strengths: ["Effort", "Attitude"],
-    },
-  ]);
+  const [feedbackData, setFeedbackData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Dynamic feedback data fetched from API
+
+  const fetchFeedbackData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getStudents();
+      const students = response.data.filter((s) => !s.is_deleted);
+      const transformedData = students.map((student) => {
+        const feedback = student.feedback || [];
+        const ratings = feedback.map((f) => f.rating).filter((r) => r != null);
+        const feedbackAvg =
+          ratings.length > 0
+            ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
+            : 0;
+
+        const performanceRating =
+          getPerformanceRating(student.performance) ||
+          (student.gpa ? parseFloat(student.gpa) : 0);
+        const participationRating = (student.overallAttendance / 100) * 5;
+        const attitudeRating =
+          Math.min(
+            5,
+            (student.totalPoints || 0) / 20 +
+              (student.achievements ? student.achievements.length : 0) * 0.5
+          ) || 3.0;
+        let skillRating = 0;
+        if (student.gpa) {
+          skillRating = parseFloat(student.gpa);
+        } else if (student.grades && Object.keys(student.grades).length > 0) {
+          const gradeValues = Object.values(student.grades)
+            .map((g) => parseFloat(g))
+            .filter((g) => !isNaN(g));
+          if (gradeValues.length > 0) {
+            skillRating =
+              gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length;
+          }
+        }
+
+        const subRatingsAvg =
+          (performanceRating +
+            participationRating +
+            attitudeRating +
+            skillRating) /
+          4;
+        const overallRating =
+          feedbackAvg > 0 ? (feedbackAvg + subRatingsAvg) / 2 : subRatingsAvg;
+        const cappedOverall = Math.min(5, Math.max(0, overallRating));
+
+        const allStrengths = feedback.flatMap((f) => f.strengths || []);
+        const allImprovements = feedback.flatMap((f) => f.improvements || []);
+        const uniqueStrengths = [...new Set(allStrengths)];
+        const uniqueImprovements = [...new Set(allImprovements)];
+        const dates = feedback.map((f) => f.date).filter((d) => d);
+        const lastFeedback =
+          dates.length > 0
+            ? new Date(Math.max(...dates.map((d) => new Date(d))))
+                .toISOString()
+                .split("T")[0]
+            : null;
+
+        return {
+          id: student.id,
+          studentName: student.name,
+          studentId: student.idNumber,
+          email: student.email,
+          program: student.program,
+          feedback,
+          feedbackCount: feedback.length,
+          lastFeedback,
+          overallRating: parseFloat(cappedOverall.toFixed(1)),
+          performanceRating: parseFloat(performanceRating.toFixed(1)),
+          participationRating: parseFloat(participationRating.toFixed(1)),
+          attitudeRating: parseFloat(attitudeRating.toFixed(1)),
+          skillRating: parseFloat(skillRating.toFixed(1)),
+          averageRating: parseFloat(cappedOverall.toFixed(1)),
+          improvementAreas: uniqueImprovements,
+          strengths: uniqueStrengths,
+        };
+      });
+      setFeedbackData(transformedData);
+    } catch (err) {
+      setError(err.message || "Failed to fetch student feedback data");
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFeedbackData();
+  }, [fetchFeedbackData]);
+
+  const getPerformanceRating = (performance) => {
+    const mapping = {
+      Excellent: 4.5,
+      Good: 4.0,
+      Average: 3.0,
+      Poor: 2.0,
+    };
+    return mapping[performance] || 0;
+  };
 
   const handleViewDetails = (student) => {
     setSelectedStudent(student);
@@ -213,40 +157,51 @@ const StudentFeedback = () => {
     }));
   };
 
-  const handleAddFeedback = (e) => {
+  const handleAddFeedback = async (e) => {
     e.preventDefault();
     if (!newFeedback.studentId || !newFeedback.comments) {
       alert("Please fill in all required fields");
       return;
     }
 
-    // Find the student to add feedback to
-    const student = feedbackData.find(
-      (s) => s.studentId === newFeedback.studentId
-    );
-    if (student) {
-      const feedbackEntry = {
-        id: Date.now(),
-        type: newFeedback.type,
-        date: new Date().toISOString().split("T")[0],
-        rating: newFeedback.rating,
-        comments: newFeedback.comments,
-        recommendations: newFeedback.recommendations,
-        strengths: newFeedback.strengths,
-        improvements: newFeedback.improvements,
-        goals: newFeedback.goals,
-        ...(newFeedback.type === "instructor" && {
-          instructor: newFeedback.instructor,
-        }),
-        ...(newFeedback.type === "peer" && { peer: newFeedback.peer }),
-        ...(newFeedback.course && { course: newFeedback.course }),
-      };
+    // Find the student to add feedback to (studentId is now the numerical id)
+    const studentIdNum = parseInt(newFeedback.studentId);
+    if (isNaN(studentIdNum)) {
+      alert("Invalid student ID selected");
+      return;
+    }
+    const student = feedbackData.find((s) => s.id === studentIdNum);
+    if (!student) {
+      alert("Selected student not found");
+      return;
+    }
+    const feedbackEntry = {
+      id: Date.now(),
+      type: newFeedback.type,
+      date: new Date().toISOString().split("T")[0],
+      rating: newFeedback.rating,
+      comments: newFeedback.comments,
+      recommendations: newFeedback.recommendations,
+      strengths: newFeedback.strengths || [],
+      improvements: newFeedback.improvements || [],
+      goals: newFeedback.goals,
+      ...(newFeedback.type === "instructor" && {
+        instructor: newFeedback.instructor,
+      }),
+      ...(newFeedback.type === "peer" && { peer: newFeedback.peer }),
+      ...(newFeedback.course && { course: newFeedback.course }),
+    };
 
-      // Add feedback to student
-      student.feedback.push(feedbackEntry);
-      student.feedbackCount += 1;
-      student.lastFeedback = new Date().toISOString().split("T")[0];
+    console.log("Submitting feedback for student ID:", studentIdNum);
+    console.log("Feedback entry:", feedbackEntry);
 
+    // Append to feedback array
+    const updatedFeedback = [...(student.feedback || []), feedbackEntry];
+
+    try {
+      await updateStudent(student.id, { feedback: updatedFeedback });
+      // Refetch data to update UI
+      await fetchFeedbackData();
       // Reset form and close modal
       setNewFeedback({
         studentId: "",
@@ -262,6 +217,14 @@ const StudentFeedback = () => {
         goals: "",
       });
       setShowAddModal(false);
+      alert("Feedback added successfully!");
+    } catch (err) {
+      console.error("Update error:", err);
+      const errorMsg =
+        err.response?.data?.non_field_errors?.[0] ||
+        err.response?.data?.detail ||
+        err.message;
+      alert(`Failed to add feedback: ${errorMsg}`);
     }
   };
 
@@ -307,6 +270,30 @@ const StudentFeedback = () => {
 
     return stars;
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        Loading feedback data...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64 text-red-600">
+        Error: {error}
+      </div>
+    );
+  }
+
+  const filteredData = feedbackData.filter(
+    (student) =>
+      student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.program.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.studentId.includes(searchQuery) ||
+      student.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -430,109 +417,117 @@ const StudentFeedback = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {feedbackData.map((student) => (
-              <div
-                key={student.id}
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <UserIcon className="h-6 w-6 text-blue-600" />
+            {filteredData.length > 0 ? (
+              filteredData.map((student) => (
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <UserIcon className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {student.studentName}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {student.studentId} • {student.program}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {student.feedbackCount} feedback • Last:{" "}
+                        {student.lastFeedback
+                          ? new Date(student.lastFeedback).toLocaleDateString()
+                          : "No feedback yet"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {student.studentName}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {student.studentId} • {student.program}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {student.feedbackCount} feedback • Last:{" "}
-                      {new Date(student.lastFeedback).toLocaleDateString()}
-                    </p>
+
+                  <div className="flex items-center space-x-6">
+                    <div className="text-center">
+                      <div
+                        className={`text-2xl font-bold ${getRatingColor(
+                          student.overallRating
+                        )}`}
+                      >
+                        {student.overallRating}
+                      </div>
+                      <div className="text-xs text-gray-600">Overall</div>
+                    </div>
+
+                    <div className="text-center">
+                      <div
+                        className={`text-lg font-semibold ${getRatingColor(
+                          student.performanceRating
+                        )}`}
+                      >
+                        {student.performanceRating}
+                      </div>
+                      <div className="text-xs text-gray-600">Performance</div>
+                    </div>
+
+                    <div className="text-center">
+                      <div
+                        className={`text-lg font-semibold ${getRatingColor(
+                          student.participationRating
+                        )}`}
+                      >
+                        {student.participationRating}
+                      </div>
+                      <div className="text-xs text-gray-600">Participation</div>
+                    </div>
+
+                    <div className="text-center">
+                      <div
+                        className={`text-lg font-semibold ${getRatingColor(
+                          student.attitudeRating
+                        )}`}
+                      >
+                        {student.attitudeRating}
+                      </div>
+                      <div className="text-xs text-gray-600">Attitude</div>
+                    </div>
+
+                    <div className="text-center">
+                      <div
+                        className={`text-lg font-semibold ${getRatingColor(
+                          student.skillRating
+                        )}`}
+                      >
+                        {student.skillRating}
+                      </div>
+                      <div className="text-xs text-gray-600">Skills</div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getRatingBgColor(
+                          student.overallRating
+                        )} ${getRatingColor(student.overallRating)}`}
+                      >
+                        {student.overallRating >= 4.0
+                          ? "Excellent"
+                          : student.overallRating >= 3.0
+                          ? "Good"
+                          : "Needs Improvement"}
+                      </span>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleViewDetails(student)}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <div
-                      className={`text-2xl font-bold ${getRatingColor(
-                        student.overallRating
-                      )}`}
-                    >
-                      {student.overallRating}
-                    </div>
-                    <div className="text-xs text-gray-600">Overall</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div
-                      className={`text-lg font-semibold ${getRatingColor(
-                        student.performanceRating
-                      )}`}
-                    >
-                      {student.performanceRating}
-                    </div>
-                    <div className="text-xs text-gray-600">Performance</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div
-                      className={`text-lg font-semibold ${getRatingColor(
-                        student.participationRating
-                      )}`}
-                    >
-                      {student.participationRating}
-                    </div>
-                    <div className="text-xs text-gray-600">Participation</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div
-                      className={`text-lg font-semibold ${getRatingColor(
-                        student.attitudeRating
-                      )}`}
-                    >
-                      {student.attitudeRating}
-                    </div>
-                    <div className="text-xs text-gray-600">Attitude</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div
-                      className={`text-lg font-semibold ${getRatingColor(
-                        student.skillRating
-                      )}`}
-                    >
-                      {student.skillRating}
-                    </div>
-                    <div className="text-xs text-gray-600">Skills</div>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getRatingBgColor(
-                        student.overallRating
-                      )} ${getRatingColor(student.overallRating)}`}
-                    >
-                      {student.overallRating >= 4.0
-                        ? "Excellent"
-                        : student.overallRating >= 3.0
-                        ? "Good"
-                        : "Needs Improvement"}
-                    </span>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="small"
-                    onClick={() => handleViewDetails(student)}
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">
+                No students found matching the search criteria.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -735,7 +730,7 @@ const StudentFeedback = () => {
               >
                 <option value="">Select Student</option>
                 {feedbackData.map((student) => (
-                  <option key={student.studentId} value={student.studentId}>
+                  <option key={student.id} value={student.id}>
                     {student.studentId} - {student.studentName}
                   </option>
                 ))}

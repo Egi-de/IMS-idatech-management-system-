@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
@@ -18,6 +18,7 @@ import {
   UserGroupIcon,
   DocumentCheckIcon,
 } from "@heroicons/react/24/outline";
+import { getStudentAttendance, markAttendance } from "../services/api";
 
 const StudentAttendance = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,69 +37,29 @@ const StudentAttendance = () => {
   const [bulkStatus, setBulkStatus] = useState("present");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Enhanced mock attendance data
-  const [attendanceData] = useState([
-    {
-      id: 1,
-      studentName: "John Doe",
-      studentId: "STU001",
-      email: "john.doe@email.com",
-      program: "IoT Development",
-      overallAttendance: 95,
-      presentDays: 152,
-      absentDays: 8,
-      lateDays: 3,
-      excusedAbsences: 2,
-      currentStreak: 12,
-      lastAttendance: "2024-01-15",
-      status: "Excellent",
-      monthlyData: {
-        "2024-01": { present: 22, absent: 1, late: 0 },
-        "2024-02": { present: 20, absent: 2, late: 1 },
-        "2024-03": { present: 21, absent: 1, late: 1 },
-      },
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      studentId: "STU002",
-      email: "jane.smith@email.com",
-      program: "Software Development",
-      overallAttendance: 88,
-      presentDays: 141,
-      absentDays: 15,
-      lateDays: 4,
-      excusedAbsences: 8,
-      currentStreak: 5,
-      lastAttendance: "2024-01-14",
-      status: "Good",
-      monthlyData: {
-        "2024-01": { present: 20, absent: 2, late: 1 },
-        "2024-02": { present: 19, absent: 3, late: 1 },
-        "2024-03": { present: 18, absent: 4, late: 1 },
-      },
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      studentId: "STU003",
-      email: "mike.johnson@email.com",
-      program: "IoT Development",
-      overallAttendance: 75,
-      presentDays: 120,
-      absentDays: 32,
-      lateDays: 8,
-      excusedAbsences: 12,
-      currentStreak: 0,
-      lastAttendance: "2024-01-10",
-      status: "Needs Improvement",
-      monthlyData: {
-        "2024-01": { present: 15, absent: 6, late: 2 },
-        "2024-02": { present: 14, absent: 7, late: 2 },
-        "2024-03": { present: 16, absent: 5, late: 2 },
-      },
-    },
-  ]);
+  // Dynamic attendance data
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch attendance data on component mount
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setLoading(true);
+        const response = await getStudentAttendance();
+        setAttendanceData(response.data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load attendance data");
+        console.error("Error fetching attendance:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, []);
 
   const handleViewDetails = (student) => {
     setSelectedStudent(student);
@@ -168,73 +129,71 @@ const StudentAttendance = () => {
   const handleSubmitAttendance = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Get selected students
+      const selectedStudentIds = Object.keys(selectedStudents).filter(
+        (id) => selectedStudents[id]
+      );
 
-    // Get selected students
-    const studentsToUpdate = attendanceData.filter(
-      (student) => selectedStudents[student.id]
-    );
+      // Prepare attendance data for API
+      const attendanceData = {
+        date: attendanceDate,
+        status: bulkStatus,
+        student_ids: selectedStudentIds,
+      };
 
-    // Update attendance data (in a real app, this would be an API call)
-    studentsToUpdate.forEach((student) => {
-      const currentMonth = new Date(attendanceDate).toISOString().slice(0, 7);
+      // Make API call to mark attendance
+      await markAttendance(attendanceData);
 
-      // Update monthly data
-      if (!student.monthlyData[currentMonth]) {
-        student.monthlyData[currentMonth] = { present: 0, absent: 0, late: 0 };
-      }
+      // Refresh attendance data
+      const response = await getStudentAttendance();
+      setAttendanceData(response.data);
 
-      // Update counts based on status
-      if (bulkStatus === "present") {
-        student.presentDays += 1;
-        student.monthlyData[currentMonth].present += 1;
-        student.currentStreak += 1;
-        student.lastAttendance = attendanceDate;
-      } else if (bulkStatus === "absent") {
-        student.absentDays += 1;
-        student.monthlyData[currentMonth].absent += 1;
-        student.currentStreak = 0;
-      } else if (bulkStatus === "late") {
-        student.lateDays += 1;
-        student.monthlyData[currentMonth].late += 1;
-        // Late doesn't break streak but doesn't count as present
-      } else if (bulkStatus === "excused") {
-        student.excusedAbsences += 1;
-        student.monthlyData[currentMonth].absent += 1;
-        student.currentStreak = 0;
-      }
+      setIsSubmitting(false);
+      setShowMarkAttendanceModal(false);
 
-      // Recalculate overall attendance percentage
-      const totalDays =
-        student.presentDays + student.absentDays + student.lateDays;
-      student.overallAttendance =
-        totalDays > 0 ? Math.round((student.presentDays / totalDays) * 100) : 0;
+      // Reset form
+      setSelectedStudents({});
+      setBulkStatus("present");
 
-      // Update status based on new percentage
-      if (student.overallAttendance >= 90) {
-        student.status = "Excellent";
-      } else if (student.overallAttendance >= 80) {
-        student.status = "Good";
-      } else if (student.overallAttendance >= 70) {
-        student.status = "Average";
-      } else {
-        student.status = "Needs Improvement";
-      }
-    });
-
-    setIsSubmitting(false);
-    setShowMarkAttendanceModal(false);
-
-    // Reset form
-    setSelectedStudents({});
-    setBulkStatus("present");
-
-    // Show success message (in a real app, you'd use a toast notification)
-    alert(
-      `Attendance marked successfully for ${studentsToUpdate.length} students!`
-    );
+      // Show success message (in a real app, you'd use a toast notification)
+      alert(
+        `Attendance marked successfully for ${selectedStudentIds.length} students!`
+      );
+    } catch (err) {
+      setIsSubmitting(false);
+      console.error("Error marking attendance:", err);
+      alert("Failed to mark attendance. Please try again.");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading attendance data...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <XCircleIcon className="h-12 w-12 text-red-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Failed to Load Attendance Data
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,15 +1,12 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
 import Select from "../components/Select";
 import {
-  UserIcon,
-  EnvelopeIcon,
   PhoneIcon,
   CalendarIcon,
-  AcademicCapIcon,
   MapPinIcon,
   EyeIcon,
   PencilIcon,
@@ -18,97 +15,30 @@ import {
   UserPlusIcon,
   IdentificationIcon,
 } from "@heroicons/react/24/outline";
+import { getStudents, deleteStudent } from "../services/api";
 
 const StudentProfile = () => {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add");
 
-  // Enhanced mock student data
-  const [students] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@email.com",
-      phone: "+1-234-567-8901",
-      enrollmentDate: "2024-01-15",
-      program: "IoT Development",
-      status: "Active",
-      attendance: 95,
-      performance: "Excellent",
-      avatar: "/api/placeholder/40/40",
-      address: "123 Main St, City, State 12345",
-      dateOfBirth: "2000-05-15",
-      emergencyContact: "Jane Doe (+1-234-567-8902)",
-      gpa: 3.8,
-      credits: 45,
-      expectedGraduation: "2025-06-15",
-      idNumber: "STU-2024-001",
-      studentType: "Internee",
-      interneeType: "University",
-      studyStatus: "Still Studying",
-      paymentStatus: "Paid",
-      totalFees: 15000,
-      paidAmount: 15000,
-      remainingAmount: 0,
-      enrollmentType: "Full-time",
-      startDate: "2024-01-15",
-      endDate: "2025-06-15",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@email.com",
-      phone: "+1-234-567-8902",
-      enrollmentDate: "2024-01-10",
-      program: "Software Development",
-      status: "Active",
-      attendance: 88,
-      performance: "Good",
-      avatar: "/api/placeholder/40/40",
-      address: "456 Oak Ave, City, State 12346",
-      dateOfBirth: "2001-03-22",
-      emergencyContact: "John Smith (+1-234-567-8903)",
-      gpa: 3.6,
-      credits: 42,
-      expectedGraduation: "2025-06-15",
-      idNumber: "STU-2024-002",
-      studentType: "Internee",
-      interneeType: "High School",
-      studyStatus: "Graduated",
-      paymentStatus: "Pending",
-      totalFees: 15000,
-      paidAmount: 10000,
-      remainingAmount: 5000,
-      enrollmentType: "Full-time",
-      startDate: "2024-01-10",
-      endDate: "2025-06-10",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.johnson@email.com",
-      phone: "+1-234-567-8903",
-      enrollmentDate: "2024-01-05",
-      program: "IoT Development",
-      status: "Inactive",
-      attendance: 75,
-      performance: "Average",
-      avatar: "/api/placeholder/40/40",
-      address: "789 Pine St, City, State 12347",
-      dateOfBirth: "1999-11-08",
-      emergencyContact: "Sarah Johnson (+1-234-567-8904)",
-      gpa: 3.2,
-      credits: 38,
-      expectedGraduation: "2025-06-15",
-      idNumber: "STU-2024-003",
-      studentType: "Trainee",
-      enrollmentType: "Part-time",
-      startDate: "2024-01-05",
-      endDate: "2025-12-05",
-    },
-  ]);
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await getStudents();
+        setStudents(response.data);
+        setLoading(false);
+      } catch {
+        setError("Failed to load students");
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
 
   const handleViewStudent = (student) => {
     setSelectedStudent(student);
@@ -128,8 +58,15 @@ const StudentProfile = () => {
     setShowModal(true);
   };
 
-  const handleDeleteStudent = (studentId) => {
-    console.log("Delete student:", studentId);
+  const handleDeleteStudent = async (studentId) => {
+    if (window.confirm("Are you sure you want to delete this student?")) {
+      try {
+        await deleteStudent(studentId);
+        setStudents(students.filter((student) => student.id !== studentId));
+      } catch {
+        setError("Failed to delete student");
+      }
+    }
   };
 
   const getStatusColor = (status) => {
@@ -198,115 +135,151 @@ const StudentProfile = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-gray-500">Loading students...</div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
       {/* Students Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {students.map((student) => (
-          <Card key={student.id} className="hover:shadow-lg transition-shadow">
-            <CardContent>
-              <div className="flex items-center space-x-4 mb-4">
-                <img
-                  src={student.avatar}
-                  alt={student.name}
-                  className="h-16 w-16 rounded-full"
-                />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {student.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {student.email}
-                  </p>
-                </div>
-              </div>
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {students
+            .filter(
+              (student) =>
+                student.name
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                student.email
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                student.program
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase())
+            )
+            .map((student) => (
+              <Card
+                key={student.id}
+                className="hover:shadow-lg transition-shadow"
+              >
+                <CardContent>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <img
+                      src={student.avatar}
+                      alt={student.name}
+                      className="h-16 w-16 rounded-full"
+                    />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {student.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {student.email}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Program:
-                  </span>
-                  <span className="text-sm font-medium">{student.program}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Status:
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      student.status
-                    )}`}
-                  >
-                    {student.status}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Student Type:
-                  </span>
-                  <span className="text-sm font-medium">
-                    {student.studentType}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    GPA:
-                  </span>
-                  <span className="text-sm font-medium">{student.gpa}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Credits:
-                  </span>
-                  <span className="text-sm font-medium">{student.credits}</span>
-                </div>
-                {student.studentType === "Internee" && (
-                  <>
+                  <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Payment:
+                        Program:
                       </span>
                       <span className="text-sm font-medium">
-                        {student.paymentStatus}
+                        {student.program}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Remaining:
+                        Status:
                       </span>
-                      <span className="text-sm font-medium">
-                        ${student.remainingAmount.toLocaleString()}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          student.status
+                        )}`}
+                      >
+                        {student.status}
                       </span>
                     </div>
-                  </>
-                )}
-              </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Student Type:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {student.studentType}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        GPA:
+                      </span>
+                      <span className="text-sm font-medium">{student.gpa}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Credits:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {student.credits}
+                      </span>
+                    </div>
+                    {student.studentType === "Internee" && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Payment:
+                          </span>
+                          <span className="text-sm font-medium">
+                            {student.paymentStatus}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Remaining:
+                          </span>
+                          <span className="text-sm font-medium">
+                            ${student.remainingAmount.toLocaleString()}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleViewStudent(student)}
-                >
-                  <EyeIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleEditStudent(student)}
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleDeleteStudent(student.id)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleViewStudent(student)}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleEditStudent(student)}
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleDeleteStudent(student.id)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      )}
 
       {/* Student Modal */}
       <Modal
