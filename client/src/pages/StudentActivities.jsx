@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
@@ -18,12 +18,16 @@ import {
   PlusIcon,
   CalendarIcon,
 } from "@heroicons/react/24/outline";
+import { getStudentActivities } from "../services/api";
 
 const StudentActivities = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [activitiesData, setActivitiesData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [newAchievement, setNewAchievement] = useState({
     title: "",
     description: "",
@@ -33,167 +37,24 @@ const StudentActivities = () => {
     points: 0,
   });
 
-  // Enhanced mock activities data
-  const [activitiesData] = useState([
-    {
-      id: 1,
-      studentName: "John Doe",
-      studentId: "STU001",
-      email: "john.doe@email.com",
-      program: "IoT Development",
-      achievements: [
-        {
-          id: 1,
-          title: "Best Project Award",
-          description: "IoT Smart Home System - Outstanding Innovation",
-          date: "2024-01-15",
-          type: "award",
-          category: "Project",
-          points: 100,
-        },
-        {
-          id: 2,
-          title: "Python Certification",
-          description: "Completed Python Programming Professional Certificate",
-          date: "2024-01-10",
-          type: "certification",
-          category: "Technical",
-          points: 50,
-        },
-        {
-          id: 3,
-          title: "Research Publication",
-          description: "Published paper on 'AI in IoT Applications'",
-          date: "2024-01-05",
-          type: "publication",
-          category: "Research",
-          points: 75,
-        },
-      ],
-      projects: [
-        {
-          id: 1,
-          name: "Smart Traffic Management System",
-          description: "IoT-based solution for traffic optimization",
-          status: "Completed",
-          grade: "A",
-          duration: "3 months",
-          technologies: ["Python", "Raspberry Pi", "MQTT"],
-        },
-        {
-          id: 2,
-          name: "Environmental Monitoring Dashboard",
-          description: "Real-time environmental data visualization",
-          status: "In Progress",
-          grade: "N/A",
-          duration: "2 months",
-          technologies: ["React", "Node.js", "InfluxDB"],
-        },
-      ],
-      extracurricular: [
-        {
-          id: 1,
-          activity: "Tech Club President",
-          role: "Leadership role in student technology club",
-          hours: 20,
-          period: "Fall 2023",
-        },
-        {
-          id: 2,
-          activity: "Hackathon Participant",
-          role: "Team lead in 48-hour coding challenge",
-          hours: 48,
-          period: "Spring 2024",
-        },
-      ],
-      totalPoints: 225,
-      totalProjects: 8,
-      certifications: 3,
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      studentId: "STU002",
-      email: "jane.smith@email.com",
-      program: "Software Development",
-      achievements: [
-        {
-          id: 1,
-          title: "Dean's List",
-          description: "Academic excellence recognition",
-          date: "2024-01-12",
-          type: "academic",
-          category: "Academic",
-          points: 25,
-        },
-        {
-          id: 2,
-          title: "AWS Certification",
-          description: "AWS Solutions Architect Associate",
-          date: "2024-01-08",
-          type: "certification",
-          category: "Technical",
-          points: 60,
-        },
-      ],
-      projects: [
-        {
-          id: 1,
-          name: "E-commerce Platform",
-          description: "Full-stack e-commerce solution",
-          status: "Completed",
-          grade: "A-",
-          duration: "4 months",
-          technologies: ["React", "Django", "PostgreSQL"],
-        },
-      ],
-      extracurricular: [
-        {
-          id: 1,
-          activity: "Women in Tech",
-          role: "Active member and mentor",
-          hours: 15,
-          period: "Fall 2023",
-        },
-      ],
-      totalPoints: 85,
-      totalProjects: 5,
-      certifications: 2,
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      studentId: "STU003",
-      email: "mike.johnson@email.com",
-      program: "IoT Development",
-      achievements: [
-        {
-          id: 1,
-          title: "Participation Certificate",
-          description: "IoT Workshop completion",
-          date: "2024-01-03",
-          type: "workshop",
-          category: "Workshop",
-          points: 10,
-        },
-      ],
-      projects: [
-        {
-          id: 1,
-          name: "Basic IoT Device",
-          description: "Simple temperature monitoring device",
-          status: "Completed",
-          grade: "B",
-          duration: "1 month",
-          technologies: ["Arduino", "C++"],
-        },
-      ],
-      extracurricular: [],
-      totalPoints: 10,
-      totalProjects: 2,
-      certifications: 1,
-    },
-  ]);
+  // Fetch activities data on component mount
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoading(true);
+        const response = await getStudentActivities();
+        setActivitiesData(response.data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load student activities");
+        console.error("Error fetching activities:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   const handleViewDetails = (student) => {
     setSelectedStudent(student);
@@ -266,6 +127,34 @@ const StudentActivities = () => {
         return "text-gray-600 bg-gray-100";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading student activities...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Error Loading Data
+          </h2>
+          <p className="text-gray-600">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

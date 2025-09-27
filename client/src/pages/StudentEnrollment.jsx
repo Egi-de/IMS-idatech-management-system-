@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import { toast } from "react-toastify";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
 import {
-  DocumentTextIcon,
   UserPlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -15,73 +14,113 @@ import {
   CalendarIcon,
   AcademicCapIcon,
   ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
 } from "@heroicons/react/24/outline";
+import {
+  getStudents,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+} from "../services/api";
 
 const StudentEnrollment = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add");
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Enhanced mock enrollment data
-  const [enrollments] = useState([
-    {
-      id: 1,
-      studentName: "John Doe",
-      studentId: "STU001",
-      email: "john.doe@email.com",
-      program: "IoT Development",
-      enrollmentDate: "2024-01-15",
-      status: "Active",
-      studentType: "Internee",
-      interneeType: "University",
-      studyStatus: "Still Studying",
-      paymentStatus: "Paid",
-      totalFees: 15000,
-      paidAmount: 15000,
-      remainingAmount: 0,
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    idNumber: "",
+    email: "",
+    phone: "",
+    program: "",
+    studentType: "",
+    enrollmentType: "Full-time",
+    enrollmentDate: "",
+    startDate: "",
+    endDate: "",
+    interneeType: "",
+    studyStatus: "",
+    totalFees: 0,
+    paymentStatus: "Pending",
+  });
+
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      try {
+        const response = await getStudents();
+        setEnrollments(response.data);
+        setLoading(false);
+      } catch {
+        setError("Failed to load enrollments");
+        setLoading(false);
+      }
+    };
+    fetchEnrollments();
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      idNumber: "",
+      email: "",
+      phone: "",
+      program: "",
+      studentType: "",
       enrollmentType: "Full-time",
-      startDate: "2024-01-15",
-      endDate: "2025-06-15",
-      documents: ["Application Form", "ID Proof", "Certificates"],
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      studentId: "STU002",
-      email: "jane.smith@email.com",
-      program: "Software Development",
-      enrollmentDate: "2024-01-10",
-      status: "Active",
-      studentType: "Internee",
-      interneeType: "High School",
-      studyStatus: "Graduated",
+      enrollmentDate: "",
+      startDate: "",
+      endDate: "",
+      interneeType: "",
+      studyStatus: "",
+      totalFees: 0,
       paymentStatus: "Pending",
-      totalFees: 15000,
-      paidAmount: 10000,
-      remainingAmount: 5000,
-      enrollmentType: "Full-time",
-      startDate: "2024-01-10",
-      endDate: "2025-06-10",
-      documents: ["Application Form", "ID Proof", "Transcripts"],
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      studentId: "STU003",
-      email: "mike.johnson@email.com",
-      program: "IoT Development",
-      enrollmentDate: "2024-01-05",
-      status: "Inactive",
-      studentType: "Trainee",
-      enrollmentType: "Part-time",
-      startDate: "2024-01-05",
-      endDate: "2025-12-05",
-      documents: ["Application Form", "ID Proof"],
-    },
-  ]);
+    });
+  };
+
+  const handleAddEnrollment = () => {
+    resetForm();
+    setSelectedEnrollment(null);
+    setModalType("add");
+    setShowModal(true);
+  };
+
+  const handleEditEnrollment = (enrollment) => {
+    setFormData({
+      name: enrollment.name,
+      idNumber: enrollment.idNumber,
+      email: enrollment.email,
+      phone: enrollment.phone || "",
+      program: enrollment.program,
+      studentType: enrollment.studentType || "",
+      enrollmentType: enrollment.enrollmentType || "Full-time",
+      enrollmentDate: enrollment.enrollmentDate
+        ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
+        : "",
+      startDate: enrollment.startDate
+        ? new Date(enrollment.startDate).toISOString().split("T")[0]
+        : "",
+      endDate: enrollment.endDate
+        ? new Date(enrollment.endDate).toISOString().split("T")[0]
+        : "",
+      interneeType: enrollment.interneeType || "",
+      studyStatus: enrollment.studyStatus || "",
+      totalFees: enrollment.totalFees || 0,
+      paymentStatus: enrollment.paymentStatus || "Pending",
+    });
+    setSelectedEnrollment(enrollment);
+    setModalType("edit");
+    setShowModal(true);
+  };
 
   const handleViewEnrollment = (enrollment) => {
     setSelectedEnrollment(enrollment);
@@ -89,21 +128,118 @@ const StudentEnrollment = () => {
     setShowModal(true);
   };
 
-  const handleAddEnrollment = () => {
-    setSelectedEnrollment(null);
-    setModalType("add");
-    setShowModal(true);
+  const handleDeleteEnrollment = async (enrollmentId) => {
+    if (window.confirm("Are you sure you want to delete this enrollment?")) {
+      try {
+        await deleteStudent(enrollmentId);
+        setEnrollments((prev) => prev.filter((e) => e.id !== enrollmentId));
+        toast.success("Enrollment deleted successfully!");
+      } catch (err) {
+        toast.error("Failed to delete enrollment.");
+        console.error(err);
+      }
+    }
   };
 
-  const handleEditEnrollment = (enrollment) => {
-    setSelectedEnrollment(enrollment);
-    setModalType("edit");
-    setShowModal(true);
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const totalFeesValue = parseFloat(formData.totalFees) || 0;
 
-  const handleDeleteEnrollment = (enrollmentId) => {
-    toast.success("Enrollment deleted successfully!");
-    console.log("Delete enrollment:", enrollmentId);
+      const baseStudentData = {
+        name: formData.name,
+        idNumber: formData.idNumber,
+        email: formData.email,
+        phone: formData.phone,
+        program: formData.program,
+        year: new Date().getFullYear().toString(),
+        status: "Active",
+        avatar: "",
+        address: "",
+        emergencyContact: "",
+        gpa: null,
+        enrollmentDate: formData.enrollmentDate,
+        courses: [],
+        dateOfBirth: null,
+        credits: 0,
+        expectedGraduation: null,
+        studentType: formData.studentType,
+        interneeType: formData.interneeType || null,
+        studyStatus: formData.studyStatus || null,
+        paymentStatus: formData.paymentStatus,
+        totalFees: totalFeesValue,
+        enrollmentType: formData.enrollmentType,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        attendance: 0,
+        performance: null,
+        cumulative_gpa: null,
+        completed_credits: 0,
+        grades: {},
+        assignments: {},
+        current_semester: "Spring 2024",
+        academic_standing: null,
+        achievements: [],
+        projects: [],
+        extracurricular: [],
+        totalPoints: 0,
+        totalProjects: 0,
+        certifications: 0,
+        overallAttendance: 0,
+        presentDays: 0,
+        absentDays: 0,
+        lateDays: 0,
+        excusedAbsences: 0,
+        currentStreak: 0,
+        lastAttendance: null,
+        monthlyData: {},
+        feedback: [],
+      };
+
+      let savedData;
+      if (modalType === "add") {
+        const studentData = {
+          ...baseStudentData,
+          paidAmount: 0,
+          remainingAmount: totalFeesValue,
+        };
+        savedData = await createStudent(studentData);
+        setEnrollments((prev) => [...prev, savedData.data]);
+        toast.success("Enrollment created successfully!");
+      } else {
+        const updatedData = {
+          ...baseStudentData,
+          paidAmount: selectedEnrollment.paidAmount || 0,
+          remainingAmount:
+            totalFeesValue - (selectedEnrollment.paidAmount || 0),
+        };
+        savedData = await updateStudent(selectedEnrollment.id, updatedData);
+        setEnrollments((prev) =>
+          prev.map((e) => (e.id === savedData.data.id ? savedData.data : e))
+        );
+        toast.success("Enrollment updated successfully!");
+      }
+      setShowModal(false);
+      resetForm();
+    } catch (err) {
+      console.error("API Error Response:", err.response?.data || err.message);
+      let errorMessage =
+        "Failed to save enrollment. Please check the data and try again.";
+      if (err.response?.data) {
+        if (typeof err.response.data === "string") {
+          errorMessage = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.data.non_field_errors) {
+          errorMessage = err.response.data.non_field_errors.join(", ");
+        } else {
+          // Field errors
+          const fieldErrors = Object.values(err.response.data).flat();
+          errorMessage = fieldErrors.join(", ");
+        }
+      }
+      toast.error(errorMessage);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -180,113 +316,142 @@ const StudentEnrollment = () => {
         </select>
       </div>
 
-      {/* Enrollment Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {enrollments.map((enrollment) => (
-          <Card
-            key={enrollment.id}
-            className="hover:shadow-lg transition-shadow"
-          >
-            <CardContent>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {enrollment.studentName}
-                </h3>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    enrollment.status
-                  )}`}
-                >
-                  {enrollment.status}
-                </span>
-              </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-gray-500">Loading enrollments...</div>
+        </div>
+      )}
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Student ID:
-                  </span>
-                  <span className="text-sm font-medium">
-                    {enrollment.studentId}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Program:
-                  </span>
-                  <span className="text-sm font-medium">
-                    {enrollment.program}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Type:
-                  </span>
-                  <span className="text-sm font-medium">
-                    {enrollment.enrollmentType}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Student Type:
-                  </span>
-                  <span className="text-sm font-medium">
-                    {enrollment.studentType}
-                  </span>
-                </div>
-                {enrollment.studentType === "Internee" && (
-                  <>
+      {/* Error State */}
+      {error && (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-red-500">{error}</div>
+        </div>
+      )}
+
+      {/* Enrollment Cards */}
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {enrollments
+            .filter(
+              (enrollment) =>
+                enrollment.name
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                enrollment.email
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                enrollment.program
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase())
+            )
+            .map((enrollment) => (
+              <Card
+                key={enrollment.id}
+                className="hover:shadow-lg transition-shadow"
+              >
+                <CardContent>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {enrollment.name}
+                    </h3>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                        enrollment.status
+                      )}`}
+                    >
+                      {enrollment.status}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Payment:
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                          enrollment.paymentStatus
-                        )}`}
-                      >
-                        {enrollment.paymentStatus}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Remaining:
+                        Student ID:
                       </span>
                       <span className="text-sm font-medium">
-                        ${enrollment.remainingAmount.toLocaleString()}
+                        {enrollment.idNumber}
                       </span>
                     </div>
-                  </>
-                )}
-              </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Program:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {enrollment.program}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Type:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {enrollment.enrollmentType || "Full-time"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Student Type:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {enrollment.studentType}
+                      </span>
+                    </div>
+                    {enrollment.studentType === "Internee" && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Payment:
+                          </span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                              enrollment.paymentStatus
+                            )}`}
+                          >
+                            {enrollment.paymentStatus}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Remaining:
+                          </span>
+                          <span className="text-sm font-medium">
+                            ${enrollment.remainingAmount.toLocaleString()}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleViewEnrollment(enrollment)}
-                >
-                  <EyeIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleEditEnrollment(enrollment)}
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleDeleteEnrollment(enrollment.id)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleViewEnrollment(enrollment)}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleEditEnrollment(enrollment)}
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleDeleteEnrollment(enrollment.id)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      )}
 
       {/* Enrollment Modal */}
       <Modal
@@ -309,13 +474,16 @@ const StudentEnrollment = () => {
               </div>
               <div>
                 <h3 className="text-xl font-semibold">
-                  {selectedEnrollment.studentName}
+                  {selectedEnrollment.name}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
                   {selectedEnrollment.email}
                 </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {selectedEnrollment.phone}
+                </p>
                 <p className="text-sm text-gray-500">
-                  ID: {selectedEnrollment.studentId}
+                  ID: {selectedEnrollment.idNumber}
                 </p>
               </div>
             </div>
@@ -439,77 +607,150 @@ const StudentEnrollment = () => {
                     </div>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Documents Submitted
-                  </label>
-                  <div className="mt-2 space-y-1">
-                    {selectedEnrollment.documents.map((doc, index) => (
-                      <div key={index} className="flex items-center text-sm">
-                        <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
-                        <span>{doc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         )}
 
         {(modalType === "add" || modalType === "edit") && (
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (modalType === "add") {
-                toast.success("Enrollment created successfully!");
-              } else {
-                toast.success("Enrollment updated successfully!");
-              }
-              setShowModal(false);
-            }}
-          >
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Student Name" placeholder="Enter student name" />
-              <Input label="Student ID" placeholder="Enter student ID" />
-              <Input label="Email" type="email" placeholder="Enter email" />
-              <Input label="Program" placeholder="Select program" />
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <Input
+                label="Student Name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter student name"
+                required
+              />
+              <Input
+                label="Student ID"
+                name="idNumber"
+                value={formData.idNumber}
+                onChange={handleInputChange}
+                placeholder="Enter student ID"
+                required
+              />
+              <Input
+                label="Email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Enter email"
+                required
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Enter phone number"
+                required
+              />
+              <select
+                name="program"
+                value={formData.program}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select Program</option>
+                <option value="IoT Development">IoT Development</option>
+                <option value="Software Development">
+                  Software Development
+                </option>
+                <option value="Data Science">Data Science</option>
+              </select>
+              <select
+                name="studentType"
+                value={formData.studentType}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="">Select Student Type</option>
                 <option value="Internee">Internee</option>
                 <option value="Trainee">Trainee</option>
               </select>
+              <select
+                name="enrollmentType"
+                value={formData.enrollmentType}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+              </select>
               <Input
-                label="Enrollment Type"
-                placeholder="Full-time/Part-time"
+                label="Enrollment Date"
+                type="date"
+                name="enrollmentDate"
+                value={formData.enrollmentDate}
+                onChange={handleInputChange}
+                required
               />
-              <Input label="Enrollment Date" type="date" />
-              <Input label="Start Date" type="date" />
-              <Input label="End Date" type="date" />
+              <Input
+                label="Start Date"
+                type="date"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleInputChange}
+                required
+              />
+              <Input
+                label="End Date"
+                type="date"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleInputChange}
+                required
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select Internee Type</option>
-                <option value="University">University</option>
-                <option value="High School">High School</option>
-              </select>
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select Study Status</option>
-                <option value="Still Studying">Still Studying</option>
-                <option value="Graduated">Graduated</option>
-              </select>
+              {formData.studentType === "Internee" && (
+                <>
+                  <select
+                    name="interneeType"
+                    value={formData.interneeType}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Internee Type</option>
+                    <option value="University">University</option>
+                    <option value="High School">High School</option>
+                  </select>
+                  <select
+                    name="studyStatus"
+                    value={formData.studyStatus}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Study Status</option>
+                    <option value="Still Studying">Still Studying</option>
+                    <option value="Graduated">Graduated</option>
+                  </select>
+                </>
+              )}
               <Input
                 label="Total Fees"
                 type="number"
+                name="totalFees"
+                value={formData.totalFees}
+                onChange={handleInputChange}
                 placeholder="Enter total fees"
+                step="0.01"
               />
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select Payment Status</option>
+              <select
+                name="paymentStatus"
+                value={formData.paymentStatus}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="Paid">Paid</option>
                 <option value="Pending">Pending</option>
-                <option value="Not Paid">Not Paid</option>
+                <option value="Partial">Partial</option>
               </select>
             </div>
             <div className="flex justify-end space-x-3">
