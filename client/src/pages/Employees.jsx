@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import Select from "../components/Select";
 import {
   UsersIcon,
   UserPlusIcon,
@@ -131,8 +132,14 @@ const Employees = () => {
       });
       if (!response.ok) throw new Error("Failed to delete employee");
       addToTrash({
-        name: `Deleted Employee: ${employees.find((emp) => emp.id === employeeId)?.name}`,
-        details: `Position: ${employees.find((emp) => emp.id === employeeId)?.position}, Department: ${employees.find((emp) => emp.id === employeeId)?.department.name}`,
+        name: `Deleted Employee: ${
+          employees.find((emp) => emp.id === employeeId)?.name
+        }`,
+        details: `Position: ${
+          employees.find((emp) => emp.id === employeeId)?.position
+        }, Department: ${
+          employees.find((emp) => emp.id === employeeId)?.department.name
+        }`,
       });
       fetchEmployees(); // Refetch after delete
     } catch (err) {
@@ -165,11 +172,14 @@ const Employees = () => {
           body: JSON.stringify(data),
         });
       } else if (modalType === "edit") {
-        response = await fetch(`${API_BASE}/employees/${selectedEmployee.id}/`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
+        response = await fetch(
+          `${API_BASE}/employees/${selectedEmployee.id}/`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          }
+        );
       }
       if (!response.ok) throw new Error("Failed to save employee");
       fetchEmployees(); // Refetch after add/edit
@@ -225,10 +235,19 @@ const Employees = () => {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const totalSalary = employees.reduce((sum, emp) => sum + parseFloat(emp.salary), 0);
-  const departmentsCount = new Set(employees.map((emp) => emp.department.name)).size;
+  const totalSalary = employees.reduce(
+    (sum, emp) => sum + parseFloat(emp.salary),
+    0
+  );
+  const departmentsCount = new Set(employees.map((emp) => emp.department.name))
+    .size;
 
-  if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div></div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
   if (error) return <div className="text-red-600 text-center">{error}</div>;
 
   return (
@@ -404,7 +423,8 @@ const Employees = () => {
                     <td className="py-3 px-4">
                       <div className="font-medium">{employee.position}</div>
                       <div className="text-sm text-gray-600">
-                        Since {new Date(employee.date_joined).toLocaleDateString()}
+                        Since{" "}
+                        {new Date(employee.date_joined).toLocaleDateString()}
                       </div>
                     </td>
                     <td className="py-3 px-4">
@@ -431,7 +451,8 @@ const Employees = () => {
                           employee.status
                         )}`}
                       >
-                        {statuses.find(s => s.value === employee.status)?.label || employee.status}
+                        {statuses.find((s) => s.value === employee.status)
+                          ?.label || employee.status}
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -536,7 +557,9 @@ const Employees = () => {
                   <div>
                     <span className="text-gray-600">Hire Date:</span>
                     <span className="ml-2 font-medium">
-                      {new Date(selectedEmployee.date_joined).toLocaleDateString()}
+                      {new Date(
+                        selectedEmployee.date_joined
+                      ).toLocaleDateString()}
                     </span>
                   </div>
                   <div>
@@ -552,7 +575,8 @@ const Employees = () => {
                         selectedEmployee.status
                       )}`}
                     >
-                      {statuses.find(s => s.value === selectedEmployee.status)?.label || selectedEmployee.status}
+                      {statuses.find((s) => s.value === selectedEmployee.status)
+                        ?.label || selectedEmployee.status}
                     </span>
                   </div>
                 </div>
@@ -605,20 +629,17 @@ const Employees = () => {
                 placeholder="Enter position"
                 required
               />
-              <select
+              <Select
+                label="Department"
                 name="department_id"
                 value={formData.department_id}
                 onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                options={departments.map((dept) => ({
+                  value: dept.id.toString(),
+                  label: dept.name,
+                }))}
                 required
-              >
-                <option value="">Select department</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
+              />
               <Input
                 label="Salary"
                 name="salary"
@@ -636,19 +657,14 @@ const Employees = () => {
                 onChange={handleInputChange}
                 placeholder="Enter full address"
               />
-              <select
+              <Select
+                label="Status"
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                options={statuses}
                 required
-              >
-                {statuses.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={handleCancel}>

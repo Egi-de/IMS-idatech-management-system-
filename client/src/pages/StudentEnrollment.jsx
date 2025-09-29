@@ -37,15 +37,17 @@ const StudentEnrollment = () => {
     idNumber: "",
     email: "",
     phone: "",
+    address: "",
     program: "",
     studentType: "",
-    enrollmentType: "Full-time",
     enrollmentDate: "",
     startDate: "",
     endDate: "",
     interneeType: "",
     studyStatus: "",
     totalFees: 0,
+    paidAmount: 0,
+    remainingAmount: 0,
     paymentStatus: "Pending",
   });
 
@@ -65,7 +67,24 @@ const StudentEnrollment = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        [name]: value,
+      };
+
+      // Auto-calculate remaining amount when totalFees or paidAmount changes and studentType is Internee
+      if (
+        newFormData.studentType === "Internee" &&
+        (name === "totalFees" || name === "paidAmount")
+      ) {
+        const total = parseFloat(newFormData.totalFees) || 0;
+        const paid = parseFloat(newFormData.paidAmount) || 0;
+        newFormData.remainingAmount = Math.max(0, total - paid);
+      }
+
+      return newFormData;
+    });
   };
 
   const resetForm = () => {
@@ -74,15 +93,17 @@ const StudentEnrollment = () => {
       idNumber: "",
       email: "",
       phone: "",
+      address: "",
       program: "",
       studentType: "",
-      enrollmentType: "Full-time",
       enrollmentDate: "",
       startDate: "",
       endDate: "",
       interneeType: "",
       studyStatus: "",
       totalFees: 0,
+      paidAmount: 0,
+      remainingAmount: 0,
       paymentStatus: "Pending",
     });
   };
@@ -95,14 +116,18 @@ const StudentEnrollment = () => {
   };
 
   const handleEditEnrollment = (enrollment) => {
+    const total = enrollment.totalFees || 0;
+    const paid = enrollment.paidAmount || 0;
+    const remaining = Math.max(0, total - paid);
+
     setFormData({
       name: enrollment.name,
       idNumber: enrollment.idNumber,
       email: enrollment.email,
       phone: enrollment.phone || "",
+      address: enrollment.address || "",
       program: enrollment.program,
       studentType: enrollment.studentType || "",
-      enrollmentType: enrollment.enrollmentType || "Full-time",
       enrollmentDate: enrollment.enrollmentDate
         ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
         : "",
@@ -112,10 +137,21 @@ const StudentEnrollment = () => {
       endDate: enrollment.endDate
         ? new Date(enrollment.endDate).toISOString().split("T")[0]
         : "",
-      interneeType: enrollment.interneeType || "",
-      studyStatus: enrollment.studyStatus || "",
-      totalFees: enrollment.totalFees || 0,
-      paymentStatus: enrollment.paymentStatus || "Pending",
+      interneeType:
+        enrollment.studentType === "Internee"
+          ? enrollment.interneeType || ""
+          : "",
+      studyStatus:
+        enrollment.studentType === "Internee"
+          ? enrollment.studyStatus || ""
+          : "",
+      totalFees: enrollment.studentType === "Internee" ? total : 0,
+      paidAmount: enrollment.studentType === "Internee" ? paid : 0,
+      remainingAmount: enrollment.studentType === "Internee" ? remaining : 0,
+      paymentStatus:
+        enrollment.studentType === "Internee"
+          ? enrollment.paymentStatus || "Pending"
+          : "Pending",
     });
     setSelectedEnrollment(enrollment);
     setModalType("edit");
@@ -145,17 +181,33 @@ const StudentEnrollment = () => {
     e.preventDefault();
     try {
       const totalFeesValue = parseFloat(formData.totalFees) || 0;
+      const paidAmountValue = parseFloat(formData.paidAmount) || 0;
+      const remainingAmountValue = Math.max(
+        0,
+        totalFeesValue - paidAmountValue
+      );
+
+      let paymentStatusValue = formData.paymentStatus;
+      if (formData.studentType === "Internee") {
+        if (remainingAmountValue === 0) {
+          paymentStatusValue = "Paid";
+        } else if (paidAmountValue > 0) {
+          paymentStatusValue = "Partial";
+        } else {
+          paymentStatusValue = "Pending";
+        }
+      }
 
       const baseStudentData = {
         name: formData.name,
         idNumber: formData.idNumber,
         email: formData.email,
         phone: formData.phone,
+        address: formData.address,
         program: formData.program,
         year: new Date().getFullYear().toString(),
         status: "Active",
-        avatar: "",
-        address: "",
+        avatar: null,
         emergencyContact: "",
         gpa: null,
         enrollmentDate: formData.enrollmentDate,
@@ -164,11 +216,20 @@ const StudentEnrollment = () => {
         credits: 0,
         expectedGraduation: null,
         studentType: formData.studentType,
-        interneeType: formData.interneeType || null,
-        studyStatus: formData.studyStatus || null,
-        paymentStatus: formData.paymentStatus,
-        totalFees: totalFeesValue,
-        enrollmentType: formData.enrollmentType,
+        interneeType:
+          formData.studentType === "Internee"
+            ? formData.interneeType || null
+            : null,
+        studyStatus:
+          formData.studentType === "Internee"
+            ? formData.studyStatus || null
+            : null,
+        paymentStatus:
+          formData.studentType === "Internee" ? paymentStatusValue : null,
+        totalFees: formData.studentType === "Internee" ? totalFeesValue : 0,
+        paidAmount: formData.studentType === "Internee" ? paidAmountValue : 0,
+        remainingAmount:
+          formData.studentType === "Internee" ? remainingAmountValue : 0,
         startDate: formData.startDate,
         endDate: formData.endDate,
         attendance: 0,
@@ -198,22 +259,11 @@ const StudentEnrollment = () => {
 
       let savedData;
       if (modalType === "add") {
-        const studentData = {
-          ...baseStudentData,
-          paidAmount: 0,
-          remainingAmount: totalFeesValue,
-        };
-        savedData = await createStudent(studentData);
+        savedData = await createStudent(baseStudentData);
         setEnrollments((prev) => [...prev, savedData.data]);
         toast.success("Enrollment created successfully!");
       } else {
-        const updatedData = {
-          ...baseStudentData,
-          paidAmount: selectedEnrollment.paidAmount || 0,
-          remainingAmount:
-            totalFeesValue - (selectedEnrollment.paidAmount || 0),
-        };
-        savedData = await updateStudent(selectedEnrollment.id, updatedData);
+        savedData = await updateStudent(selectedEnrollment.id, baseStudentData);
         setEnrollments((prev) =>
           prev.map((e) => (e.id === savedData.data.id ? savedData.data : e))
         );
@@ -305,7 +355,6 @@ const StudentEnrollment = () => {
           <option value="">All Programs</option>
           <option value="iot">IoT Development</option>
           <option value="software">Software Development</option>
-          <option value="data">Data Science</option>
         </select>
 
         <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -374,20 +423,38 @@ const StudentEnrollment = () => {
                         {enrollment.idNumber}
                       </span>
                     </div>
+                    {enrollment.address && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Address:
+                        </span>
+                        <span className="text-sm font-medium">
+                          {enrollment.address}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Email:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {enrollment.email}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Phone:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {enrollment.phone}
+                      </span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Program:
                       </span>
                       <span className="text-sm font-medium">
                         {enrollment.program}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Type:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {enrollment.enrollmentType || "Full-time"}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -410,14 +477,6 @@ const StudentEnrollment = () => {
                             )}`}
                           >
                             {enrollment.paymentStatus}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            Remaining:
-                          </span>
-                          <span className="text-sm font-medium">
-                            ${enrollment.remainingAmount.toLocaleString()}
                           </span>
                         </div>
                       </>
@@ -462,7 +521,7 @@ const StudentEnrollment = () => {
             ? "New Enrollment"
             : modalType === "edit"
             ? "Edit Enrollment"
-            : "Enrollment Details"
+            : "Student Enrollment "
         }
         size="large"
       >
@@ -485,6 +544,11 @@ const StudentEnrollment = () => {
                 <p className="text-sm text-gray-500">
                   ID: {selectedEnrollment.idNumber}
                 </p>
+                {selectedEnrollment.address && (
+                  <p className="text-sm text-gray-500">
+                    Address: {selectedEnrollment.address}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -499,12 +563,6 @@ const StudentEnrollment = () => {
                       <span className="text-sm">Program:</span>
                       <span className="text-sm font-medium">
                         {selectedEnrollment.program}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Enrollment Type:</span>
-                      <span className="text-sm font-medium">
-                        {selectedEnrollment.enrollmentType}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -649,6 +707,13 @@ const StudentEnrollment = () => {
                 placeholder="Enter phone number"
                 required
               />
+              <Input
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="Enter address"
+              />
               <select
                 name="program"
                 value={formData.program}
@@ -673,16 +738,7 @@ const StudentEnrollment = () => {
                 <option value="Internee">Internee</option>
                 <option value="Trainee">Trainee</option>
               </select>
-              <select
-                name="enrollmentType"
-                value={formData.enrollmentType}
-                onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-              </select>
+
               <Input
                 label="Enrollment Date"
                 type="date"
@@ -733,25 +789,48 @@ const StudentEnrollment = () => {
                   </select>
                 </>
               )}
-              <Input
-                label="Total Fees"
-                type="number"
-                name="totalFees"
-                value={formData.totalFees}
-                onChange={handleInputChange}
-                placeholder="Enter total fees"
-                step="0.01"
-              />
-              <select
-                name="paymentStatus"
-                value={formData.paymentStatus}
-                onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Partial">Partial</option>
-              </select>
+              {formData.studentType === "Internee" && (
+                <>
+                  <Input
+                    label="Total Fees"
+                    type="number"
+                    name="totalFees"
+                    value={formData.totalFees}
+                    onChange={handleInputChange}
+                    placeholder="Enter total fees"
+                    step="0.01"
+                  />
+                  <Input
+                    label="Paid Amount"
+                    type="number"
+                    name="paidAmount"
+                    value={formData.paidAmount}
+                    onChange={handleInputChange}
+                    placeholder="Enter paid amount"
+                    step="0.01"
+                  />
+                  <Input
+                    label="Remaining Amount"
+                    type="number"
+                    name="remainingAmount"
+                    value={formData.remainingAmount}
+                    onChange={handleInputChange}
+                    placeholder="Enter remaining amount"
+                    step="0.01"
+                    readOnly
+                  />
+                  <select
+                    name="paymentStatus"
+                    value={formData.paymentStatus}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Partial">Partial</option>
+                  </select>
+                </>
+              )}
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => setShowModal(false)}>

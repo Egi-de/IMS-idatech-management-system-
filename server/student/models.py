@@ -55,7 +55,7 @@ class Student(models.Model):
     program = models.CharField(max_length=50, choices=PROGRAM_CHOICES)
     year = models.CharField(max_length=10, default='2023')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
-    avatar = models.URLField(blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     emergencyContact = models.CharField(max_length=100, blank=True, null=True)
     gpa = models.DecimalField(max_digits=3, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(4)], blank=True, null=True)
