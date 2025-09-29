@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { getUserProfile, updateUserProfile } from "../services/api";
 import {
   UserIcon,
   ArrowLeftIcon,
@@ -8,9 +10,13 @@ import {
 } from "@heroicons/react/24/outline";
 
 const Profile = () => {
-  const [user, setUser] = useState({
-    name: "John Doe",
-    email: "john.doe@idatech.com",
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
     role: "Administrator",
     phone: "+1 (555) 123-4567",
     department: "IT Administration",
@@ -18,8 +24,41 @@ const Profile = () => {
     avatar: "/idatechprofile.jpg",
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ ...user });
+  // Load user profile if authenticated
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      setIsLoadingUser(true);
+      getUserProfile()
+        .then((response) => {
+          const fetchedUser = response.data;
+          const mergedUser = {
+            ...formData, // defaults for missing fields
+            name: fetchedUser.name || formData.name,
+            email: fetchedUser.email || formData.email,
+            role: fetchedUser.role || formData.role,
+            avatar: fetchedUser.avatar || formData.avatar,
+            phone: fetchedUser.phone || formData.phone,
+            department: fetchedUser.department || formData.department,
+            joinDate: fetchedUser.joinDate || formData.joinDate,
+          };
+          setUser(mergedUser);
+          setFormData(mergedUser);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch user profile:", error);
+          localStorage.removeItem("authToken");
+          navigate("/login");
+          toast.error("Session expired. Please log in again.");
+        })
+        .finally(() => {
+          setIsLoadingUser(false);
+        });
+    } else {
+      navigate("/login");
+      setIsLoadingUser(false);
+    }
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -29,15 +68,31 @@ const Profile = () => {
     }));
   };
 
-  const handleSave = () => {
-    setUser(formData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const response = await updateUserProfile(formData);
+      setUser(response.data);
+      setFormData(response.data);
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast.error("Failed to update profile. Please try again.");
+    }
   };
 
   const handleCancel = () => {
     setFormData({ ...user });
     setIsEditing(false);
   };
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -67,7 +122,7 @@ const Profile = () => {
             <div className="text-center">
               <div className="relative inline-block mb-4">
                 <div className="h-24 w-24 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden mx-auto">
-                  {user.avatar ? (
+                  {user?.avatar ? (
                     <img
                       src={user.avatar}
                       alt={user.name}
@@ -83,10 +138,10 @@ const Profile = () => {
               </div>
 
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {user.name}
+                {user?.name || "User"}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {user.role}
+                {user?.role || "Administrator"}
               </p>
             </div>
           </div>
@@ -141,7 +196,7 @@ const Profile = () => {
                     />
                   ) : (
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
-                      {user.name}
+                      {user?.name || "User"}
                     </p>
                   )}
                 </div>
@@ -160,7 +215,7 @@ const Profile = () => {
                     />
                   ) : (
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
-                      {user.email}
+                      {user?.email || "No email"}
                     </p>
                   )}
                 </div>
@@ -179,7 +234,7 @@ const Profile = () => {
                     />
                   ) : (
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
-                      {user.phone}
+                      {user?.phone || formData.phone}
                     </p>
                   )}
                 </div>
@@ -198,7 +253,7 @@ const Profile = () => {
                     />
                   ) : (
                     <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
-                      {user.department}
+                      {user?.department || formData.department}
                     </p>
                   )}
                 </div>
@@ -209,7 +264,7 @@ const Profile = () => {
                   Role
                 </label>
                 <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
-                  {user.role}
+                  {user?.role || "Administrator"}
                 </p>
               </div>
 
@@ -218,7 +273,7 @@ const Profile = () => {
                   Join Date
                 </label>
                 <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-lg">
-                  {user.joinDate}
+                  {user?.joinDate || formData.joinDate}
                 </p>
               </div>
             </form>

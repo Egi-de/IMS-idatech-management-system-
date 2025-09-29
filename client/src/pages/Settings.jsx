@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTrashBin } from "../contexts/TrashBinContext";
+import { useTheme } from "../contexts/ThemeContext";
+import { getSettings, updateSettings } from "../services/api";
+import { toast } from "react-toastify";
 
 import {
   ArrowLeftIcon,
@@ -13,6 +16,7 @@ import {
 
 const Settings = () => {
   const { trashItems, restoreFromTrash } = useTrashBin();
+  const { setTheme } = useTheme();
 
   const [settings, setSettings] = useState({
     notifications: {
@@ -41,14 +45,54 @@ const Settings = () => {
 
   const [activeTab, setActiveTab] = useState("notifications");
 
-  const handleSettingChange = (category, setting, value) => {
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+    const res = await getSettings();
+    const data = res.data.settings_data || {};
+
+    // merge with defaults
     setSettings((prev) => ({
       ...prev,
+      ...data,
+      notifications: { ...prev.notifications, ...data.notifications },
+      privacy: { ...prev.privacy, ...data.privacy },
+      appearance: { ...prev.appearance, ...data.appearance },
+      security: { ...prev.security, ...data.security },
+    }));
+
+    // safely set theme
+    if (data?.appearance?.theme) {
+      setTheme(data.appearance.theme);
+    }
+  } catch (err) {
+      console.error(err);
+      toast.error("Failed to load settings");
+    }
+  };
+
+  const handleSettingChange = async (category, setting, value) => {
+    const newSettings = {
+      ...settings,
       [category]: {
-        ...prev[category],
+        ...settings[category],
         [setting]: value,
       },
-    }));
+    };
+    setSettings(newSettings);
+    if (category === 'appearance' && setting === 'theme') {
+      setTheme(value);
+    }
+    try {
+      await updateSettings({ settings_data: newSettings });
+      toast.success("Settings updated");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update settings");
+    }
   };
 
   const tabs = [

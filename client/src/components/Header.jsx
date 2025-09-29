@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { getUserProfile } from "../services/api";
 import {
   MagnifyingGlassIcon,
   BellIcon,
@@ -22,17 +23,13 @@ import {
   BellIcon as BellIconSolid,
 } from "@heroicons/react/24/solid";
 
-const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
+const Header = ({ onMenuToggle }) => {
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const notificationDropdownRef = useRef(null);
-
-  // Toggle dark mode function
-  const toggleDarkMode = () => {
-    console.log("Toggling dark mode from", isDarkMode, "to", !isDarkMode);
-    setIsDarkMode(!isDarkMode);
-    console.log("Dark mode toggled, new state:", !isDarkMode);
-  };
+    const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark" // remember user choice
+  );  
 
   // State management
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,13 +42,9 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Mock user data
-  const [user] = useState({
-    name: "John Doe",
-    email: "john.doe@idatech.com",
-    role: "Administrator",
-    avatar: "/idatechprofile.jpg",
-  });
+  // Dynamic user data
+  const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   // Mock notifications data
   const [notifications, setNotifications] = useState([
@@ -113,6 +106,7 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
         e.preventDefault();
         toggleFullscreen();
       }
+      
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -144,6 +138,29 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Load user profile if authenticated
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      setIsLoadingUser(true);
+      getUserProfile()
+        .then((response) => {
+          setUser(response.data);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch user profile:", error);
+          localStorage.removeItem("authToken");
+          navigate("/login");
+          toast.error("Session expired. Please log in again.");
+        })
+        .finally(() => {
+          setIsLoadingUser(false);
+        });
+    } else {
+      setIsLoadingUser(false);
+    }
+  }, [navigate]);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -287,6 +304,19 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
       default:
         return <InformationCircleIcon className="h-5 w-5 text-blue-500" />;
     }
+  };
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => !prev);
   };
 
   return (
@@ -576,7 +606,9 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
               title="Profile menu"
             >
               <div className="h-8 w-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
-                {user.avatar ? (
+                {isLoadingUser ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                ) : user?.avatar ? (
                   <img
                     src={user.avatar}
                     alt={user.name}
@@ -595,7 +627,9 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-600">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center overflow-hidden">
-                      {user.avatar ? (
+                      {isLoadingUser ? (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      ) : user?.avatar ? (
                         <img
                           src={user.avatar}
                           alt={user.name}
@@ -607,10 +641,10 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {user.name}
+                        {isLoadingUser ? "Loading..." : user?.name || "User"}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        {user.email}
+                        {isLoadingUser ? "" : user?.email || "No email"}
                       </p>
                     </div>
                   </div>
