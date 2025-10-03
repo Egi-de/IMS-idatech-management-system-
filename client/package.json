@@ -10,10 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ag-grid-community/core": "^32.3.9",
     "@headlessui/react": "^2.2.8",
     "@heroicons/react": "^2.2.0",
+    "ag-grid-community": "^34.2.0",
+    "ag-grid-react": "^34.2.0",
+    "axios": "^1.12.2",
     "chart.js": "^4.5.0",
     "jspdf": "^3.0.3",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.544.0",
     "papaparse": "^5.5.3",
     "react": "^19.1.1",
@@ -21,6 +26,8 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
     "react-toastify": "^11.0.5",
+    "react-tooltip": "^5.29.1",
+    "recharts": "^3.2.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

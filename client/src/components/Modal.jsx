@@ -38,16 +38,16 @@ const Modal = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay */}
+      <div className="flex items-center justify-center min-h-screen p-4 text-center">
+        {/* Background overlay with blur */}
         <div className="fixed inset-0 transition-opacity" onClick={onClose}>
-          <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
         </div>
 
         {/* Modal panel */}
         <div
           className={`
-          inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full ${sizeClasses[size]}
+          inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full ${sizeClasses[size]} max-h-[80vh] overflow-y-auto
         `}
         >
           {/* Header */}

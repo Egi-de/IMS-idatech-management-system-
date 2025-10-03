@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
@@ -20,74 +20,50 @@ import {
   ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 
+import { useTrashBin } from "../contexts/TrashBinContext";
+import {
+  getStudents,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+} from "../services/api";
+
 const Students = () => {
-  const [students] = useState([
-    {
-      id: 1,
-      name: "Alice Johnson",
-      email: "alice.johnson@idatech.com",
-      phone: "+1-234-567-8901",
-      program: "IoT Development",
-      year: "2023",
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      address: "123 Main Street, City, State 12345",
-      emergencyContact: "John Johnson (+1-234-567-8902)",
-      gpa: 3.8,
-      enrollmentDate: "2023-01-15",
-      courses: ["IoT Fundamentals", "Embedded Systems", "Wireless Networks"],
-    },
-    {
-      id: 2,
-      name: "Bob Smith",
-      email: "bob.smith@idatech.com",
-      phone: "+1-234-567-8903",
-      program: "Software Development",
-      year: "2023",
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      address: "456 Oak Avenue, City, State 12345",
-      emergencyContact: "Jane Smith (+1-234-567-8904)",
-      gpa: 3.6,
-      enrollmentDate: "2023-02-10",
-      courses: ["Data Structures", "Algorithms", "Web Development"],
-    },
-    {
-      id: 3,
-      name: "Charlie Brown",
-      email: "charlie.brown@idatech.com",
-      phone: "+1-234-567-8905",
-      program: "IoT Development",
-      year: "2022",
-      status: "Active",
-      avatar: "/api/placeholder/40/40",
-      address: "789 Pine Road, City, State 12345",
-      emergencyContact: "Lucy Brown (+1-234-567-8906)",
-      gpa: 3.9,
-      enrollmentDate: "2022-09-01",
-      courses: ["IoT Security", "Cloud Computing", "Machine Learning"],
-    },
-    {
-      id: 4,
-      name: "Diana Prince",
-      email: "diana.prince@idatech.com",
-      phone: "+1-234-567-8907",
-      program: "Software Development",
-      year: "2022",
-      status: "On Leave",
-      avatar: "/api/placeholder/40/40",
-      address: "321 Elm Street, City, State 12345",
-      emergencyContact: "Steve Prince (+1-234-567-8908)",
-      gpa: 3.7,
-      enrollmentDate: "2022-08-15",
-      courses: ["Mobile Development", "Database Design", "UI/UX Design"],
-    },
-  ]);
+  const { addToTrash } = useTrashBin();
+
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await getStudents();
+        setStudents(response.data);
+        setLoading(false);
+      } catch {
+        setError("Failed to load students");
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
   const [activeTab, setActiveTab] = useState("profile");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    program: "",
+    enrollmentDate: "",
+    status: "Active",
+    avatar: "",
+    idNumber: "",
+  });
+  const [submitError, setSubmitError] = useState(null);
 
   const tabs = [
     { id: "profile", name: "Student Profile", icon: AcademicCapIcon },
@@ -110,21 +86,92 @@ const Students = () => {
   const handleAddStudent = () => {
     setSelectedStudent(null);
     setModalType("add");
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      program: "",
+      enrollmentDate: "",
+      status: "Active",
+      avatar: "",
+      idNumber: "",
+    });
+    setSubmitError(null);
     setShowModal(true);
   };
 
   const handleEditStudent = (student) => {
     setSelectedStudent(student);
     setModalType("edit");
+    setFormData({
+      ...student,
+      enrollmentDate: student.enrollmentDate
+        ? new Date(student.enrollmentDate).toISOString().split("T")[0]
+        : "",
+    });
+    setSubmitError(null);
     setShowModal(true);
   };
 
-  const handleDeleteStudent = (studentId) => {
-    const studentToDelete = students.find((stu) => stu.id === studentId);
-    if (studentToDelete) {
-      // addToTrash removed because it's undefined
-      // Implement actual deletion logic here (e.g., API call)
-      console.log("Delete student:", studentId);
+  const handleDeleteStudent = async (studentId) => {
+    try {
+      await deleteStudent(studentId);
+      setStudents(students.filter((student) => student.id !== studentId));
+      const studentToDelete = students.find((stu) => stu.id === studentId);
+      if (studentToDelete) {
+        addToTrash({
+          name: `Deleted Student: ${studentToDelete.name}`,
+          details: `Program: ${studentToDelete.program}, Year: ${studentToDelete.year}`,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to delete student:", err);
+      setError("Failed to delete student");
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    try {
+      if (modalType === "add") {
+        const newStudent = await createStudent(formData);
+        setStudents((prev) => [...prev, newStudent.data]);
+        setShowModal(false);
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          program: "",
+          enrollmentDate: "",
+          status: "Active",
+          avatar: "",
+          idNumber: "",
+        });
+      } else if (modalType === "edit") {
+        const updatedStudent = await updateStudent(
+          selectedStudent.id,
+          formData
+        );
+        setStudents((prev) =>
+          prev.map((student) =>
+            student.id === selectedStudent.id ? updatedStudent.data : student
+          )
+        );
+        setShowModal(false);
+      }
+    } catch (err) {
+      console.error("Failed to save student:", err);
+      setSubmitError(err.response?.data?.detail || "Failed to save student");
     }
   };
 
@@ -141,93 +188,129 @@ const Students = () => {
     }
   };
 
-  const renderStudentProfile = () => (
-    <div className="space-y-6">
-      {/* Search and Actions */}
-      <div className="flex justify-between items-center">
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search students..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+  const renderStudentProfile = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-gray-500">Loading students...</div>
         </div>
-        <Button onClick={handleAddStudent}>
-          <UserPlusIcon className="h-4 w-4 mr-2" />
-          Add Student
-        </Button>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-red-500">{error}</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Search and Actions */}
+        <div className="flex justify-between items-center">
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <Button onClick={handleAddStudent}>
+            <UserPlusIcon className="h-4 w-4 mr-2" />
+            Add Student
+          </Button>
+        </div>
+
+        {/* Students Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {students
+            .filter(
+              (student) =>
+                student.name
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                student.email
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()) ||
+                student.program
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase())
+            )
+            .map((student) => (
+              <Card
+                key={student.id}
+                className="hover:shadow-lg transition-shadow"
+              >
+                <CardContent>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <img
+                      src={student.avatar || "https://via.placeholder.com/48"}
+                      alt={student.name}
+                      className="h-12 w-12 rounded-full"
+                    />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {student.name}
+                      </h3>
+                      <p className="text-sm text-gray-600">{student.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Program:</span>
+                      <span className="text-sm font-medium">
+                        {student.program}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          student.status
+                        )}`}
+                      >
+                        {student.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleViewStudent(student)}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleEditStudent(student)}
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => handleDeleteStudent(student.id)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
       </div>
-
-      {/* Students Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {students.map((student) => (
-          <Card key={student.id} className="hover:shadow-lg transition-shadow">
-            <CardContent>
-              <div className="flex items-center space-x-4 mb-4">
-                <img
-                  src={student.avatar}
-                  alt={student.name}
-                  className="h-12 w-12 rounded-full"
-                />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {student.name}
-                  </h3>
-                  <p className="text-sm text-gray-600">{student.email}</p>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Program:</span>
-                  <span className="text-sm font-medium">{student.program}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      student.status
-                    )}`}
-                  >
-                    {student.status}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleViewStudent(student)}
-                >
-                  <EyeIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleEditStudent(student)}
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => handleDeleteStudent(student.id)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderEnrollmentDetails = () => (
     <div className="space-y-6">
@@ -634,15 +717,127 @@ const Students = () => {
         )}
 
         {(modalType === "add" || modalType === "edit") && (
-          <form className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Full Name" placeholder="Enter full name" />
-              <Input label="Email" type="email" placeholder="Enter email" />
-              <Input label="Phone" placeholder="Enter phone number" />
-              <Input label="Program" placeholder="Select program" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {submitError && (
+              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {submitError}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Enter full name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email *
+                </label>
+                <Input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Enter email"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <Input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ID Number *
+                </label>
+                <Input
+                  name="idNumber"
+                  value={formData.idNumber}
+                  onChange={handleInputChange}
+                  placeholder="Enter ID number"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Program *
+                </label>
+                <select
+                  name="program"
+                  value={formData.program}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select program</option>
+                  <option value="IoT Development">IoT Development</option>
+                  <option value="Software Development">
+                    Software Development
+                  </option>
+                  <option value="Data Science">Data Science</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status *
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Enrollment Date *
+                </label>
+                <Input
+                  name="enrollmentDate"
+                  type="date"
+                  value={formData.enrollmentDate}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Avatar URL
+                </label>
+                <Input
+                  name="avatar"
+                  value={formData.avatar}
+                  onChange={handleInputChange}
+                  placeholder="Enter avatar URL"
+                />
+              </div>
             </div>
             <div className="flex justify-end space-x-3">
-              <Button variant="outline" onClick={() => setShowModal(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit">

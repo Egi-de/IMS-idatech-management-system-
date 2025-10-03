@@ -1,394 +1,232 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { getStudents } from "../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
-import Modal from "../components/Modal";
-import Input from "../components/Input";
+
 import {
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  DocumentTextIcon,
   UserIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
+  ExclamationTriangleIcon,
   EyeIcon,
-  PencilIcon,
-  PlusIcon,
-  AcademicCapIcon,
-  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 
 const StudentStatus = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [progressFilter, setProgressFilter] = useState("");
+  const [statusData, setStatusData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateFormData, setUpdateFormData] = useState({
-    studentId: "",
-    currentStatus: "Active",
-    enrollmentStatus: "Good Standing",
-    academicStatus: "Active",
-    financialStatus: "Cleared",
-    completionStatus: "On Track",
-    gpa: "",
-    creditsCompleted: "",
-    warnings: [],
-    recommendations: [],
-    nextSteps: [],
-    notes: "",
-  });
 
-  // Enhanced mock status data
-  const [statusData] = useState([
-    {
-      id: 1,
-      studentName: "John Doe",
-      studentId: "STU001",
-      email: "john.doe@email.com",
-      program: "IoT Development",
-      currentStatus: "Active",
-      enrollmentStatus: "Good Standing",
-      academicStatus: "Active",
-      financialStatus: "Cleared",
-      completionStatus: "On Track",
-      expectedGraduation: "2025-06-15",
-      creditsCompleted: 42,
-      totalCredits: 45,
-      currentSemester: "Spring 2024",
-      gpa: 3.8,
-      warnings: [],
-      recommendations: [
-        "Consider advanced IoT specialization courses",
-        "Apply for research assistant position",
-        "Join IoT student club leadership",
-      ],
-      nextSteps: [
-        "Complete remaining 3 credits",
-        "Submit graduation application",
-        "Attend career services workshop",
-      ],
-      statusHistory: [
-        {
-          date: "2024-01-15",
-          status: "Active",
-          description: "Enrollment confirmed",
-        },
-        {
-          date: "2023-12-01",
-          status: "Provisional",
-          description: "Initial enrollment",
-        },
-        {
-          date: "2023-11-15",
-          status: "Pending",
-          description: "Application under review",
-        },
-      ],
-    },
-    {
-      id: 2,
-      studentName: "Jane Smith",
-      studentId: "STU002",
-      email: "jane.smith@email.com",
-      program: "Software Development",
-      currentStatus: "Active",
-      enrollmentStatus: "Good Standing",
-      academicStatus: "Active",
-      financialStatus: "Partial Payment",
-      completionStatus: "On Track",
-      expectedGraduation: "2025-06-15",
-      creditsCompleted: 39,
-      totalCredits: 42,
-      currentSemester: "Spring 2024",
-      gpa: 3.6,
-      warnings: [
-        {
-          type: "Financial",
-          message: "Outstanding balance of $5,000",
-          severity: "medium",
-        },
-      ],
-      recommendations: [
-        "Complete outstanding payment",
-        "Consider part-time work opportunity",
-        "Apply for financial aid extension",
-      ],
-      nextSteps: [
-        "Clear financial obligations",
-        "Complete remaining 3 credits",
-        "Schedule academic advising",
-      ],
-      statusHistory: [
-        {
-          date: "2024-01-10",
-          status: "Active",
-          description: "Payment plan approved",
-        },
-        {
-          date: "2023-12-15",
-          status: "Hold",
-          description: "Financial hold placed",
-        },
-        {
-          date: "2023-11-20",
-          status: "Active",
-          description: "Enrollment activated",
-        },
-      ],
-    },
-    {
-      id: 3,
-      studentName: "Mike Johnson",
-      studentId: "STU003",
-      email: "mike.johnson@email.com",
-      program: "IoT Development",
-      currentStatus: "Inactive",
-      enrollmentStatus: "Academic Warning",
-      academicStatus: "At Risk",
-      financialStatus: "Hold",
-      completionStatus: "Behind Schedule",
-      expectedGraduation: "2025-12-15",
-      creditsCompleted: 32,
-      totalCredits: 38,
-      currentSemester: "Spring 2024",
-      gpa: 3.2,
-      warnings: [
-        {
-          type: "Academic",
-          message: "GPA below 3.0 requirement",
-          severity: "high",
-        },
-        { type: "Financial", message: "All fees unpaid", severity: "high" },
-        {
-          type: "Attendance",
-          message: "Attendance below 75%",
-          severity: "medium",
-        },
-      ],
-      recommendations: [
-        "Meet with academic advisor immediately",
-        "Develop improvement plan",
-        "Consider tutoring services",
-        "Address financial obligations",
-      ],
-      nextSteps: [
-        "Schedule meeting with academic advisor",
-        "Create academic improvement plan",
-        "Clear financial holds",
-        "Improve attendance record",
-      ],
-      statusHistory: [
-        {
-          date: "2024-01-05",
-          status: "Inactive",
-          description: "Academic and financial holds",
-        },
-        {
-          date: "2023-12-01",
-          status: "Warning",
-          description: "Academic warning issued",
-        },
-        {
-          date: "2023-11-15",
-          status: "Active",
-          description: "Initial enrollment",
-        },
-      ],
-    },
-  ]);
+  const fetchStatusData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getStudents();
+      const allStudents = response.data;
+      const transformedData = allStudents.map((student) => {
+        const status = student.is_deleted ? "Inactive" : "Active";
 
-  const handleViewDetails = (student) => {
-    setSelectedStudent(student);
-    setShowModal(true);
-  };
+        let progress = "On Track";
+        const gpa = student.gpa ? parseFloat(student.gpa) : 0;
+        const performanceRating = getPerformanceRating(student.performance);
+        const overallScore = gpa > 0 ? gpa : performanceRating;
+        if (overallScore < 2.5) {
+          progress = "Needs Attention";
+        } else if (overallScore < 3.5) {
+          progress = "At Risk";
+        }
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setUpdateFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+        const warnings = [];
+        if (student.overallAttendance < 80) {
+          warnings.push("Low Attendance");
+        }
+        if (gpa < 3.0) {
+          warnings.push("Low GPA");
+        }
+        if (
+          (student.feedback || []).some(
+            (f) => (f.improvements || []).length > 0
+          )
+        ) {
+          warnings.push("Feedback Required");
+        }
+        const unpaidFees = student.finance?.unpaidFees || 0;
+        if (unpaidFees > 0) {
+          warnings.push("Financial Pending");
+        }
+        const warningCount = warnings.length;
 
-  const handleUpdateStatus = (e) => {
-    e.preventDefault();
+        let recommendations = "";
+        const improvements = (student.feedback || [])
+          .flatMap((f) => f.improvements || [])
+          .filter(Boolean);
+        if (improvements.length > 0) {
+          recommendations = improvements.join(", ");
+        } else if (warningCount > 0) {
+          recommendations = `Address: ${warnings.join(", ")}`;
+        } else {
+          recommendations = "Continue strong performance";
+        }
 
-    // Find the student to update
-    const studentIndex = statusData.findIndex(
-      (student) => student.studentId === updateFormData.studentId
-    );
-
-    if (studentIndex === -1) {
-      alert("Student not found!");
-      return;
+        return {
+          id: student.id,
+          studentName: student.name,
+          studentId: student.idNumber,
+          email: student.email,
+          program: student.program,
+          status,
+          progress,
+          warnings,
+          warningCount,
+          recommendations,
+          gpa,
+          overallAttendance: student.overallAttendance || 0,
+          finance: student.finance || { unpaidFees: 0 },
+          feedback: student.feedback,
+        };
+      });
+      setStatusData(transformedData);
+    } catch (err) {
+      setError(err.message || "Failed to fetch student status data");
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    // Create updated student object
-    const updatedStudent = {
-      ...statusData[studentIndex],
-      currentStatus: updateFormData.currentStatus,
-      enrollmentStatus: updateFormData.enrollmentStatus,
-      academicStatus: updateFormData.academicStatus,
-      financialStatus: updateFormData.financialStatus,
-      completionStatus: updateFormData.completionStatus,
-      gpa: updateFormData.gpa
-        ? parseFloat(updateFormData.gpa)
-        : statusData[studentIndex].gpa,
-      creditsCompleted: updateFormData.creditsCompleted
-        ? parseInt(updateFormData.creditsCompleted)
-        : statusData[studentIndex].creditsCompleted,
-      statusHistory: [
-        ...statusData[studentIndex].statusHistory,
-        {
-          date: new Date().toISOString().split("T")[0],
-          status: updateFormData.currentStatus,
-          description: updateFormData.notes || "Status updated via admin panel",
-        },
-      ],
+  useEffect(() => {
+    fetchStatusData();
+  }, [fetchStatusData]);
+
+  const getPerformanceRating = (performance) => {
+    const mapping = {
+      Excellent: 4.5,
+      Good: 4.0,
+      Average: 3.0,
+      Poor: 2.0,
     };
-
-    // Update the status data
-    const newStatusData = [...statusData];
-    newStatusData[studentIndex] = updatedStudent;
-
-    // Update state (in a real app, this would be an API call)
-    // For now, we'll just update the local state
-    // setStatusData(newStatusData);
-
-    // Reset form and close modal
-    setUpdateFormData({
-      studentId: "",
-      currentStatus: "Active",
-      enrollmentStatus: "Good Standing",
-      academicStatus: "Active",
-      financialStatus: "Cleared",
-      completionStatus: "On Track",
-      gpa: "",
-      creditsCompleted: "",
-      warnings: [],
-      recommendations: [],
-      nextSteps: [],
-      notes: "",
-    });
-
-    setShowUpdateModal(false);
-    alert("Student status updated successfully!");
+    return mapping[performance] || 3.0;
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "text-green-600 bg-green-100";
-      case "Inactive":
-        return "text-red-600 bg-red-100";
-      case "Pending":
-        return "text-yellow-600 bg-yellow-100";
-      case "Hold":
-        return "text-red-600 bg-red-100";
-      case "Warning":
-        return "text-yellow-600 bg-yellow-100";
-      case "Provisional":
-        return "text-blue-600 bg-blue-100";
+    return status === "Active"
+      ? "bg-green-100 text-green-800"
+      : "bg-red-100 text-red-800";
+  };
+
+  const getProgressColor = (progress) => {
+    switch (progress) {
+      case "On Track":
+        return "bg-blue-100 text-blue-800";
+      case "At Risk":
+        return "bg-yellow-100 text-yellow-800";
+      case "Needs Attention":
+        return "bg-red-100 text-red-800";
       default:
-        return "text-gray-600 bg-gray-100";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case "high":
-        return "text-red-600 bg-red-100";
-      case "medium":
-        return "text-yellow-600 bg-yellow-100";
-      case "low":
-        return "text-blue-600 bg-blue-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
+  const getWarningColor = (count) => {
+    if (count === 0) return "bg-green-100 text-green-800";
+    if (count <= 1) return "bg-yellow-100 text-yellow-800";
+    return "bg-red-100 text-red-800";
   };
 
-  const getOverallStatusColor = (student) => {
-    if (student.warnings.some((w) => w.severity === "high"))
-      return "text-red-600";
-    if (student.warnings.length > 0) return "text-yellow-600";
-    return "text-green-600";
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        Loading status data...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64 text-red-600">
+        Error: {error}
+      </div>
+    );
+  }
+
+  const filteredData = statusData.filter((student) => {
+    const matchesSearch =
+      student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.program.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.studentId.includes(searchQuery);
+    const matchesStatus = !statusFilter || student.status === statusFilter;
+    const matchesProgress =
+      !progressFilter || student.progress === progressFilter;
+    return matchesSearch && matchesStatus && matchesProgress;
+  });
+
+  const activeCount = statusData.filter((s) => s.status === "Active").length;
+  const inactiveCount = statusData.length - activeCount;
+  const onTrackCount = statusData.filter(
+    (s) => s.progress === "On Track"
+  ).length;
+  const atRiskCount = statusData.filter((s) => s.progress === "At Risk").length;
+  const totalWarnings = statusData.reduce((sum, s) => sum + s.warningCount, 0);
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Status & Recommendations
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Monitor student status, progress, and recommendations
+            Monitor student status, progress, and personalized recommendations
           </p>
         </div>
-        <Button onClick={() => setShowUpdateModal(true)}>
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Update Status
-        </Button>
+        <Button onClick={fetchStatusData}>Update Status</Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {statusData.filter((s) => s.currentStatus === "Active").length}
-              </div>
-              <div className="text-sm text-gray-600">Active Students</div>
+          <CardContent className="text-center">
+            <div className="text-3xl font-bold text-blue-600">
+              {activeCount}
             </div>
+            <div className="text-sm text-gray-600">Active Students</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600">
-                {statusData.filter((s) => s.warnings.length > 0).length}
-              </div>
-              <div className="text-sm text-gray-600">
-                Students with Warnings
-              </div>
+          <CardContent className="text-center">
+            <div className="text-3xl font-bold text-red-600">
+              {inactiveCount}
             </div>
+            <div className="text-sm text-gray-600">Inactive</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">
-                {
-                  statusData.filter((s) => s.completionStatus === "On Track")
-                    .length
-                }
-              </div>
-              <div className="text-sm text-gray-600">On Track</div>
+          <CardContent className="text-center">
+            <div className="text-3xl font-bold text-green-600">
+              {onTrackCount}
             </div>
+            <div className="text-sm text-gray-600">On Track</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">
-                {
-                  statusData.filter((s) => s.currentStatus === "Inactive")
-                    .length
-                }
-              </div>
-              <div className="text-sm text-gray-600">Inactive</div>
+          <CardContent className="text-center">
+            <div className="text-3xl font-bold text-yellow-600">
+              {atRiskCount}
             </div>
+            <div className="text-sm text-gray-600">At Risk</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="text-center">
+            <div className="text-3xl font-bold text-orange-600">
+              {totalWarnings}
+            </div>
+            <div className="text-sm text-gray-600">Total Warnings</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Filters */}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-64">
           <div className="relative">
@@ -402,496 +240,171 @@ const StudentStatus = () => {
             />
           </div>
         </div>
-
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">All Programs</option>
-          <option value="iot">IoT Development</option>
-          <option value="software">Software Development</option>
-          <option value="data">Data Science</option>
-        </select>
-
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
           <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="warning">Warning</option>
-          <option value="hold">Hold</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <select
+          value={progressFilter}
+          onChange={(e) => setProgressFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Progress</option>
+          <option value="On Track">On Track</option>
+          <option value="At Risk">At Risk</option>
+          <option value="Needs Attention">Needs Attention</option>
         </select>
       </div>
 
-      {/* Status List */}
       <Card>
         <CardHeader>
           <CardTitle>Student Status & Progress</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {statusData.map((student) => (
-              <div
-                key={student.id}
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <UserIcon className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {student.studentName}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {student.studentId} • {student.program}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {student.creditsCompleted}/{student.totalCredits} credits
-                      • GPA: {student.gpa}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <div
-                      className={`text-lg font-semibold ${getOverallStatusColor(
-                        student
-                      )}`}
-                    >
-                      {student.currentStatus}
+            {filteredData.length > 0 ? (
+              filteredData.map((student) => (
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <UserIcon className="h-6 w-6 text-blue-600" />
                     </div>
-                    <div className="text-xs text-gray-600">Status</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-blue-600">
-                      {student.completionStatus}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {student.studentName}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {student.studentId} • {student.program}
+                      </p>
                     </div>
-                    <div className="text-xs text-gray-600">Progress</div>
                   </div>
-
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-purple-600">
-                      {student.warnings.length}
-                    </div>
-                    <div className="text-xs text-gray-600">Warnings</div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-green-600">
-                      {student.recommendations.length}
-                    </div>
-                    <div className="text-xs text-gray-600">Recommendations</div>
-                  </div>
-
-                  <div className="flex space-x-2">
+                  <div className="flex items-center space-x-4">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        student.currentStatus
+                        student.status
                       )}`}
                     >
-                      {student.currentStatus}
+                      {student.status}
                     </span>
-                    {student.warnings.length > 0 && (
-                      <span className="px-3 py-1 rounded-full text-sm font-medium text-red-600 bg-red-100">
-                        {student.warnings.length} Warning
-                        {student.warnings.length > 1 ? "s" : ""}
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getProgressColor(
+                        student.progress
+                      )}`}
+                    >
+                      {student.progress}
+                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getWarningColor(
+                          student.warningCount
+                        )}`}
+                      >
+                        {student.warningCount} Warnings
                       </span>
-                    )}
+                      {student.warningCount > 0 && (
+                        <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600" />
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm text-gray-600 max-w-xs truncate">
+                        {student.recommendations}
+                      </div>
+                      <button
+                        onClick={() => setSelectedStudent(student)}
+                        className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        title="View full recommendations"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    size="small"
-                    onClick={() => handleViewDetails(student)}
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </Button>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8">
+                No students found matching the criteria.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Status Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Student Status & Recommendations"
-        size="large"
-      >
-        {selectedStudent && (
-          <div className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <UserIcon className="h-8 w-8 text-blue-600" />
+      {/* Recommendations Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Recommendations for {selectedStudent.studentName}
+                </h2>
+                <button
+                  onClick={() => setSelectedStudent(null)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {selectedStudent.studentName}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedStudent.email}
-                </p>
-                <p className="text-sm text-gray-500">
-                  ID: {selectedStudent.studentId}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Current Status Overview
-                  </label>
-                  <div className="mt-2 grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <div
-                        className={`text-lg font-bold ${getStatusColor(
-                          selectedStudent.currentStatus
-                        )}`}
-                      >
-                        {selectedStudent.currentStatus}
-                      </div>
-                      <div className="text-sm text-blue-600">
-                        Overall Status
-                      </div>
+                {selectedStudent.feedback &&
+                selectedStudent.feedback.length > 0 ? (
+                  selectedStudent.feedback.map((feedback, index) => (
+                    <div
+                      key={index}
+                      className="border-l-4 border-blue-500 pl-4"
+                    >
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                        Date: {feedback.date || "N/A"} | Rating:{" "}
+                        {feedback.rating || "N/A"}
+                      </p>
+                      {feedback.improvements &&
+                      feedback.improvements.length > 0 ? (
+                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-200">
+                          {feedback.improvements.map((imp, i) => (
+                            <li key={i}>{imp}</li>
+                          ))}
+                        </ul>
+                      ) : feedback.recommendations ? (
+                        <p className="text-sm text-gray-700 dark:text-gray-200">
+                          {feedback.recommendations}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          No specific recommendations.
+                        </p>
+                      )}
                     </div>
-                    <div className="bg-green-50 p-3 rounded-lg">
-                      <div className="text-lg font-bold text-green-600">
-                        {selectedStudent.enrollmentStatus}
-                      </div>
-                      <div className="text-sm text-green-600">Enrollment</div>
-                    </div>
-                    <div className="bg-yellow-50 p-3 rounded-lg">
-                      <div className="text-lg font-bold text-yellow-600">
-                        {selectedStudent.academicStatus}
-                      </div>
-                      <div className="text-sm text-yellow-600">Academic</div>
-                    </div>
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <div className="text-lg font-bold text-purple-600">
-                        {selectedStudent.financialStatus}
-                      </div>
-                      <div className="text-sm text-purple-600">Financial</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Progress Information
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Credits Completed:</span>
-                      <span className="text-sm font-medium">
-                        {selectedStudent.creditsCompleted}/
-                        {selectedStudent.totalCredits}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Current GPA:</span>
-                      <span className="text-sm font-medium">
-                        {selectedStudent.gpa}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Expected Graduation:</span>
-                      <span className="text-sm font-medium">
-                        {new Date(
-                          selectedStudent.expectedGraduation
-                        ).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Current Semester:</span>
-                      <span className="text-sm font-medium">
-                        {selectedStudent.currentSemester}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedStudent.warnings.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Active Warnings
-                    </label>
-                    <div className="mt-2 space-y-2">
-                      {selectedStudent.warnings.map((warning, index) => (
-                        <div
-                          key={index}
-                          className="p-3 bg-red-50 border border-red-200 rounded-lg"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <ExclamationCircleIcon className="h-4 w-4 text-red-600" />
-                              <span className="text-sm font-medium text-red-700">
-                                {warning.type} Warning
-                              </span>
-                            </div>
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(
-                                warning.severity
-                              )}`}
-                            >
-                              {warning.severity} priority
-                            </span>
-                          </div>
-                          <p className="text-sm text-red-600 mt-1">
-                            {warning.message}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                    No feedback recommendations available.
+                  </p>
                 )}
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Recommendations
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    {selectedStudent.recommendations.map(
-                      (recommendation, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start space-x-2 p-2 bg-blue-50 rounded"
-                        >
-                          <ArrowRightIcon className="h-4 w-4 text-blue-600 mt-0.5" />
-                          <span className="text-sm">{recommendation}</span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Next Steps
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    {selectedStudent.nextSteps.map((step, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start space-x-2 p-2 bg-green-50 rounded"
-                      >
-                        <CheckCircleIcon className="h-4 w-4 text-green-600 mt-0.5" />
-                        <span className="text-sm">{step}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status History
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    {selectedStudent.statusHistory.map((history, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <div>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                              history.status
-                            )}`}
-                          >
-                            {history.status}
-                          </span>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {history.description}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(history.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
-        )}
-      </Modal>
-
-      {/* Update Status Modal */}
-      <Modal
-        isOpen={showUpdateModal}
-        onClose={() => setShowUpdateModal(false)}
-        title="Update Student Status"
-        size="large"
-      >
-        <form onSubmit={handleUpdateStatus} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Student ID
-              </label>
-              <Input
-                type="text"
-                name="studentId"
-                value={updateFormData.studentId}
-                onChange={handleInputChange}
-                placeholder="Enter student ID (e.g., STU001)"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Current Status
-              </label>
-              <select
-                name="currentStatus"
-                value={updateFormData.currentStatus}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Pending">Pending</option>
-                <option value="Hold">Hold</option>
-                <option value="Warning">Warning</option>
-                <option value="Provisional">Provisional</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Enrollment Status
-              </label>
-              <select
-                name="enrollmentStatus"
-                value={updateFormData.enrollmentStatus}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="Good Standing">Good Standing</option>
-                <option value="Academic Warning">Academic Warning</option>
-                <option value="Probation">Probation</option>
-                <option value="Suspended">Suspended</option>
-                <option value="Withdrawn">Withdrawn</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Academic Status
-              </label>
-              <select
-                name="academicStatus"
-                value={updateFormData.academicStatus}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="Active">Active</option>
-                <option value="At Risk">At Risk</option>
-                <option value="Warning">Warning</option>
-                <option value="Probation">Probation</option>
-                <option value="Suspended">Suspended</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Financial Status
-              </label>
-              <select
-                name="financialStatus"
-                value={updateFormData.financialStatus}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="Cleared">Cleared</option>
-                <option value="Partial Payment">Partial Payment</option>
-                <option value="Hold">Hold</option>
-                <option value="Overdue">Overdue</option>
-                <option value="Scholarship">Scholarship</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Completion Status
-              </label>
-              <select
-                name="completionStatus"
-                value={updateFormData.completionStatus}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="On Track">On Track</option>
-                <option value="Behind Schedule">Behind Schedule</option>
-                <option value="Ahead of Schedule">Ahead of Schedule</option>
-                <option value="Completed">Completed</option>
-                <option value="At Risk">At Risk</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                GPA
-              </label>
-              <Input
-                type="number"
-                name="gpa"
-                value={updateFormData.gpa}
-                onChange={handleInputChange}
-                placeholder="3.8"
-                step="0.1"
-                min="0"
-                max="4.0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Credits Completed
-              </label>
-              <Input
-                type="number"
-                name="creditsCompleted"
-                value={updateFormData.creditsCompleted}
-                onChange={handleInputChange}
-                placeholder="42"
-                min="0"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Update Notes
-            </label>
-            <textarea
-              name="notes"
-              value={updateFormData.notes}
-              onChange={handleInputChange}
-              placeholder="Enter any notes about this status update..."
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowUpdateModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Update Status</Button>
-          </div>
-        </form>
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };

@@ -36,8 +36,8 @@ const Sidebar = () => {
       current: location.pathname.startsWith("/students"),
       submenu: true,
       items: [
+        { name: "Student Enrollment", href: "/students/enrollment" },
         { name: "Student Profile", href: "/students/profile" },
-        { name: "Enrollment Details", href: "/students/enrollment" },
         { name: "Attendance & Participation", href: "/students/attendance" },
         { name: "Performance / Grades", href: "/students/performance" },
         { name: "Activities & Achievements", href: "/students/activities" },
