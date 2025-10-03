@@ -20,11 +20,7 @@ import {
   ExclamationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-import { useTrashBin } from "../contexts/TrashBinContext";
-
 const Students = () => {
-  const { addToTrash } = useTrashBin();
-
   const [students] = useState([
     {
       id: 1,
@@ -126,10 +122,7 @@ const Students = () => {
   const handleDeleteStudent = (studentId) => {
     const studentToDelete = students.find((stu) => stu.id === studentId);
     if (studentToDelete) {
-      addToTrash({
-        name: `Deleted Student: ${studentToDelete.name}`,
-        details: `Program: ${studentToDelete.program}, Year: ${studentToDelete.year}`,
-      });
+      // addToTrash removed because it's undefined
       // Implement actual deletion logic here (e.g., API call)
       console.log("Delete student:", studentId);
     }

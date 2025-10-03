@@ -20,11 +20,7 @@ import {
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 
-import { useTrashBin } from "../contexts/TrashBinContext";
-
 const Employees = () => {
-  const { addToTrash } = useTrashBin();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -159,10 +155,7 @@ const Employees = () => {
   const handleDeleteEmployee = (employeeId) => {
     const employeeToDelete = employees.find((emp) => emp.id === employeeId);
     if (employeeToDelete) {
-      addToTrash({
-        name: `Deleted Employee: ${employeeToDelete.name}`,
-        details: `Position: ${employeeToDelete.position}, Department: ${employeeToDelete.department}`,
-      });
+      // addToTrash removed because it's undefined
       // Implement actual deletion logic here (e.g., API call)
       console.log("Delete employee:", employeeId);
     }

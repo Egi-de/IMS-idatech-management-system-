@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useTrashBin } from "../contexts/TrashBinContext";
 
 import {
   ArrowLeftIcon,
@@ -12,7 +11,11 @@ import {
 } from "@heroicons/react/24/outline";
 
 const Settings = () => {
-  const { trashItems, restoreFromTrash } = useTrashBin();
+  const [trashItems, setTrashItems] = useState([]);
+
+  const restoreFromTrash = (id) => {
+    setTrashItems((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const [settings, setSettings] = useState({
     notifications: {
