@@ -157,10 +157,39 @@ const Employees = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null); // Clear previous errors
+
+    // Client-side validation
+    if (!formData.name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError("Email is required");
+      return;
+    }
+    if (!formData.position.trim()) {
+      setError("Position is required");
+      return;
+    }
+    if (!formData.department_id) {
+      setError("Department is required");
+      return;
+    }
+    const salaryNum = parseFloat(formData.salary);
+    if (isNaN(salaryNum) || salaryNum <= 0) {
+      setError("Valid salary is required");
+      return;
+    }
+    if (!formData.status) {
+      setError("Status is required");
+      return;
+    }
+
     const data = {
       ...formData,
       department_id: parseInt(formData.department_id),
-      salary: parseFloat(formData.salary),
+      salary: salaryNum,
     };
 
     try {
@@ -181,7 +210,15 @@ const Employees = () => {
           }
         );
       }
-      if (!response.ok) throw new Error("Failed to save employee");
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          setError(`Failed to save: ${JSON.stringify(errorData)}`);
+        } catch {
+          setError("Failed to save employee");
+        }
+        return;
+      }
       fetchEmployees(); // Refetch after add/edit
       setShowModal(false);
     } catch (err) {
@@ -629,17 +666,26 @@ const Employees = () => {
                 placeholder="Enter position"
                 required
               />
-              <Select
-                label="Department"
-                name="department_id"
-                value={formData.department_id}
-                onChange={handleInputChange}
-                options={departments.map((dept) => ({
-                  value: dept.id.toString(),
-                  label: dept.name,
-                }))}
-                required
-              />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Department
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <select
+                  name="department_id"
+                  value={formData.department_id}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id.toString()}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <Input
                 label="Salary"
                 name="salary"

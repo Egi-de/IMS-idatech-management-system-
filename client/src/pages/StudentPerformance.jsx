@@ -459,8 +459,7 @@ const StudentPerformance = () => {
         width: 80,
         editable: false,
         cellStyle: (params) => ({
-          backgroundColor:
-            getGradeColor(params.value).split(" ")[1] || "#f3f4f6",
+          backgroundColor: getGradeBackgroundColor(params.value),
         }),
       },
       {
@@ -475,8 +474,7 @@ const StudentPerformance = () => {
         width: 140,
         editable: false,
         cellStyle: (params) => ({
-          backgroundColor:
-            getStandingColor(params.value).split(" ")[1] || "#f3f4f6",
+          backgroundColor: getStandingBackgroundColor(params.value),
         }),
       },
       {
@@ -867,6 +865,26 @@ const StudentPerformance = () => {
     }
   };
 
+  const getGradeBackgroundColor = (grade) => {
+    switch (grade) {
+      case "A": return "#dcfce7";
+      case "B": return "#dbeafe";
+      case "C": return "#fef3c7";
+      case "D": return "#fed7aa";
+      case "F": return "#fee2e2";
+      default: return "#f3f4f6";
+    }
+  };
+
+  const getStandingBackgroundColor = (standing) => {
+    switch (standing) {
+      case "Good Standing": return "#dcfce7";
+      case "At Risk": return "#fef3c7";
+      case "Academic Probation": return "#fee2e2";
+      default: return "#f3f4f6";
+    }
+  };
+
   // Import Excel function
   const handleImportSubmit = async () => {
     if (!selectedFile) {
@@ -1234,9 +1252,7 @@ const StudentPerformance = () => {
             }}
             onCellValueChanged={onCellValueChanged}
             getRowStyle={(params) => ({
-              backgroundColor:
-                getStandingColor(params.data.standing).split(" ")[1] ||
-                "#ffffff",
+              backgroundColor: getStandingBackgroundColor(params.data.standing),
             })}
             pagination={true}
             paginationPageSize={Math.min(20, filteredStudents.length)}
@@ -1755,10 +1771,6 @@ const StudentPerformance = () => {
                   modules={[ClientSideRowModelModule]}
                   onGridReady={(params) => {
                     setGradeManagementGridApi(params.api);
-                    console.log(
-                      "Grade Management Grid Ready - Row Count:",
-                      params.api.getDisplayedRowCount()
-                    );
                   }}
                   onHeaderClicked={(params) => {
                     const colId = params.column.getColId();
@@ -1798,9 +1810,7 @@ const StudentPerformance = () => {
                   enableRangeSelection={true}
                   suppressRowClickSelection={false}
                   getRowStyle={(params) => ({
-                    backgroundColor:
-                      getStandingColor(params.data.standing).split(" ")[1] ||
-                      "#ffffff",
+                    backgroundColor: getStandingBackgroundColor(params.data.standing),
                   })}
                   pagination={true}
                   paginationPageSize={Math.min(

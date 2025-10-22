@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
+import { login } from "../services/api";
 import Button from "../components/Button";
 import Input from "../components/Input";
 
@@ -20,33 +21,33 @@ const Login = () => {
     });
   };
 
+  const navigate = useNavigate();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await login(formData.username, formData.password);
+      const token = response.data.token;
 
-      // For demo purposes, accept any username/password
-      if (formData.username && formData.password) {
-        // Store auth token (in real app, this would come from API)
-        localStorage.setItem("authToken", "demo-token");
-        toast.success("Login successful! Redirecting to dashboard...");
-        setTimeout(() => {
-          window.location.href = "/dashboard";
-        }, 1000);
-      } else {
-        toast.error("Please enter both username and password");
-      }
-    } catch {
-      setError("Login failed. Please try again.");
+      // ✅ Store token
+      localStorage.setItem("authToken", token);
+      console.log("Login successful, token:", token);
+
+      toast.success("Login successful! Redirecting to dashboard...");
+      navigate("/dashboard");
+    } catch (err) {
+      const message =
+        err.response?.data?.detail || "Login failed. Please check your credentials.";
+      setError(message);
+      toast.error(message);
+      localStorage.removeItem("authToken");
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex">
       {/* Left side - Image */}
