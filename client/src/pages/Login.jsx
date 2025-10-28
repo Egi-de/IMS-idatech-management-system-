@@ -37,10 +37,31 @@ const Login = () => {
       console.log("Login successful, token:", token);
 
       toast.success("Login successful! Redirecting to dashboard...");
+
+      // Log login activity
+      try {
+        await fetch("/api/settings/activities/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+          body: JSON.stringify({
+            activity_type: "login",
+            description: `User ${formData.username} logged in`,
+            item_type: "user",
+            item_id: formData.username,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to log login activity:", error);
+      }
+
       navigate("/dashboard");
     } catch (err) {
       const message =
-        err.response?.data?.detail || "Login failed. Please check your credentials.";
+        err.response?.data?.detail ||
+        "Login failed. Please check your credentials.";
       setError(message);
       toast.error(message);
       localStorage.removeItem("authToken");

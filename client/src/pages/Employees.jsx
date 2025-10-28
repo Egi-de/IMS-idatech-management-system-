@@ -131,16 +131,20 @@ const Employees = () => {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete employee");
-      addToTrash({
-        name: `Deleted Employee: ${
-          employees.find((emp) => emp.id === employeeId)?.name
-        }`,
-        details: `Position: ${
-          employees.find((emp) => emp.id === employeeId)?.position
-        }, Department: ${
-          employees.find((emp) => emp.id === employeeId)?.department.name
-        }`,
-      });
+
+      const employee = employees.find((emp) => emp.id === employeeId);
+      if (employee) {
+        await addToTrash({
+          type: "employee",
+          id: employeeId,
+          name: employee.name,
+          position: employee.position,
+          department: employee.department.name,
+          email: employee.email,
+          canRestore: true,
+        });
+      }
+
       fetchEmployees(); // Refetch after delete
     } catch (err) {
       setError(err.message);

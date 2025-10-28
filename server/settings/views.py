@@ -2,8 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .models import UserSettings, Notification
-from .serializers import UserSettingsSerializer, NotificationSerializer
+from .models import UserSettings, Notification, TrashBin, ActivityLog
+from .serializers import UserSettingsSerializer, NotificationSerializer, TrashBinSerializer
 
 class UserSettingsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -44,6 +44,17 @@ class UserSettingsView(APIView):
         serializer = UserSettingsSerializer(user_settings, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user,
+                activity_type='update',
+                description='Updated user settings',
+                item_type='settings',
+                item_id=str(user_settings.id),
+                metadata={'changes': request.data}
+            )
+
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -91,6 +102,16 @@ class UserProfileView(APIView):
         user_settings.settings_data['profile'] = profile_data
         user_settings.save()
 
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user,
+            activity_type='update',
+            description='Updated user profile',
+            item_type='profile',
+            item_id=str(user.id),
+            metadata={'changes': request.data}
+        )
+
         # Return updated data
         updated_data = self.get(request).data
         return Response(updated_data)
@@ -123,3 +144,82 @@ class NotificationView(APIView):
         notifications.update(read=True)
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data)
+
+class TrashBinView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        trash_items = TrashBin.objects.filter(user=request.user)
+        serializer = TrashBinSerializer(trash_items, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data.copy()
+        data['user'] = request.user.id
+        serializer = TrashBinSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        try:
+            trash_item = TrashBin.objects.get(pk=pk, user=request.user)
+            trash_item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except TrashBin.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class ActivityLogView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        activities = ActivityLog.objects.filter(user=request.user).order_by('-created_at')[:50]
+        data = []
+        for activity in activities:
+            data.append({
+                'id': activity.id,
+                'activity_type': activity.activity_type,
+                'description': activity.description,
+                'item_type': activity.item_type,
+                'item_id': activity.item_id,
+                'metadata': activity.metadata,
+                'created_at': activity.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'timestamp': activity.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'user': activity.user.username if activity.user else 'System',
+                'icon': self.get_activity_icon(activity.activity_type),
+                'type': activity.item_type or 'system'
+            })
+        return Response(data)
+
+    def post(self, request):
+        data = request.data.copy()
+        data['user'] = request.user.id
+        activity_log = ActivityLog.objects.create(
+            user=request.user,
+            activity_type=data.get('activity_type'),
+            description=data.get('description'),
+            item_type=data.get('item_type'),
+            item_id=data.get('item_id'),
+            metadata=data.get('metadata', {}),
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+        return Response({
+            'id': activity_log.id,
+            'activity_type': activity_log.activity_type,
+            'description': activity_log.description,
+            'created_at': activity_log.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }, status=status.HTTP_201_CREATED)
+
+    def get_activity_icon(self, activity_type):
+        icon_map = {
+            'create': 'fas fa-plus text-green-600',
+            'update': 'fas fa-edit text-blue-600',
+            'delete': 'fas fa-trash text-red-600',
+            'restore': 'fas fa-undo text-yellow-600',
+            'login': 'fas fa-sign-in-alt text-green-600',
+            'logout': 'fas fa-sign-out-alt text-gray-600',
+            'other': 'fas fa-info-circle text-gray-600'
+        }
+        return icon_map.get(activity_type, 'fas fa-info-circle text-gray-600')

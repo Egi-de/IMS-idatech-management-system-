@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('finance/', include('finance.urls')),
     path('student/', include('student.urls')),
+    path('dashboard/', include('dashboard.urls')),
     path('api/',include('Employee.urls')),
     path('api/settings/', include('settings.urls')),
     path('api-token-auth/', obtain_auth_token)
