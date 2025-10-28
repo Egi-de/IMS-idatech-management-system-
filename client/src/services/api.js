@@ -31,7 +31,8 @@ export const deleteTransaction = (id) =>
   api.delete(`/finance/api/transactions/${id}/`);
 
 export const getSummary = () => api.get("/finance/api/summary/");
-export const getReports = (params) => api.get("/finance/api/reports/", { params });
+export const getReports = (params) =>
+  api.get("/finance/api/reports/", { params });
 export const generatePDFReport = (params) =>
   api.post("/finance/api/reports/pdf/", params, { responseType: "blob" });
 
@@ -42,12 +43,18 @@ export const updateStudent = (id, data) =>
   api.patch(`/student/api/students/${id}/`, data);
 export const deleteStudent = (id) => api.delete(`/student/api/students/${id}/`);
 export const getStudentById = (id) => api.get(`/student/api/students/${id}/`);
-export const getDeletedStudents = () => api.get("/student/api/students/deleted/");
-export const restoreStudent = (id) => api.patch(`/student/api/students/${id}/restore/`);
-export const getStudentSummary = () => api.get("/student/api/students/summary/");
-export const getStudentActivities = () => api.get("/student/api/students/activities/");
-export const getStudentAttendance = () => api.get("/student/api/students/attendance/");
-export const markAttendance = (data) => api.post("/student/api/students/attendance/", data);
+export const getDeletedStudents = () =>
+  api.get("/student/api/students/deleted/");
+export const restoreStudent = (id) =>
+  api.patch(`/student/api/students/${id}/restore/`);
+export const getStudentSummary = () =>
+  api.get("/student/api/students/summary/");
+export const getStudentActivities = () =>
+  api.get("/student/api/students/activities/");
+export const getStudentAttendance = () =>
+  api.get("/student/api/students/attendance/");
+export const markAttendance = (data) =>
+  api.post("/student/api/students/attendance/", data);
 export const getAttendanceByDate = (date) =>
   api.get(`/student/api/students/attendance/?date=${date}`);
 
@@ -66,7 +73,8 @@ export const login = (username, password) =>
 export const getSettings = () => api.get("/api/settings/");
 export const updateSettings = (data) => api.patch("/api/settings/", data);
 export const getUserProfile = () => api.get("/api/settings/user/");
-export const updateUserProfile = (data) => api.patch("/api/settings/user/", data);
+export const updateUserProfile = (data) =>
+  api.patch("/api/settings/user/", data);
 
 /* ----------------------------- NOTIFICATIONS ----------------------------- */
 export const getNotifications = () => api.get("/api/settings/notifications/");
@@ -74,5 +82,18 @@ export const markNotificationAsRead = (id, read) =>
   api.patch(`/api/settings/notifications/${id}/`, { read });
 export const markAllNotificationsAsRead = () =>
   api.put("/api/settings/notifications/", {});
+
+/* ----------------------------- ACTIVITIES ----------------------------- */
+export const getActivities = () => api.get("/api/settings/activities/");
+export const logActivity = (data) =>
+  api.post("/api/settings/activities/", data);
+
+/* ----------------------------- TRASH BIN ----------------------------- */
+export const getTrashItems = () => api.get("/api/settings/trash/");
+export const addToTrash = (data) => api.post("/api/settings/trash/", data);
+export const deleteFromTrash = (id) => api.delete(`/api/settings/trash/${id}/`);
+
+/* ----------------------------- DASHBOARD ----------------------------- */
+export const getDashboardSummary = () => api.get("/dashboard/api/summary/");
 
 export default api;

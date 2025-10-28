@@ -5,19 +5,87 @@ from django.db.models import Sum, Avg, Count
 from .models import Student
 from .serializers import StudentSerializer
 from datetime import datetime
+from settings.models import ActivityLog, TrashBin
 
 class StudentListCreateView(generics.ListCreateAPIView):
     queryset = Student.objects.filter(is_deleted=False).order_by('-created_at')
     serializer_class = StudentSerializer
+
+    def perform_create(self, serializer):
+        student = serializer.save()
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=self.request.user if self.request.user.is_authenticated else None,
+            activity_type='create',
+            description=f"Created new student: {student.name}",
+            item_type='student',
+            item_id=str(student.id),
+            metadata={
+                'name': student.name,
+                'idNumber': student.idNumber,
+                'program': student.program,
+                'email': student.email,
+                'gpa': str(student.gpa) if student.gpa else None,
+                'status': student.status
+            }
+        )
 
 class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Student.objects.filter(is_deleted=False)
     serializer_class = StudentSerializer
 
     def perform_update(self, serializer):
-        serializer.save(partial=True)
+        updated_student = serializer.save(partial=True)
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=self.request.user if self.request.user.is_authenticated else None,
+            activity_type='update',
+            description=f"Updated student: {updated_student.name}",
+            item_type='student',
+            item_id=str(updated_student.id),
+            metadata={
+                'name': updated_student.name,
+                'idNumber': updated_student.idNumber,
+                'program': updated_student.program,
+                'email': updated_student.email,
+                'gpa': str(updated_student.gpa) if updated_student.gpa else None,
+                'status': updated_student.status
+            }
+        )
 
     def perform_destroy(self, instance):
+        # Store student data in trash before soft deleting
+        student_data = {
+            'id': instance.id,
+            'name': instance.name,
+            'idNumber': instance.idNumber,
+            'program': instance.program,
+            'email': instance.email,
+            'gpa': str(instance.gpa) if instance.gpa else None,
+            'status': instance.status,
+            'created_at': instance.created_at.strftime('%Y-%m-%d %H:%M:%S') if instance.created_at else None,
+        }
+
+        # Add to trash bin
+        TrashBin.objects.create(
+            user=self.request.user if self.request.user.is_authenticated else None,
+            item_type='student',
+            item_id=str(instance.id),
+            item_data=student_data
+        )
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=self.request.user if self.request.user.is_authenticated else None,
+            activity_type='delete',
+            description=f"Deleted student: {instance.name}",
+            item_type='student',
+            item_id=str(instance.id),
+            metadata=student_data
+        )
+
         instance.is_deleted = True
         instance.save()
 
@@ -160,6 +228,21 @@ class StudentAttendanceView(APIView):
             except Student.DoesNotExist:
                 # Skip invalid student IDs
                 continue
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            activity_type='update',
+            description=f"Marked attendance for {updated_count} students on {date_str}",
+            item_type='attendance',
+            item_id=f"attendance_{date_str}",
+            metadata={
+                'date': date_str,
+                'status': status,
+                'student_count': updated_count,
+                'student_ids': student_ids
+            }
+        )
 
         return Response({
             'message': f'Attendance marked successfully for {updated_count} students.',

@@ -14,6 +14,7 @@ import {
   ArrowDownIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+import { getDashboardSummary } from "../services/api";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -22,6 +23,8 @@ const Dashboard = () => {
     iotStudents: 0,
     sodStudents: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [recentActivities, setRecentActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
@@ -31,55 +34,30 @@ const Dashboard = () => {
     sortBy: "timestamp_desc",
   });
 
-  // Mock data - in real app, this would come from API
+  // Fetch real dashboard data
   useEffect(() => {
-    const activities = [
-      {
-        id: 1,
-        action: "New student enrolled in IoT program",
-        user: "Admin User",
-        timestamp: "2024-01-15 14:30:00",
-        icon: "fas fa-user-plus text-green-600",
-      },
-      {
-        id: 2,
-        action: "Employee salary updated",
-        user: "HR Manager",
-        timestamp: "2024-01-15 13:45:00",
-        icon: "fas fa-dollar-sign text-blue-600",
-      },
-      {
-        id: 3,
-        action: "Student attendance marked",
-        user: "Teacher",
-        timestamp: "2024-01-15 12:15:00",
-        icon: "fas fa-check-circle text-green-600",
-      },
-      {
-        id: 4,
-        action: "New expense added",
-        user: "Finance Manager",
-        timestamp: "2024-01-15 11:30:00",
-        icon: "fas fa-credit-card text-red-600",
-      },
-      {
-        id: 5,
-        action: "Report generated",
-        user: "Admin User",
-        timestamp: "2024-01-15 10:45:00",
-        icon: "fas fa-chart-bar text-purple-600",
-      },
-    ];
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await getDashboardSummary();
+        setStats({
+          totalStudents: response.data.totalStudents,
+          totalEmployees: response.data.totalEmployees,
+          iotStudents: response.data.iotStudents,
+          sodStudents: response.data.sodStudents,
+        });
+        setRecentActivities(response.data.recentActivities || []);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError("Failed to load dashboard data");
+        toast.error("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setStats({
-      totalStudents: 1250,
-      totalEmployees: 45,
-      iotStudents: 680,
-      sodStudents: 570,
-    });
-
-    setRecentActivities(activities);
-    setFilteredActivities(activities);
+    fetchDashboardData();
   }, []);
 
   // Filter and sort activities
@@ -191,48 +169,32 @@ const Dashboard = () => {
   const handleRefresh = async () => {
     try {
       toast.info("Refreshing dashboard data...");
+      setLoading(true);
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Generate new random stats (simulating real-time data)
-      const newStats = {
-        totalStudents: 1250 + Math.floor(Math.random() * 50) - 25, // ±25 variation
-        totalEmployees: 45 + Math.floor(Math.random() * 6) - 3, // ±3 variation
-        iotStudents: 680 + Math.floor(Math.random() * 30) - 15, // ±15 variation
-        sodStudents: 570 + Math.floor(Math.random() * 30) - 15, // ±15 variation
-      };
-
-      // Add a new random activity
-      const newActivities = [
-        {
-          id: Date.now(),
-          action: `System updated at ${new Date().toLocaleTimeString()}`,
-          user: "System",
-          timestamp: new Date()
-            .toISOString()
-            .replace("T", " ")
-            .substring(0, 19),
-          icon: "fas fa-sync-alt text-blue-600",
-        },
-        ...recentActivities.slice(0, 4), // Keep only the 4 most recent
-      ];
-
-      setStats(newStats);
-      setRecentActivities(newActivities);
-      setFilteredActivities(newActivities);
+      const response = await getDashboardSummary();
+      setStats({
+        totalStudents: response.data.totalStudents,
+        totalEmployees: response.data.totalEmployees,
+        iotStudents: response.data.iotStudents,
+        sodStudents: response.data.sodStudents,
+      });
+      setRecentActivities(response.data.recentActivities || []);
+      setError(null);
 
       toast.success("Dashboard refreshed successfully!");
     } catch (error) {
       console.error("Refresh error:", error);
+      setError("Failed to refresh dashboard data");
       toast.error("Failed to refresh dashboard data");
+    } finally {
+      setLoading(false);
     }
   };
 
   const statCards = [
     {
       title: "Total Students",
-      value: stats.totalStudents.toLocaleString(),
+      value: loading ? "..." : stats.totalStudents.toLocaleString(),
       icon: AcademicCapIcon,
       color: "blue",
       bgColor: "bg-blue-100",
@@ -240,7 +202,7 @@ const Dashboard = () => {
     },
     {
       title: "Employees",
-      value: stats.totalEmployees.toLocaleString(),
+      value: loading ? "..." : stats.totalEmployees.toLocaleString(),
       icon: UsersIcon,
       color: "green",
       bgColor: "bg-green-100",
@@ -248,7 +210,7 @@ const Dashboard = () => {
     },
     {
       title: "IoT Students",
-      value: stats.iotStudents.toLocaleString(),
+      value: loading ? "..." : stats.iotStudents.toLocaleString(),
       icon: CpuChipIcon,
       color: "yellow",
       bgColor: "bg-yellow-100",
@@ -256,13 +218,26 @@ const Dashboard = () => {
     },
     {
       title: "SoD Students",
-      value: stats.sodStudents.toLocaleString(),
+      value: loading ? "..." : stats.sodStudents.toLocaleString(),
       icon: CodeBracketIcon,
       color: "purple",
       bgColor: "bg-purple-100",
       textColor: "text-purple-600",
     },
   ];
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p className="text-red-600 dark:text-red-400 text-lg">{error}</p>
+          <Button onClick={handleRefresh} className="mt-4">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -276,8 +251,10 @@ const Dashboard = () => {
             <ArrowUpIcon className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button size="small" onClick={handleRefresh}>
-            <ArrowPathIcon className="h-4 w-4 mr-2" />
+          <Button size="small" onClick={handleRefresh} disabled={loading}>
+            <ArrowPathIcon
+              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -337,10 +314,8 @@ const Dashboard = () => {
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
             >
               <option value="">All Users</option>
-              <option value="Admin User">Admin User</option>
-              <option value="HR Manager">HR Manager</option>
-              <option value="Teacher">Teacher</option>
-              <option value="Finance Manager">Finance Manager</option>
+              <option value="System">System</option>
+              <option value="HR System">HR System</option>
             </select>
 
             <select

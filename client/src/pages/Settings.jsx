@@ -51,24 +51,24 @@ const Settings = () => {
 
   const fetchSettings = async () => {
     try {
-    const res = await getSettings();
-    const data = res.data.settings_data || {};
+      const res = await getSettings();
+      const data = res.data.settings_data || {};
 
-    // merge with defaults
-    setSettings((prev) => ({
-      ...prev,
-      ...data,
-      notifications: { ...prev.notifications, ...data.notifications },
-      privacy: { ...prev.privacy, ...data.privacy },
-      appearance: { ...prev.appearance, ...data.appearance },
-      security: { ...prev.security, ...data.security },
-    }));
+      // merge with defaults
+      setSettings((prev) => ({
+        ...prev,
+        ...data,
+        notifications: { ...prev.notifications, ...data.notifications },
+        privacy: { ...prev.privacy, ...data.privacy },
+        appearance: { ...prev.appearance, ...data.appearance },
+        security: { ...prev.security, ...data.security },
+      }));
 
-    // safely set theme
-    if (data?.appearance?.theme) {
-      setTheme(data.appearance.theme);
-    }
-  } catch (err) {
+      // safely set theme
+      if (data?.appearance?.theme) {
+        setTheme(data.appearance.theme);
+      }
+    } catch (err) {
       console.error(err);
       toast.error("Failed to load settings");
     }
@@ -83,7 +83,7 @@ const Settings = () => {
       },
     };
     setSettings(newSettings);
-    if (category === 'appearance' && setting === 'theme') {
+    if (category === "appearance" && setting === "theme") {
       setTheme(value);
     }
     try {
@@ -522,32 +522,120 @@ const Settings = () => {
                 Trash is empty.
               </p>
             ) : (
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="space-y-4">
                 {trashItems.map((item) => (
-                  <li
+                  <div
                     key={item.id}
-                    className="py-4 flex items-center justify-between"
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
                   >
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        {item.name}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {item.details}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                        Deleted at: {item.deletedAt}
-                      </p>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-medium rounded-full capitalize">
+                            {item.item_type}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ID: {item.item_id}
+                          </span>
+                        </div>
+
+                        {item.item_type === "employee" && (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {item.item_data?.name || "Unknown Employee"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Position: {item.item_data?.position || "N/A"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Department: {item.item_data?.department || "N/A"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Email: {item.item_data?.email || "N/A"}
+                            </p>
+                            {item.item_data?.salary && (
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Salary: $
+                                {parseFloat(
+                                  item.item_data.salary
+                                ).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {item.item_type === "student" && (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {item.item_data?.name || "Unknown Student"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              ID: {item.item_data?.idNumber || "N/A"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Program: {item.item_data?.program || "N/A"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Email: {item.item_data?.email || "N/A"}
+                            </p>
+                            {item.item_data?.gpa && (
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                GPA: {item.item_data.gpa}
+                              </p>
+                            )}
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Status: {item.item_data?.status || "N/A"}
+                            </p>
+                          </div>
+                        )}
+
+                        {item.item_type === "other" && (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {item.item_data?.name || "Unknown Item"}
+                            </p>
+                            {item.item_data?.details && (
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                {item.item_data.details}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                          Deleted at:{" "}
+                          {new Date(item.deleted_at).toLocaleString()}
+                        </p>
+                      </div>
+
+                      <div className="ml-4 flex flex-col space-y-2">
+                        {item.can_restore && (
+                          <button
+                            onClick={() => restoreFromTrash(item.id)}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+                          >
+                            Restore
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                "Permanently delete this item? This action cannot be undone."
+                              )
+                            ) {
+                              // Add permanent delete functionality if needed
+                            }
+                          }}
+                          className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
+                        >
+                          Delete Forever
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => restoreFromTrash(item.id)}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                    >
-                      Restore
-                    </button>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         );
