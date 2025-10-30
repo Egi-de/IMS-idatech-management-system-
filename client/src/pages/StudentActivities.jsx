@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
-import Select from "../components/Select";
 import {
   StarIcon,
   TrophyIcon,
@@ -753,7 +752,7 @@ const StudentActivities = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Select Student
             </label>
-            <Select
+            <select
               value={newAchievement.studentId}
               onChange={(e) =>
                 setNewAchievement((prev) => ({
@@ -761,12 +760,15 @@ const StudentActivities = () => {
                   studentId: e.target.value,
                 }))
               }
-              placeholder="Choose a student"
-              options={activitiesData.map((student) => ({
-                value: student.id,
-                label: `${student.studentName} - ${student.program}`,
-              }))}
-            />
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="">Choose a student</option>
+              {activitiesData.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.studentName} - {student.program}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

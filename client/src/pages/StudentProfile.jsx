@@ -240,7 +240,7 @@ const StudentProfile = () => {
 
   const getAvatarUrl = (avatar) => {
     if (!avatar) {
-      return "https://via.placeholder.com/64x64/6B7280/FFFFFF?text=Student";
+      return "/api/placeholder/64/64";
     }
     // Assuming avatar is a relative path from Django media, prepend the media URL
     // Adjust the base URL based on your Django settings (e.g., MEDIA_URL)
@@ -318,8 +318,7 @@ const StudentProfile = () => {
                         alt={student.name}
                         className="h-16 w-16 rounded-full"
                         onError={(e) => {
-                          e.target.src =
-                            "https://via.placeholder.com/64x64/6B7280/FFFFFF?text=Student";
+                          e.target.src = "/api/placeholder/64/64";
                         }}
                       />
                       <div
@@ -466,8 +465,7 @@ const StudentProfile = () => {
                   alt={selectedStudent.name}
                   className="h-20 w-20 rounded-full"
                   onError={(e) => {
-                    e.target.src =
-                      "https://via.placeholder.com/80x80/6B7280/FFFFFF?text=Student";
+                    e.target.src = "/api/placeholder/80/80";
                   }}
                 />
                 <div
