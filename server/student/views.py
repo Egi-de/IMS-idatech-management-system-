@@ -256,6 +256,27 @@ class RestoreStudentView(APIView):
             student = Student.objects.get(pk=pk, is_deleted=True)
             student.is_deleted = False
             student.save()
+
+            # Remove from trash bin
+            TrashBin.objects.filter(item_type='student', item_id=str(pk)).delete()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                activity_type='restore',
+                description=f"Restored student: {student.name}",
+                item_type='student',
+                item_id=str(student.id),
+                metadata={
+                    'name': student.name,
+                    'idNumber': student.idNumber,
+                    'program': student.program,
+                    'email': student.email,
+                    'gpa': str(student.gpa) if student.gpa else None,
+                    'status': student.status
+                }
+            )
+
             serializer = StudentSerializer(student)
             return Response(serializer.data)
         except Student.DoesNotExist:

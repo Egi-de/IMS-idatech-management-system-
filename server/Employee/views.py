@@ -10,7 +10,7 @@ from settings.models import ActivityLog, TrashBin
 @api_view(['GET', 'POST'])
 def employee_list(request):
     if request.method == 'GET':
-        employees = Employee.objects.all().order_by("id")
+        employees = Employee.objects.filter(is_deleted=False).order_by("id")
         serializer = EmployeeSerializer(employees, many=True)
         return Response(serializer.data)
 
@@ -74,7 +74,7 @@ def employee_detail(request, pk):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        # Store employee data in trash before deleting
+        # Store employee data in trash before soft deleting
         employee_data = {
             'id': employee.id,
             'name': employee.name,
@@ -103,7 +103,8 @@ def employee_detail(request, pk):
             metadata=employee_data
         )
 
-        employee.delete()
+        employee.is_deleted = True
+        employee.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -113,3 +114,35 @@ def department_list(request):
     departments = Department.objects.all()
     serializer = DepartmentSerializer(departments, many=True)
     return Response(serializer.data)
+
+
+# Restore employee
+@api_view(['PATCH'])
+def restore_employee(request, pk):
+    try:
+        employee = Employee.objects.get(pk=pk, is_deleted=True)
+        employee.is_deleted = False
+        employee.save()
+
+        # Remove from trash bin
+        TrashBin.objects.filter(item_type='employee', item_id=str(pk)).delete()
+
+        # Log activity
+        ActivityLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            activity_type='restore',
+            description=f"Restored employee: {employee.name}",
+            item_type='employee',
+            item_id=str(employee.id),
+            metadata={
+                'name': employee.name,
+                'position': employee.position,
+                'department': employee.department.get_name_display(),
+                'email': employee.email
+            }
+        )
+
+        serializer = EmployeeSerializer(employee)
+        return Response(serializer.data)
+    except Employee.DoesNotExist:
+        return Response({'error': 'Deleted employee not found.'}, status=404)

@@ -17,6 +17,8 @@ import {
   updateSettings,
   getTrashItems,
   deleteFromTrash,
+  restoreStudent,
+  restoreEmployee,
 } from "../services/api";
 
 const Settings = () => {
@@ -33,11 +35,16 @@ const Settings = () => {
     }
   };
 
-  const restoreFromTrash = async (id) => {
+  const restoreFromTrash = async (item) => {
     try {
-      // Assuming there's a restore API, but since it's not in api.js, we'll just remove from local state
-      setTrashItems((prev) => prev.filter((item) => item.id !== id));
-      toast.success("Item restored");
+      if (item.item_type === "student") {
+        await restoreStudent(item.item_id);
+      } else if (item.item_type === "employee") {
+        await restoreEmployee(item.item_id);
+      }
+      // Remove from trash items and refresh the list
+      await fetchTrashItems();
+      toast.success("Item restored successfully");
     } catch (err) {
       console.error(err);
       toast.error("Failed to restore item");
@@ -651,7 +658,7 @@ const Settings = () => {
                       <div className="ml-4 flex flex-col space-y-2">
                         {item.can_restore && (
                           <button
-                            onClick={() => restoreFromTrash(item.id)}
+                            onClick={() => restoreFromTrash(item)}
                             className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
                           >
                             Restore

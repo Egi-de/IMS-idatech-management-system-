@@ -32,6 +32,7 @@ class Employee(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     date_joined = models.DateField(auto_now_add=True)
+    is_deleted = models.BooleanField(default=False)
     def save(self, *args, **kwargs):
         if not self.employeeId:  # only assign when creating new employee
             last_employee = Employee.objects.order_by('-id').first()

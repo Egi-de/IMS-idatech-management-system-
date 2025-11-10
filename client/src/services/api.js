@@ -64,6 +64,8 @@ export const createEmployee = (data) => api.post("/api/employees/", data);
 export const updateEmployee = (id, data) =>
   api.put(`/api/employees/${id}/`, data);
 export const deleteEmployee = (id) => api.delete(`/api/employees/${id}/`);
+export const restoreEmployee = (id) =>
+  api.patch(`/api/employees/${id}/restore/`);
 export const getDepartments = () => api.get("/api/departments/");
 
 /* ----------------------------- AUTH & SETTINGS ----------------------------- */
