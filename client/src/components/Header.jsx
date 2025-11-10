@@ -261,7 +261,29 @@ const Header = ({ onMenuToggle, isDarkMode, setIsDarkMode }) => {
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Log logout activity
+    try {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        await fetch("/api/settings/activities/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+          body: JSON.stringify({
+            activity_type: "logout",
+            description: `User logged out`,
+            item_type: "user",
+            item_id: user.name || "unknown",
+          }),
+        });
+      }
+    } catch (error) {
+      console.error("Failed to log logout activity:", error);
+    }
+
     localStorage.removeItem("authToken");
     toast.success("Logged out successfully!");
     setTimeout(() => {
