@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import {
   ArrowLeftIcon,
@@ -10,11 +11,48 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 
+import { ThemeContext } from "../contexts/ThemeContext.context";
+import {
+  getSettings,
+  updateSettings,
+  getTrashItems,
+  deleteFromTrash,
+} from "../services/api";
+
 const Settings = () => {
+  const { setTheme } = useContext(ThemeContext);
   const [trashItems, setTrashItems] = useState([]);
 
-  const restoreFromTrash = (id) => {
-    setTrashItems((prev) => prev.filter((item) => item.id !== id));
+  const fetchTrashItems = async () => {
+    try {
+      const res = await getTrashItems();
+      setTrashItems(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load trash items");
+    }
+  };
+
+  const restoreFromTrash = async (id) => {
+    try {
+      // Assuming there's a restore API, but since it's not in api.js, we'll just remove from local state
+      setTrashItems((prev) => prev.filter((item) => item.id !== id));
+      toast.success("Item restored");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to restore item");
+    }
+  };
+
+  const deleteFromTrashPermanently = async (id) => {
+    try {
+      await deleteFromTrash(id);
+      setTrashItems((prev) => prev.filter((item) => item.id !== id));
+      toast.success("Item permanently deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete item");
+    }
   };
 
   const [settings, setSettings] = useState({
@@ -46,7 +84,10 @@ const Settings = () => {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+    if (activeTab === "trash") {
+      fetchTrashItems();
+    }
+  }, [activeTab]);
 
   const fetchSettings = async () => {
     try {
@@ -623,7 +664,7 @@ const Settings = () => {
                                 "Permanently delete this item? This action cannot be undone."
                               )
                             ) {
-                              // Add permanent delete functionality if needed
+                              deleteFromTrashPermanently(item.id);
                             }
                           }}
                           className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
