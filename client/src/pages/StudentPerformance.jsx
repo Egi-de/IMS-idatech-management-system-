@@ -21,6 +21,7 @@ import Select from "../components/Select";
 import { toast } from "react-toastify";
 import { getStudents, updateStudent, API_BASE_URL } from "../services/api.js";
 import { debounce } from "lodash";
+import * as XLSX from "xlsx";
 
 // Default subjects for grade management when no grades exist
 const defaultSubjects = [
@@ -81,7 +82,6 @@ const mockStudentsData = [
   },
 ];
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import * as XLSX from "xlsx";
 import {
   ChartBarIcon,
   AcademicCapIcon,
@@ -263,9 +263,7 @@ const StudentPerformance = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -292,6 +290,82 @@ const StudentPerformance = () => {
   const [gradeManagementGridApi, setGradeManagementGridApi] = useState(null);
   const [showGradeManagementModal, setShowGradeManagementModal] =
     useState(false);
+
+  // Import modal states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Handle import submit
+  const handleImportSubmit = async () => {
+    if (!selectedFile) return;
+
+    try {
+      const data = await selectedFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (jsonData.length < 2) {
+        toast.error(
+          "Excel file must have at least a header row and one data row."
+        );
+        return;
+      }
+
+      const headers = jsonData[0];
+      const studentIdIndex = headers.findIndex(
+        (h) =>
+          h.toLowerCase().includes("student id") ||
+          h.toLowerCase().includes("studentid")
+      );
+      if (studentIdIndex === -1) {
+        toast.error("Excel file must have a 'Student ID' column.");
+        return;
+      }
+
+      const subjectHeaders = headers.slice(studentIdIndex + 1);
+
+      const updatedStudents = [...students];
+
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const studentId = row[studentIdIndex]?.toString().trim();
+        if (!studentId) continue;
+
+        const studentIndex = updatedStudents.findIndex(
+          (s) => s.studentId === studentId
+        );
+        if (studentIndex === -1) {
+          console.warn(`Student with ID ${studentId} not found.`);
+          continue;
+        }
+
+        const student = updatedStudents[studentIndex];
+        const newGrades = { ...student.grades };
+
+        subjectHeaders.forEach((subject, idx) => {
+          const mark = parseFloat(row[studentIdIndex + 1 + idx]);
+          if (!isNaN(mark) && mark >= 0 && mark <= 100) {
+            newGrades[subject] = mark;
+          }
+        });
+
+        updatedStudents[studentIndex] = calculateDerivedFields({
+          ...student,
+          grades: newGrades,
+        });
+      }
+
+      setStudents(updatedStudents);
+      setShowImportModal(false);
+      setSelectedFile(null);
+      toast.success("Marks imported successfully!");
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Failed to import marks. Please check the file format.");
+    }
+  };
 
   // Inner save function
   const saveStudent = useCallback(async (studentId, updates) => {
@@ -907,92 +981,6 @@ const StudentPerformance = () => {
         return "#fee2e2";
       default:
         return "#f3f4f6";
-    }
-  };
-
-  // Import Excel function
-  const handleImportSubmit = async () => {
-    if (!selectedFile) {
-      toast.error("Please select a file.");
-      return;
-    }
-
-    try {
-      const arrayBuffer = await selectedFile.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-      if (jsonData.length < 2) {
-        toast.error("Excel file is empty or invalid.");
-        return;
-      }
-
-      const headers = jsonData[0];
-      const studentIdIndex = headers.indexOf("Student ID");
-      if (studentIdIndex === -1) {
-        toast.error("Excel file must have 'Student ID' column.");
-        return;
-      }
-
-      const updates = [];
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        if (row.length === 0 || !row[studentIdIndex]) continue;
-
-        const studentId = row[studentIdIndex];
-        const grades = {};
-        headers.forEach((header, index) => {
-          if (
-            index !== studentIdIndex &&
-            header &&
-            row[index] !== undefined &&
-            row[index] !== null
-          ) {
-            const mark = parseFloat(row[index]);
-            if (!isNaN(mark)) {
-              grades[header] = mark;
-            }
-          }
-        });
-
-        if (Object.keys(grades).length > 0) {
-          updates.push({ studentId, grades });
-        }
-      }
-
-      if (updates.length === 0) {
-        toast.error("No valid data found in the file.");
-        return;
-      }
-
-      // Update students
-      for (const update of updates) {
-        const student = students.find((s) => s.studentId === update.studentId);
-        if (student) {
-          const updatedGrades = { ...student.grades, ...update.grades };
-          await updateStudent(student.id, { grades: updatedGrades });
-          // Update local state
-          setStudents((prev) =>
-            prev.map((s) =>
-              s.id === student.id
-                ? calculateDerivedFields({ ...s, grades: updatedGrades })
-                : s
-            )
-          );
-        }
-      }
-
-      toast.success(
-        `Successfully imported marks for ${updates.length} students.`
-      );
-      setShowImportModal(false);
-      setSelectedFile(null);
-      if (gridApi) gridApi.refreshCells();
-    } catch (err) {
-      toast.error("Failed to import file. Please check the format.");
-      console.error(err);
     }
   };
 
