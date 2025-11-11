@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import { toast } from "react-toastify";
 import Button from "../components/Button";
@@ -14,6 +14,7 @@ import {
   CalendarIcon,
   AcademicCapIcon,
   ClockIcon,
+  CameraIcon,
 } from "@heroicons/react/24/outline";
 import {
   getStudents,
@@ -23,7 +24,12 @@ import {
 } from "../services/api";
 
 const StudentEnrollment = () => {
+  const viewFileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [programFilter, setProgramFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("add");
@@ -66,11 +72,11 @@ const StudentEnrollment = () => {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, files } = e.target;
     setFormData((prev) => {
       const newFormData = {
         ...prev,
-        [name]: value,
+        [name]: type === "file" ? files[0] : value,
       };
 
       // Auto-calculate remaining amount when totalFees or paidAmount changes and studentType is Internee
@@ -152,6 +158,7 @@ const StudentEnrollment = () => {
         enrollment.studentType === "Internee"
           ? enrollment.paymentStatus || "Pending"
           : "Pending",
+      avatar: enrollment.avatar || null,
     });
     setSelectedEnrollment(enrollment);
     setModalType("edit");
@@ -177,6 +184,21 @@ const StudentEnrollment = () => {
     }
   };
 
+  const updateAvatar = async (file) => {
+    try {
+      const updatedData = { avatar: file };
+      const response = await updateStudent(selectedEnrollment.id, updatedData);
+      setEnrollments((prev) =>
+        prev.map((e) => (e.id === selectedEnrollment.id ? response.data : e))
+      );
+      setSelectedEnrollment(response.data);
+      toast.success("Avatar updated successfully!");
+    } catch (err) {
+      toast.error("Failed to update avatar.");
+      console.error(err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -198,72 +220,104 @@ const StudentEnrollment = () => {
         }
       }
 
-      const baseStudentData = {
-        name: formData.name,
-        idNumber: formData.idNumber,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        program: formData.program,
-        year: new Date().getFullYear().toString(),
-        status: "Active",
-        avatar: null,
-        emergencyContact: "",
-        gpa: null,
-        enrollmentDate: formData.enrollmentDate,
-        courses: [],
-        dateOfBirth: null,
-        credits: 0,
-        expectedGraduation: null,
-        studentType: formData.studentType,
-        interneeType:
-          formData.studentType === "Internee"
-            ? formData.interneeType || null
-            : null,
-        studyStatus:
-          formData.studentType === "Internee"
-            ? formData.studyStatus || null
-            : null,
-        paymentStatus:
-          formData.studentType === "Internee" ? paymentStatusValue : null,
-        totalFees: formData.studentType === "Internee" ? totalFeesValue : 0,
-        paidAmount: formData.studentType === "Internee" ? paidAmountValue : 0,
-        remainingAmount:
-          formData.studentType === "Internee" ? remainingAmountValue : 0,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        attendance: 0,
-        performance: null,
-        cumulative_gpa: null,
-        completed_credits: 0,
-        grades: {},
-        assignments: {},
-        current_semester: "Spring 2024",
-        academic_standing: null,
-        achievements: [],
-        projects: [],
-        extracurricular: [],
-        totalPoints: 0,
-        totalProjects: 0,
-        certifications: 0,
-        overallAttendance: 0,
-        presentDays: 0,
-        absentDays: 0,
-        lateDays: 0,
-        excusedAbsences: 0,
-        currentStreak: 0,
-        lastAttendance: null,
-        monthlyData: {},
-        feedback: [],
-      };
+      let dataToSend;
+      if (modalType === "add") {
+        dataToSend = {
+          name: formData.name,
+          idNumber: formData.idNumber,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          program: formData.program,
+          year: new Date().getFullYear().toString(),
+          status: "Active",
+          ...(formData.avatar instanceof File
+            ? { avatar: formData.avatar }
+            : {}),
+          emergencyContact: "",
+          gpa: null,
+          enrollmentDate: formData.enrollmentDate,
+          courses: [],
+          dateOfBirth: null,
+          credits: 0,
+          expectedGraduation: null,
+          studentType: formData.studentType,
+          interneeType:
+            formData.studentType === "Internee"
+              ? formData.interneeType || null
+              : null,
+          studyStatus:
+            formData.studentType === "Internee"
+              ? formData.studyStatus || null
+              : null,
+          paymentStatus:
+            formData.studentType === "Internee" ? paymentStatusValue : null,
+          totalFees: formData.studentType === "Internee" ? totalFeesValue : 0,
+          paidAmount: formData.studentType === "Internee" ? paidAmountValue : 0,
+          remainingAmount:
+            formData.studentType === "Internee" ? remainingAmountValue : 0,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          attendance: 0,
+          performance: null,
+          cumulative_gpa: null,
+          completed_credits: 0,
+          grades: {},
+          assignments: {},
+          current_semester: "Spring 2024",
+          academic_standing: null,
+          achievements: [],
+          projects: [],
+          extracurricular: [],
+          totalPoints: 0,
+          totalProjects: 0,
+          certifications: 0,
+          overallAttendance: 0,
+          presentDays: 0,
+          absentDays: 0,
+          lateDays: 0,
+          excusedAbsences: 0,
+          currentStreak: 0,
+          lastAttendance: null,
+          monthlyData: {},
+          feedback: [],
+        };
+      } else {
+        // For edit, send only the fields that can be changed in the form
+        dataToSend = {
+          name: formData.name,
+          idNumber: formData.idNumber,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          program: formData.program,
+          studentType: formData.studentType,
+          enrollmentDate: formData.enrollmentDate,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          ...(formData.studentType === "Internee"
+            ? {
+                interneeType: formData.interneeType || null,
+                studyStatus: formData.studyStatus || null,
+                paymentStatus: paymentStatusValue,
+                totalFees: totalFeesValue,
+                paidAmount: paidAmountValue,
+                remainingAmount: remainingAmountValue,
+              }
+            : {}),
+          ...(formData.avatar instanceof File
+            ? { avatar: formData.avatar }
+            : {}),
+        };
+      }
 
       let savedData;
       if (modalType === "add") {
-        savedData = await createStudent(baseStudentData);
+        savedData = await createStudent(dataToSend);
         setEnrollments((prev) => [...prev, savedData.data]);
         toast.success("Enrollment created successfully!");
       } else {
-        savedData = await updateStudent(selectedEnrollment.id, baseStudentData);
+        savedData = await updateStudent(selectedEnrollment.id, dataToSend);
         setEnrollments((prev) =>
           prev.map((e) => (e.id === savedData.data.id ? savedData.data : e))
         );
@@ -351,17 +405,46 @@ const StudentEnrollment = () => {
           </div>
         </div>
 
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select
+          value={programFilter}
+          onChange={(e) => setProgramFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
           <option value="">All Programs</option>
-          <option value="iot">IoT Development</option>
-          <option value="software">Software Development</option>
+          <option value="IoT Development">IoT Development</option>
+          <option value="Software Development">Software Development</option>
+          <option value="Data Science">Data Science</option>
         </select>
 
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
           <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="pending">Pending</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+          <option value="Pending">Pending</option>
+          <option value="On Leave">On Leave</option>
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="name">Sort by Name</option>
+          <option value="enrollmentDate">Sort by Enrollment Date</option>
+          <option value="program">Sort by Program</option>
+        </select>
+
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
         </select>
       </div>
 
@@ -385,16 +468,44 @@ const StudentEnrollment = () => {
           {enrollments
             .filter(
               (enrollment) =>
-                enrollment.name
+                (enrollment.name
                   .toLowerCase()
                   .includes(searchQuery.toLowerCase()) ||
-                enrollment.email
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                enrollment.program
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase())
+                  enrollment.email
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase()) ||
+                  enrollment.program
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase())) &&
+                (programFilter === "" ||
+                  enrollment.program === programFilter) &&
+                (statusFilter === "" || enrollment.status === statusFilter)
             )
+            .sort((a, b) => {
+              let aValue, bValue;
+              switch (sortBy) {
+                case "name":
+                  aValue = a.name.toLowerCase();
+                  bValue = b.name.toLowerCase();
+                  break;
+                case "enrollmentDate":
+                  aValue = new Date(a.enrollmentDate);
+                  bValue = new Date(b.enrollmentDate);
+                  break;
+                case "program":
+                  aValue = a.program.toLowerCase();
+                  bValue = b.program.toLowerCase();
+                  break;
+                default:
+                  aValue = a.name.toLowerCase();
+                  bValue = b.name.toLowerCase();
+              }
+              if (sortOrder === "asc") {
+                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+              } else {
+                return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+              }
+            })
             .map((enrollment) => (
               <Card
                 key={enrollment.id}
@@ -528,8 +639,38 @@ const StudentEnrollment = () => {
         {selectedEnrollment && modalType === "view" && (
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <AcademicCapIcon className="h-8 w-8 text-blue-600" />
+              <div className="relative">
+                {selectedEnrollment.avatar ? (
+                  <img
+                    src={selectedEnrollment.avatar}
+                    alt="Student Avatar"
+                    className="h-32 w-32 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-32 w-32 bg-blue-100 rounded-full flex items-center justify-center">
+                    <AcademicCapIcon className="h-16 w-16 text-blue-600" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  ref={viewFileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      updateAvatar(file);
+                    }
+                  }}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={() => viewFileInputRef.current.click()}
+                  className="absolute -bottom-2 -right-2 rounded-full p-1"
+                >
+                  <CameraIcon className="h-3 w-3" />
+                </Button>
               </div>
               <div>
                 <h3 className="text-xl font-semibold">
@@ -721,7 +862,6 @@ const StudentEnrollment = () => {
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
-                <option value="">Select Program</option>
                 <option value="IoT Development">IoT Development</option>
                 <option value="Software Development">
                   Software Development

@@ -37,7 +37,6 @@ const Sidebar = () => {
       submenu: true,
       items: [
         { name: "Student Enrollment", href: "/student-enrollment" },
-        { name: "Student Profile", href: "/student-profile" },
         { name: "Attendance & Participation", href: "/student-attendance" },
         { name: "Performance / Grades", href: "/student-performance" },
         { name: "Activities & Achievements", href: "/student-activities" },
