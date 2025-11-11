@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import { API_BASE_URL } from "../services/api";
 import {
   AcademicCapIcon,
   UserPlusIcon,
@@ -130,12 +131,25 @@ const Students = () => {
     }
   };
 
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const { name, value, type, files } = e.target;
+    if (type === "file") {
+      const file = files[0];
+      if (file) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: file,
+        }));
+        setAvatarPreview(URL.createObjectURL(file));
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -143,8 +157,20 @@ const Students = () => {
     setSubmitError(null);
 
     try {
+      const formDataToSend = new FormData();
+      Object.keys(formData).forEach((key) => {
+        // Handle file upload specifically
+        if (key === "avatar" && formData[key]) {
+          if (formData[key] instanceof File) {
+            formDataToSend.append("avatar", formData[key]);
+          }
+        } else if (formData[key] !== null && formData[key] !== undefined) {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+
       if (modalType === "add") {
-        const newStudent = await createStudent(formData);
+        const newStudent = await createStudent(formDataToSend);
         setStudents((prev) => [...prev, newStudent.data]);
         setShowModal(false);
         setFormData({
@@ -160,7 +186,7 @@ const Students = () => {
       } else if (modalType === "edit") {
         const updatedStudent = await updateStudent(
           selectedStudent.id,
-          formData
+          formDataToSend
         );
         setStudents((prev) =>
           prev.map((student) =>
@@ -249,11 +275,52 @@ const Students = () => {
               >
                 <CardContent>
                   <div className="flex items-center space-x-4 mb-4">
-                    <img
-                      src={student.avatar || "https://via.placeholder.com/48"}
-                      alt={student.name}
-                      className="h-12 w-12 rounded-full"
-                    />
+                    <div className="relative">
+                      {student.avatar ? (
+                        <div className="relative group">
+                          <img
+                            src={`${API_BASE_URL}${student.avatar}`}
+                            alt={student.name}
+                            className="h-12 w-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => handleEditStudent(student)}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <svg
+                              className="w-6 h-6 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className="h-12 w-12 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-colors"
+                          onClick={() => handleEditStudent(student)}
+                        >
+                          <svg
+                            className="w-6 h-6 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">
                         {student.name}
@@ -822,14 +889,96 @@ const Students = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Avatar URL
+                  Avatar
                 </label>
-                <Input
-                  name="avatar"
-                  value={formData.avatar}
-                  onChange={handleInputChange}
-                  placeholder="Enter avatar URL"
-                />
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      name="avatar"
+                      onChange={handleInputChange}
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      id="avatar-upload"
+                    />
+                    <label
+                      htmlFor="avatar-upload"
+                      className="flex items-center justify-center w-16 h-16 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-colors relative group overflow-hidden"
+                    >
+                      {avatarPreview ? (
+                        <>
+                          <img
+                            src={avatarPreview}
+                            alt="Preview"
+                            className="w-16 h-16 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <svg
+                              className="w-6 h-6 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          </div>
+                        </>
+                      ) : modalType === "edit" && selectedStudent?.avatar ? (
+                        <>
+                          <img
+                            src={`${API_BASE_URL}${selectedStudent.avatar}`}
+                            alt="Current avatar"
+                            className="w-16 h-16 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <svg
+                              className="w-6 h-6 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          </div>
+                        </>
+                      ) : (
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600">
+                      {formData.avatar
+                        ? formData.avatar.name
+                        : "Click to upload profile picture"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex justify-end space-x-3">

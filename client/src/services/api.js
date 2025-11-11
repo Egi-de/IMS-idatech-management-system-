@@ -1,12 +1,9 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8000";
+export const API_BASE_URL = "http://localhost:8000";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // ✅ Add request interceptor to include auth token
@@ -38,9 +35,26 @@ export const generatePDFReport = (params) =>
 
 /* ----------------------------- STUDENTS API ----------------------------- */
 export const getStudents = () => api.get("/student/api/students/");
-export const createStudent = (data) => api.post("/student/api/students/", data);
-export const updateStudent = (id, data) =>
-  api.patch(`/student/api/students/${id}/`, data);
+export const createStudent = (data) => {
+  return api.post("/student/api/students/", data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+export const updateStudent = (id, data) => {
+  const formData = new FormData();
+  Object.keys(data).forEach((key) => {
+    if (data[key] !== null && data[key] !== undefined) {
+      formData.append(key, data[key]);
+    }
+  });
+  return api.patch(`/student/api/students/${id}/`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
 export const deleteStudent = (id) => api.delete(`/student/api/students/${id}/`);
 export const getStudentById = (id) => api.get(`/student/api/students/${id}/`);
 export const getDeletedStudents = () =>

@@ -19,7 +19,7 @@ import Modal from "../components/Modal";
 import Input from "../components/Input";
 import Select from "../components/Select";
 import { toast } from "react-toastify";
-import { getStudents, updateStudent } from "../services/api.js";
+import { getStudents, updateStudent, API_BASE_URL } from "../services/api.js";
 import { debounce } from "lodash";
 
 // Default subjects for grade management when no grades exist
@@ -423,14 +423,29 @@ const StudentPerformance = () => {
         field: "studentName",
         pinned: "left",
         width: 150,
-        cellRenderer: (params) => (
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <AcademicCapIcon className="h-4 w-4 text-blue-600" />
+        cellRenderer: (params) => {
+          const student = params.data;
+          return (
+            <div className="flex items-center space-x-2">
+              {student.avatar ? (
+                <img
+                  src={
+                    student.avatar.startsWith("http")
+                      ? student.avatar
+                      : `${API_BASE_URL}${student.avatar}`
+                  }
+                  alt={student.studentName}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <AcademicCapIcon className="h-4 w-4 text-blue-600" />
+                </div>
+              )}
+              <span>{params.value}</span>
             </div>
-            <span>{params.value}</span>
-          </div>
-        ),
+          );
+        },
       },
       { headerName: "Student ID", field: "studentId", width: 120 },
       {
@@ -867,21 +882,31 @@ const StudentPerformance = () => {
 
   const getGradeBackgroundColor = (grade) => {
     switch (grade) {
-      case "A": return "#dcfce7";
-      case "B": return "#dbeafe";
-      case "C": return "#fef3c7";
-      case "D": return "#fed7aa";
-      case "F": return "#fee2e2";
-      default: return "#f3f4f6";
+      case "A":
+        return "#dcfce7";
+      case "B":
+        return "#dbeafe";
+      case "C":
+        return "#fef3c7";
+      case "D":
+        return "#fed7aa";
+      case "F":
+        return "#fee2e2";
+      default:
+        return "#f3f4f6";
     }
   };
 
   const getStandingBackgroundColor = (standing) => {
     switch (standing) {
-      case "Good Standing": return "#dcfce7";
-      case "At Risk": return "#fef3c7";
-      case "Academic Probation": return "#fee2e2";
-      default: return "#f3f4f6";
+      case "Good Standing":
+        return "#dcfce7";
+      case "At Risk":
+        return "#fef3c7";
+      case "Academic Probation":
+        return "#fee2e2";
+      default:
+        return "#f3f4f6";
     }
   };
 
@@ -1274,9 +1299,21 @@ const StudentPerformance = () => {
         {selectedStudent && (
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <AcademicCapIcon className="h-8 w-8 text-blue-600" />
-              </div>
+              {selectedStudent.avatar ? (
+                <img
+                  src={
+                    selectedStudent.avatar.startsWith("http")
+                      ? selectedStudent.avatar
+                      : `${API_BASE_URL}${selectedStudent.avatar}`
+                  }
+                  alt={selectedStudent.studentName}
+                  className="h-16 w-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
+                  <AcademicCapIcon className="h-8 w-8 text-blue-600" />
+                </div>
+              )}
               <div>
                 <h3 className="text-xl font-semibold">
                   {selectedStudent.studentName}
@@ -1810,7 +1847,9 @@ const StudentPerformance = () => {
                   enableRangeSelection={true}
                   suppressRowClickSelection={false}
                   getRowStyle={(params) => ({
-                    backgroundColor: getStandingBackgroundColor(params.data.standing),
+                    backgroundColor: getStandingBackgroundColor(
+                      params.data.standing
+                    ),
                   })}
                   pagination={true}
                   paginationPageSize={Math.min(

@@ -13,7 +13,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
-import StudentProfile from "./pages/StudentProfile";
 import StudentEnrollment from "./pages/StudentEnrollment";
 import StudentAttendance from "./pages/StudentAttendance";
 import StudentPerformance from "./pages/StudentPerformance";
@@ -157,16 +156,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/student-profile"
-            element={
-              <ProtectedRoute>
-                <Layout isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}>
-                  <StudentProfile />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/student-enrollment"
             element={
