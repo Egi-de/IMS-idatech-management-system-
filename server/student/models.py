@@ -51,7 +51,7 @@ class Student(models.Model):
     # Basic Information
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20, blank=True, null=True)
     program = models.CharField(max_length=50, choices=PROGRAM_CHOICES)
     year = models.CharField(max_length=10, default='2023')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')

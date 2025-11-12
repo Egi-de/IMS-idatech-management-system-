@@ -506,7 +506,7 @@ const StudentPerformance = () => {
                   src={
                     student.avatar.startsWith("http")
                       ? student.avatar
-                      : `${API_BASE_URL}${student.avatar}`
+                      : API_BASE_URL + student.avatar
                   }
                   alt={student.studentName}
                   className="h-8 w-8 rounded-full object-cover"
@@ -1292,7 +1292,7 @@ const StudentPerformance = () => {
                   src={
                     selectedStudent.avatar.startsWith("http")
                       ? selectedStudent.avatar
-                      : `${API_BASE_URL}${selectedStudent.avatar}`
+                      : API_BASE_URL + selectedStudent.avatar
                   }
                   alt={selectedStudent.studentName}
                   className="h-16 w-16 rounded-full object-cover"

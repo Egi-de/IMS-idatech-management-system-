@@ -68,3 +68,12 @@ class StudentSerializer(serializers.ModelSerializer):
         if value < 0:
             raise serializers.ValidationError("Remaining amount cannot be negative.")
         return value
+
+    def validate(self, attrs):
+        avatar = attrs.get('avatar')
+        if avatar and isinstance(avatar, str):
+            # If avatar is a full URL, extract the relative path after /media/
+            if avatar.startswith('http://') or avatar.startswith('https://'):
+                if '/media/' in avatar:
+                    attrs['avatar'] = avatar.split('/media/', 1)[1]
+        return attrs

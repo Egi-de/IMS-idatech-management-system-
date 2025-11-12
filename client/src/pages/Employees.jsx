@@ -4,6 +4,7 @@ import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
 import Select from "../components/Select";
+import { API_BASE_URL } from "../services/api";
 
 import {
   UsersIcon,
@@ -470,7 +471,7 @@ const Employees = () => {
                         <img
                           src={
                             employee.avatar
-                              ? `http://127.0.0.1:8000${employee.avatar}`
+                              ? API_BASE_URL + "/media/" + employee.avatar
                               : "/api/placeholder/40/40"
                           }
                           alt={employee.name}
@@ -581,7 +582,7 @@ const Employees = () => {
               <img
                 src={
                   selectedEmployee.avatar
-                    ? `http://127.0.0.1:8000${selectedEmployee.avatar}`
+                    ? API_BASE_URL + "/media/" + selectedEmployee.avatar
                     : "/api/placeholder/40/40"
                 }
                 alt={selectedEmployee.name}
