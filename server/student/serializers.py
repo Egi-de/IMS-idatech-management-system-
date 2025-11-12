@@ -1,3 +1,4 @@
+import json
 from rest_framework import serializers
 from .models import Student
 
@@ -24,6 +25,13 @@ class StudentSerializer(serializers.ModelSerializer):
         return value
 
     def validate_grades(self, value):
+        # Handle case where value is a JSON string from FormData
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Grades must be a valid JSON string representing a dictionary.")
+
         if isinstance(value, dict):
             valid_grades = {'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F', 'I', 'W'}
             for grade in value.values():
