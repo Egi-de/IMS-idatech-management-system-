@@ -326,7 +326,7 @@ const Financial = () => {
                   Total Income
                 </h3>
                 <p className="text-2xl font-bold text-green-600">
-                  ${totalIncome.toLocaleString()}
+                  Rwf{totalIncome.toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-600">This month</p>
               </div>
@@ -345,7 +345,7 @@ const Financial = () => {
                   Total Expenses
                 </h3>
                 <p className="text-2xl font-bold text-red-600">
-                  ${totalExpenses.toLocaleString()}
+                  Rwf{totalExpenses.toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-600">This month</p>
               </div>
@@ -368,7 +368,7 @@ const Financial = () => {
                     netProfit >= 0 ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  ${netProfit.toLocaleString()}
+                  Rwf{netProfit.toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-600">This month</p>
               </div>
@@ -538,7 +538,7 @@ const Financial = () => {
                                 : "text-red-600"
                             }`}
                           >
-                            {transaction.type === "Income" ? "+" : ""}$
+                            {transaction.type === "Income" ? "+" : ""}Rwf
                             {Math.abs(transaction.amount).toLocaleString()}
                           </p>
                           <p
@@ -696,7 +696,7 @@ const Financial = () => {
                               : "text-red-600"
                           }`}
                         >
-                          {transaction.type === "Income" ? "+" : ""}$
+                          {transaction.type === "Income" ? "+" : ""}Rwf
                           {Math.abs(transaction.amount).toLocaleString()}
                         </span>
                       </td>
@@ -767,7 +767,7 @@ const Financial = () => {
             <div className="text-center">
               <ArrowUpIcon className="h-12 w-12 text-green-500 mx-auto mb-3" />
               <div className="text-2xl font-bold text-green-600">
-                ${totalIncome.toLocaleString()}
+                Rwf{totalIncome.toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Total Income</div>
             </div>
@@ -791,7 +791,7 @@ const Financial = () => {
             <div className="text-center">
               <ChartBarIcon className="h-12 w-12 text-purple-500 mx-auto mb-3" />
               <div className="text-2xl font-bold text-purple-600">
-                $
+                Rwf
                 {Math.round(
                   totalIncome /
                     transactions.filter((t) => t.type === "Income").length
@@ -830,7 +830,7 @@ const Financial = () => {
                   >
                     <span className="font-medium">{category}</span>
                     <span className="text-lg font-semibold text-green-600">
-                      ${categoryTotal.toLocaleString()}
+                      Rwf{categoryTotal.toLocaleString()}
                     </span>
                   </div>
                 );
@@ -852,7 +852,7 @@ const Financial = () => {
             <div className="text-center">
               <ArrowDownIcon className="h-12 w-12 text-red-500 mx-auto mb-3" />
               <div className="text-2xl font-bold text-red-600">
-                ${totalExpenses.toLocaleString()}
+                Rwf{totalExpenses.toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Total Expenses</div>
             </div>
@@ -876,7 +876,7 @@ const Financial = () => {
             <div className="text-center">
               <BuildingLibraryIcon className="h-12 w-12 text-indigo-500 mx-auto mb-3" />
               <div className="text-2xl font-bold text-indigo-600">
-                $
+                Rwf
                 {Math.round(
                   totalExpenses /
                     transactions.filter((t) => t.type === "Expense").length
@@ -917,7 +917,7 @@ const Financial = () => {
                   >
                     <span className="font-medium">{category}</span>
                     <span className="text-lg font-semibold text-red-600">
-                      ${categoryTotal.toLocaleString()}
+                      Rwf{categoryTotal.toLocaleString()}
                     </span>
                   </div>
                 );
@@ -1132,7 +1132,7 @@ const Financial = () => {
                       : "text-red-600"
                   }`}
                 >
-                  {selectedTransaction.type === "Income" ? "+" : ""}$
+                  {selectedTransaction.type === "Income" ? "+" : ""}Rwf
                   {Math.abs(selectedTransaction.amount).toLocaleString()}
                 </p>
               </div>
@@ -1292,7 +1292,7 @@ const Financial = () => {
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Income</h3>
                           <p className="text-2xl font-bold text-green-600">
-                            ${reportData.total_income.toLocaleString()}
+                            Rwf{reportData.total_income.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
@@ -1300,7 +1300,7 @@ const Financial = () => {
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Expenses</h3>
                           <p className="text-2xl font-bold text-red-600">
-                            ${reportData.total_expenses.toLocaleString()}
+                            Rwf{reportData.total_expenses.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
@@ -1314,7 +1314,7 @@ const Financial = () => {
                                 : "text-red-600"
                             }`}
                           >
-                            ${reportData.net_profit.toLocaleString()}
+                            Rwf{reportData.net_profit.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
@@ -1346,7 +1346,7 @@ const Financial = () => {
                                         : "text-red-600"
                                     }`}
                                   >
-                                    {t.type === "Income" ? "+" : "-"}$
+                                    {t.type === "Income" ? "+" : "-"}Rwf
                                     {Math.abs(t.amount).toLocaleString()}
                                   </td>
                                   <td className="py-3 px-4">
@@ -1379,7 +1379,7 @@ const Financial = () => {
                                 <li key={cat} className="flex justify-between">
                                   <span>{cat}</span>
                                   <span className="text-green-600 font-semibold">
-                                    ${amt.toLocaleString()}
+                                    Rwf{amt.toLocaleString()}
                                   </span>
                                 </li>
                               )
@@ -1387,7 +1387,7 @@ const Financial = () => {
                           </ul>
                           <div className="mt-4 pt-4 border-t">
                             <strong>
-                              Total Income: $
+                              Total Income: Rwf
                               {reportData.total_income.toLocaleString()}
                             </strong>
                           </div>
@@ -1405,14 +1405,14 @@ const Financial = () => {
                               <li key={cat} className="flex justify-between">
                                 <span>{cat}</span>
                                 <span className="text-red-600 font-semibold">
-                                  ${amt.toLocaleString()}
+                                  Rwf{amt.toLocaleString()}
                                 </span>
                               </li>
                             ))}
                           </ul>
                           <div className="mt-4 pt-4 border-t">
                             <strong>
-                              Total Expenses: $
+                              Total Expenses: Rwf
                               {reportData.total_expenses.toLocaleString()}
                             </strong>
                           </div>
@@ -1429,7 +1429,7 @@ const Financial = () => {
                               : "text-red-600"
                           }`}
                         >
-                          ${reportData.net_profit.toLocaleString()}
+                          Rwf{reportData.net_profit.toLocaleString()}
                         </p>
                       </CardContent>
                     </Card>
@@ -1453,7 +1453,7 @@ const Financial = () => {
                                 <li key={cat} className="flex justify-between">
                                   <span>{cat}</span>
                                   <span className="text-green-600 font-semibold">
-                                    ${amt.toLocaleString()}
+                                    Rwf{amt.toLocaleString()}
                                   </span>
                                 </li>
                               )
@@ -1461,7 +1461,7 @@ const Financial = () => {
                           </ul>
                           <div className="mt-4 pt-4 border-t">
                             <strong>
-                              Total Income: $
+                              Total Income: Rwf
                               {reportData.total_income.toLocaleString()}
                             </strong>
                           </div>
@@ -1479,14 +1479,14 @@ const Financial = () => {
                               <li key={cat} className="flex justify-between">
                                 <span>{cat}</span>
                                 <span className="text-red-600 font-semibold">
-                                  ${amt.toLocaleString()}
+                                  Rwf{amt.toLocaleString()}
                                 </span>
                               </li>
                             ))}
                           </ul>
                           <div className="mt-4 pt-4 border-t">
                             <strong>
-                              Total Expenses: $
+                              Total Expenses: Rwf
                               {reportData.total_expenses.toLocaleString()}
                             </strong>
                           </div>
@@ -1503,7 +1503,7 @@ const Financial = () => {
                               : "text-red-600"
                           }`}
                         >
-                          ${reportData.net_profit.toLocaleString()}
+                          Rwf{reportData.net_profit.toLocaleString()}
                         </p>
                       </CardContent>
                     </Card>
@@ -1520,7 +1520,7 @@ const Financial = () => {
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Income</h3>
                           <p className="text-2xl font-bold text-green-600">
-                            ${reportData.total_income.toLocaleString()}
+                            Rwf{reportData.total_income.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
@@ -1528,7 +1528,7 @@ const Financial = () => {
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Expenses</h3>
                           <p className="text-2xl font-bold text-red-600">
-                            ${reportData.total_expenses.toLocaleString()}
+                            Rwf{reportData.total_expenses.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
@@ -1542,7 +1542,7 @@ const Financial = () => {
                                 : "text-red-600"
                             }`}
                           >
-                            ${reportData.net_profit.toLocaleString()}
+                            Rwf{reportData.net_profit.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
@@ -1574,7 +1574,7 @@ const Financial = () => {
                                         : "text-red-600"
                                     }`}
                                   >
-                                    {t.type === "Income" ? "+" : "-"}$
+                                    {t.type === "Income" ? "+" : "-"}Rwf
                                     {Math.abs(t.amount).toLocaleString()}
                                   </td>
                                   <td className="py-3 px-4">

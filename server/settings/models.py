@@ -36,7 +36,7 @@ class TrashBin(models.Model):
         ('other', 'Other'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='trash_items')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='trash_items', null=True, blank=True)
     item_type = models.CharField(max_length=20, choices=ITEM_TYPES)
     item_id = models.CharField(max_length=100)  # Original ID of the deleted item
     item_data = models.JSONField()  # Store the complete item data

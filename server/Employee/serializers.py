@@ -2,9 +2,11 @@ from rest_framework import serializers
 from .models import Employee, Department
 
 class DepartmentSerializer(serializers.ModelSerializer):
+    display_name = serializers.CharField(source='get_name_display', read_only=True)
+
     class Meta:
         model = Department
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'display_name']
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -20,6 +22,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'employeeId',   # auto-generated
+            'idNumber',
             'name',
             'email',
             'phone',
@@ -30,5 +33,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'address',
             'status',
             'date_joined',
+            'avatar',
         ]
         read_only_fields = ['employeeId', 'id', 'date_joined']

@@ -10,7 +10,6 @@ import "react-toastify/dist/ReactToastify.css";
 /* Removed TrashBinProvider import as contexts folder deleted */
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentEnrollment from "./pages/StudentEnrollment";
@@ -128,14 +127,7 @@ function App() {
               </PublicRoute>
             }
           />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <Register />
-              </PublicRoute>
-            }
-          />
+
           <Route
             path="/dashboard"
             element={

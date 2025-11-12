@@ -2,12 +2,13 @@ from django.db import models
 
 class Department(models.Model):
     DEPARTMENT_CHOICES = [
-        ("administrator", "Administrator"),
-        ("teacher", "Teacher"),
-        ("chef", "Chef"),
+        ("academic", "Academic Department"),
+        ("catering", "Catering Department"),
+        ("finance", "Finance Department"),
+        ("discipline_welfare", "Discipline & Welfare Department"),
     ]
 
-    name = models.CharField(max_length=20, choices=DEPARTMENT_CHOICES, unique=True)
+    name = models.CharField(max_length=50, choices=DEPARTMENT_CHOICES, unique=True)
 
     def __str__(self):
         return self.get_name_display()
@@ -23,6 +24,7 @@ class Employee(models.Model):
 
     # Auto-increment employeeId like EMP001, EMP002
     employeeId = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
+    idNumber = models.CharField(max_length=50, blank=True, null=True)
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -32,6 +34,7 @@ class Employee(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     date_joined = models.DateField(auto_now_add=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
     def save(self, *args, **kwargs):
         if not self.employeeId:  # only assign when creating new employee

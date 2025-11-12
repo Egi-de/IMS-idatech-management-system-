@@ -1,8 +1,8 @@
-import React, { forwardRef, useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
-const Select = forwardRef(
+const Select = React.forwardRef(
   (
     {
       label,
@@ -22,6 +22,7 @@ const Select = forwardRef(
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
     const selectRef = useRef(null);
+    const dropdownRef = useRef(null);
     const [dropdownStyle, setDropdownStyle] = useState({});
 
     const baseClasses =
@@ -44,10 +45,25 @@ const Select = forwardRef(
     useEffect(() => {
       if (isOpen && selectRef.current) {
         const rect = selectRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const dropdownHeight = 200; // Estimated max height
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+
+        let top;
+        if (spaceBelow >= dropdownHeight) {
+          top = `${rect.bottom + 2}px`;
+        } else if (spaceAbove >= dropdownHeight) {
+          top = `${rect.top - dropdownHeight - 2}px`;
+        } else {
+          // If neither has enough space, prefer below but adjust height
+          top = `${rect.bottom + 2}px`;
+        }
+
         setDropdownStyle({
           position: "fixed",
           left: `${rect.left}px`,
-          top: `${rect.bottom + 2}px`,
+          top,
           width: `${rect.width}px`,
           zIndex: 60,
         });
@@ -62,7 +78,9 @@ const Select = forwardRef(
     const handleOutsideClick = (event) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target)
+        !containerRef.current.contains(event.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
       ) {
         setIsOpen(false);
       }
@@ -119,6 +137,7 @@ const Select = forwardRef(
           {isOpen &&
             createPortal(
               <div
+                ref={dropdownRef}
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                 style={dropdownStyle}
               >

@@ -4,6 +4,8 @@ import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
 import Select from "../components/Select";
+import { API_BASE_URL } from "../services/api";
+
 import {
   UsersIcon,
   UserPlusIcon,
@@ -41,14 +43,17 @@ const Employees = () => {
 
   // Form state
   const [formData, setFormData] = useState({
+    employeeId: "",
+    idNumber: "",
     name: "",
     email: "",
-    phone: "",
+    phone: undefined,
     position: "",
     department_id: "",
     salary: "",
     address: "",
     status: "active",
+    avatar: null,
   });
 
   const statuses = [
@@ -63,6 +68,17 @@ const Employees = () => {
     fetchDepartments();
   }, []);
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/departments/`);
+      if (!response.ok) throw new Error("Failed to fetch departments");
+      const data = await response.json();
+      setDepartments(data);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+    }
+  };
+
   const fetchEmployees = async () => {
     try {
       const response = await fetch(`${API_BASE}/employees/`);
@@ -76,17 +92,6 @@ const Employees = () => {
     }
   };
 
-  const fetchDepartments = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/departments/`);
-      if (!response.ok) throw new Error("Failed to fetch departments");
-      const data = await response.json();
-      setDepartments(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   const handleViewEmployee = (employee) => {
     setSelectedEmployee(employee);
     setModalType("view");
@@ -97,14 +102,17 @@ const Employees = () => {
     setSelectedEmployee(null);
     setModalType("add");
     setFormData({
+      employeeId: "",
+      idNumber: "",
       name: "",
       email: "",
-      phone: "",
+      phone: undefined,
       position: "",
       department_id: "",
       salary: "",
       address: "",
       status: "active",
+      avatar: null,
     });
     setShowModal(true);
   };
@@ -113,6 +121,8 @@ const Employees = () => {
     setSelectedEmployee(employee);
     setModalType("edit");
     setFormData({
+      employeeId: employee.employeeId,
+      idNumber: employee.idNumber || "",
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
@@ -121,29 +131,36 @@ const Employees = () => {
       salary: employee.salary.toString(),
       address: employee.address,
       status: employee.status,
+      avatar: null,
     });
     setShowModal(true);
   };
 
   const handleDeleteEmployee = async (employeeId) => {
+    const employee = employees.find((emp) => emp.id === employeeId);
+    if (!employee) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${employee.name}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
     try {
       const response = await fetch(`${API_BASE}/employees/${employeeId}/`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete employee");
 
-      const employee = employees.find((emp) => emp.id === employeeId);
-      if (employee) {
-        await addToTrash({
-          type: "employee",
-          id: employeeId,
-          name: employee.name,
-          position: employee.position,
-          department: employee.department.name,
-          email: employee.email,
-          canRestore: true,
-        });
-      }
+      await addToTrash({
+        type: "employee",
+        id: employeeId,
+        name: employee.name,
+        position: employee.position,
+        department: employee.department.name,
+        email: employee.email,
+        canRestore: true,
+      });
 
       fetchEmployees(); // Refetch after delete
     } catch (err) {
@@ -152,65 +169,72 @@ const Employees = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const { name, value, type, files } = e.target;
+    if (type === "file") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: files[0] || null,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null); // Clear previous errors
 
-    // Client-side validation
-    if (!formData.name.trim()) {
-      setError("Name is required");
+    // Client-side validation (optional fields)
+    if (formData.name.trim() && !formData.email.trim()) {
+      setError("Email is required if name is provided");
       return;
     }
-    if (!formData.email.trim()) {
-      setError("Email is required");
+    if (formData.email.trim() && !formData.name.trim()) {
+      setError("Name is required if email is provided");
       return;
     }
-    if (!formData.position.trim()) {
-      setError("Position is required");
+    if (formData.position.trim() && !formData.department_id) {
+      setError("Department is required if position is provided");
       return;
     }
-    if (!formData.department_id) {
-      setError("Department is required");
-      return;
-    }
-    const salaryNum = parseFloat(formData.salary);
-    if (isNaN(salaryNum) || salaryNum <= 0) {
-      setError("Valid salary is required");
-      return;
-    }
-    if (!formData.status) {
-      setError("Status is required");
+    if (
+      formData.salary &&
+      (isNaN(parseFloat(formData.salary)) || parseFloat(formData.salary) <= 0)
+    ) {
+      setError("Valid salary is required if provided");
       return;
     }
 
-    const data = {
-      ...formData,
-      department_id: parseInt(formData.department_id),
-      salary: salaryNum,
-    };
+    const formDataToSend = new FormData();
+    formDataToSend.append("name", formData.name);
+    formDataToSend.append("email", formData.email);
+    formDataToSend.append("phone", formData.phone);
+    formDataToSend.append("position", formData.position);
+    formDataToSend.append("department_id", formData.department_id);
+    formDataToSend.append("salary", formData.salary);
+    formDataToSend.append("address", formData.address);
+    formDataToSend.append("status", formData.status);
+    formDataToSend.append("idNumber", formData.idNumber);
+    if (formData.avatar) {
+      formDataToSend.append("avatar", formData.avatar);
+    }
 
     try {
       let response;
       if (modalType === "add") {
         response = await fetch(`${API_BASE}/employees/`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: formDataToSend,
         });
       } else if (modalType === "edit") {
         response = await fetch(
           `${API_BASE}/employees/${selectedEmployee.id}/`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
+            body: formDataToSend,
           }
         );
       }
@@ -233,14 +257,17 @@ const Employees = () => {
   const handleCancel = () => {
     setShowModal(false);
     setFormData({
+      employeeId: "",
+      idNumber: "",
       name: "",
       email: "",
-      phone: "",
+      phone: undefined,
       position: "",
       department_id: "",
       salary: "",
       address: "",
       status: "active",
+      avatar: null,
     });
   };
 
@@ -386,7 +413,7 @@ const Employees = () => {
               <option value="">All Departments</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.name}>
-                  {dept.name}
+                  {dept.display_name || dept.name}
                 </option>
               ))}
             </select>
@@ -426,8 +453,8 @@ const Employees = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4">ID</th>
                   <th className="text-left py-3 px-4">Employee</th>
+                  <th className="text-left py-3 px-4">ID</th>
                   <th className="text-left py-3 px-4">Position</th>
                   <th className="text-left py-3 px-4">Department</th>
                   <th className="text-left py-3 px-4">Address</th>
@@ -440,26 +467,31 @@ const Employees = () => {
                 {filteredEmployees.map((employee) => (
                   <tr key={employee.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">
-                      <span className="font-mono text-sm font-medium text-gray-900">
-                        {employee.employeeId}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <img
-                          src="/api/placeholder/40/40"
+                          src={
+                            employee.avatar
+                              ? API_BASE_URL + "/media/" + employee.avatar
+                              : "/api/placeholder/40/40"
+                          }
                           alt={employee.name}
                           className="h-10 w-10 rounded-full"
                         />
                         <div>
                           <div className="font-medium text-gray-900">
-                            {employee.name}
+                            {employee.name}{" "}
+                            {employee.idNumber && `(${employee.idNumber})`}
                           </div>
                           <div className="text-sm text-gray-600">
                             {employee.email}
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-sm font-medium text-gray-900">
+                        {employee.idNumber}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{employee.position}</div>
@@ -470,7 +502,8 @@ const Employees = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                        {employee.department.name}
+                        {employee.department.display_name ||
+                          employee.department.name}
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -547,7 +580,11 @@ const Employees = () => {
             {/* Basic Information */}
             <div className="flex items-center space-x-4">
               <img
-                src="/api/placeholder/40/40"
+                src={
+                  selectedEmployee.avatar
+                    ? API_BASE_URL + "/media/" + selectedEmployee.avatar
+                    : "/api/placeholder/40/40"
+                }
                 alt={selectedEmployee.name}
                 className="h-20 w-20 rounded-full"
               />
@@ -557,7 +594,8 @@ const Employees = () => {
                 </h3>
                 <p className="text-gray-600">{selectedEmployee.position}</p>
                 <p className="text-sm text-gray-500">
-                  {selectedEmployee.department.name}
+                  {selectedEmployee.department.display_name ||
+                    selectedEmployee.department.name}
                 </p>
               </div>
             </div>
@@ -590,9 +628,9 @@ const Employees = () => {
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <span className="text-gray-600">Employee ID:</span>
+                    <span className="text-gray-600">ID Number:</span>
                     <span className="ml-2 font-medium">
-                      {selectedEmployee.employeeId}
+                      {selectedEmployee.idNumber}
                     </span>
                   </div>
                   <div>
@@ -629,22 +667,19 @@ const Employees = () => {
         {(modalType === "add" || modalType === "edit") && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {modalType === "edit" && (
-                <Input
-                  label="Employee ID"
-                  name="employeeId"
-                  value={selectedEmployee?.employeeId || ""}
-                  readOnly
-                  placeholder="Auto-generated"
-                />
-              )}
               <Input
                 label="Full Name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Enter full name"
-                required
+              />
+              <Input
+                label="ID Number"
+                name="idNumber"
+                value={formData.idNumber}
+                onChange={handleInputChange}
+                placeholder="Enter ID number"
               />
               <Input
                 label="Email"
@@ -653,7 +688,6 @@ const Employees = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Enter email"
-                required
               />
               <Input
                 label="Phone"
@@ -668,28 +702,18 @@ const Employees = () => {
                 value={formData.position}
                 onChange={handleInputChange}
                 placeholder="Enter position"
-                required
               />
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Department
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-                <select
-                  name="department_id"
-                  value={formData.department_id}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id.toString()}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Department"
+                name="department_id"
+                value={formData.department_id}
+                onChange={handleInputChange}
+                options={departments.map((dept) => ({
+                  value: dept.id.toString(),
+                  label: dept.display_name || dept.name,
+                }))}
+                placeholder="Select Department"
+              />
               <Input
                 label="Salary"
                 name="salary"
@@ -698,7 +722,6 @@ const Employees = () => {
                 value={formData.salary}
                 onChange={handleInputChange}
                 placeholder="Enter salary"
-                required
               />
               <Input
                 label="Address"
@@ -713,8 +736,20 @@ const Employees = () => {
                 value={formData.status}
                 onChange={handleInputChange}
                 options={statuses}
-                required
+                placeholder="Select Status"
               />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Avatar
+                </label>
+                <input
+                  type="file"
+                  name="avatar"
+                  accept="image/*"
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={handleCancel}>

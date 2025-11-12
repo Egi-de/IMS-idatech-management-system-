@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import { toast } from "react-toastify";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Input from "../components/Input";
+import { API_BASE_URL } from "../services/api";
 import {
   UserPlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  EyeIcon,
   PencilIcon,
   TrashIcon,
   CalendarIcon,
@@ -24,7 +24,6 @@ import {
 } from "../services/api";
 
 const StudentEnrollment = () => {
-  const viewFileInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [programFilter, setProgramFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -55,6 +54,7 @@ const StudentEnrollment = () => {
     paidAmount: 0,
     remainingAmount: 0,
     paymentStatus: "Pending",
+    avatar: "",
   });
 
   useEffect(() => {
@@ -111,6 +111,7 @@ const StudentEnrollment = () => {
       paidAmount: 0,
       remainingAmount: 0,
       paymentStatus: "Pending",
+      avatar: "",
     });
   };
 
@@ -165,12 +166,6 @@ const StudentEnrollment = () => {
     setShowModal(true);
   };
 
-  const handleViewEnrollment = (enrollment) => {
-    setSelectedEnrollment(enrollment);
-    setModalType("view");
-    setShowModal(true);
-  };
-
   const handleDeleteEnrollment = async (enrollmentId) => {
     if (window.confirm("Are you sure you want to delete this enrollment?")) {
       try {
@@ -181,21 +176,6 @@ const StudentEnrollment = () => {
         toast.error("Failed to delete enrollment.");
         console.error(err);
       }
-    }
-  };
-
-  const updateAvatar = async (file) => {
-    try {
-      const updatedData = { avatar: file };
-      const response = await updateStudent(selectedEnrollment.id, updatedData);
-      setEnrollments((prev) =>
-        prev.map((e) => (e.id === selectedEnrollment.id ? response.data : e))
-      );
-      setSelectedEnrollment(response.data);
-      toast.success("Avatar updated successfully!");
-    } catch (err) {
-      toast.error("Failed to update avatar.");
-      console.error(err);
     }
   };
 
@@ -462,126 +442,192 @@ const StudentEnrollment = () => {
         </div>
       )}
 
-      {/* Enrollment Cards */}
+      {/* Enrollment Table */}
       {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {enrollments
-            .filter(
-              (enrollment) =>
-                (enrollment.name
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                  enrollment.email
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                  enrollment.program
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase())) &&
-                (programFilter === "" ||
-                  enrollment.program === programFilter) &&
-                (statusFilter === "" || enrollment.status === statusFilter)
-            )
-            .sort((a, b) => {
-              let aValue, bValue;
-              switch (sortBy) {
-                case "name":
-                  aValue = a.name.toLowerCase();
-                  bValue = b.name.toLowerCase();
-                  break;
-                case "enrollmentDate":
-                  aValue = new Date(a.enrollmentDate);
-                  bValue = new Date(b.enrollmentDate);
-                  break;
-                case "program":
-                  aValue = a.program.toLowerCase();
-                  bValue = b.program.toLowerCase();
-                  break;
-                default:
-                  aValue = a.name.toLowerCase();
-                  bValue = b.name.toLowerCase();
-              }
-              if (sortOrder === "asc") {
-                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-              } else {
-                return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-              }
-            })
-            .map((enrollment) => (
-              <Card
-                key={enrollment.id}
-                className="hover:shadow-lg transition-shadow"
-              >
-                <CardContent>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {enrollment.name}
-                    </h3>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        enrollment.status
-                      )}`}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Student
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Address
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Program
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Student Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Enrollment Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Start Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    End Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Total Fees
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Paid Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Remaining
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Payment Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {enrollments
+                  .filter(
+                    (enrollment) =>
+                      (enrollment.name
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                        enrollment.email
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        enrollment.program
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        enrollment.idNumber.includes(searchQuery)) &&
+                      (programFilter === "" ||
+                        enrollment.program === programFilter) &&
+                      (statusFilter === "" ||
+                        enrollment.status === statusFilter)
+                  )
+                  .sort((a, b) => {
+                    let aValue, bValue;
+                    switch (sortBy) {
+                      case "name":
+                        aValue = a.name.toLowerCase();
+                        bValue = b.name.toLowerCase();
+                        break;
+                      case "enrollmentDate":
+                        aValue = new Date(a.enrollmentDate);
+                        bValue = new Date(b.enrollmentDate);
+                        break;
+                      case "program":
+                        aValue = a.program.toLowerCase();
+                        bValue = b.program.toLowerCase();
+                        break;
+                      default:
+                        aValue = a.name.toLowerCase();
+                        bValue = b.name.toLowerCase();
+                    }
+                    if (sortOrder === "asc") {
+                      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+                    } else {
+                      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+                    }
+                  })
+                  .map((enrollment) => (
+                    <tr
+                      key={enrollment.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
-                      {enrollment.status}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Student ID:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {enrollment.idNumber}
-                      </span>
-                    </div>
-                    {enrollment.address && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          Address:
-                        </span>
-                        <span className="text-sm font-medium">
-                          {enrollment.address}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Email:
-                      </span>
-                      <span className="text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            {enrollment.avatar ? (
+                              <img
+                                className="h-10 w-10 rounded-full object-cover"
+                                src={
+                                  enrollment.avatar.startsWith("http")
+                                    ? enrollment.avatar
+                                    : `${API_BASE_URL}/${enrollment.avatar}`
+                                }
+                                alt={enrollment.name}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                <AcademicCapIcon className="h-5 w-5 text-gray-500" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {enrollment.name}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-300">
+                              ID: {enrollment.idNumber}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {enrollment.email}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Phone:
-                      </span>
-                      <span className="text-sm font-medium">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                         {enrollment.phone}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Program:
-                      </span>
-                      <span className="text-sm font-medium">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        {enrollment.address}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {enrollment.program}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Student Type:
-                      </span>
-                      <span className="text-sm font-medium">
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                         {enrollment.studentType}
-                      </span>
-                    </div>
-                    {enrollment.studentType === "Internee" && (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            Payment:
-                          </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            enrollment.status
+                          )}`}
+                        >
+                          {enrollment.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {new Date(
+                          enrollment.enrollmentDate
+                        ).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        {new Date(enrollment.startDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        {new Date(enrollment.endDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {enrollment.studentType === "Internee"
+                          ? `$${enrollment.totalFees?.toLocaleString() || 0}`
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                        {enrollment.studentType === "Internee"
+                          ? `$${enrollment.paidAmount?.toLocaleString() || 0}`
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                        {enrollment.studentType === "Internee"
+                          ? `$${
+                              enrollment.remainingAmount?.toLocaleString() || 0
+                            }`
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {enrollment.studentType === "Internee" ? (
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
                               enrollment.paymentStatus
@@ -589,37 +635,35 @@ const StudentEnrollment = () => {
                           >
                             {enrollment.paymentStatus}
                           </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="small"
+                            onClick={() => handleEditEnrollment(enrollment)}
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="small"
+                            onClick={() =>
+                              handleDeleteEnrollment(enrollment.id)
+                            }
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={() => handleViewEnrollment(enrollment)}
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={() => handleEditEnrollment(enrollment)}
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={() => handleDeleteEnrollment(enrollment.id)}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -627,190 +671,9 @@ const StudentEnrollment = () => {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={
-          modalType === "add"
-            ? "New Enrollment"
-            : modalType === "edit"
-            ? "Edit Enrollment"
-            : "Student Enrollment "
-        }
+        title={modalType === "add" ? "New Enrollment" : "Edit Enrollment"}
         size="large"
       >
-        {selectedEnrollment && modalType === "view" && (
-          <div className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                {selectedEnrollment.avatar ? (
-                  <img
-                    src={selectedEnrollment.avatar}
-                    alt="Student Avatar"
-                    className="h-32 w-32 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-32 w-32 bg-blue-100 rounded-full flex items-center justify-center">
-                    <AcademicCapIcon className="h-16 w-16 text-blue-600" />
-                  </div>
-                )}
-                <input
-                  type="file"
-                  ref={viewFileInputRef}
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      updateAvatar(file);
-                    }
-                  }}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => viewFileInputRef.current.click()}
-                  className="absolute -bottom-2 -right-2 rounded-full p-1"
-                >
-                  <CameraIcon className="h-3 w-3" />
-                </Button>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {selectedEnrollment.name}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedEnrollment.email}
-                </p>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedEnrollment.phone}
-                </p>
-                <p className="text-sm text-gray-500">
-                  ID: {selectedEnrollment.idNumber}
-                </p>
-                {selectedEnrollment.address && (
-                  <p className="text-sm text-gray-500">
-                    Address: {selectedEnrollment.address}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Program Information
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Program:</span>
-                      <span className="text-sm font-medium">
-                        {selectedEnrollment.program}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Enrollment Date:</span>
-                      <span className="text-sm font-medium">
-                        {new Date(
-                          selectedEnrollment.enrollmentDate
-                        ).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Duration:</span>
-                      <span className="text-sm font-medium">
-                        {new Date(
-                          selectedEnrollment.startDate
-                        ).toLocaleDateString()}{" "}
-                        -{" "}
-                        {new Date(
-                          selectedEnrollment.endDate
-                        ).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Status Information
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Enrollment Status:</span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          selectedEnrollment.status
-                        )}`}
-                      >
-                        {selectedEnrollment.status}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Student Type:</span>
-                      <span className="text-sm font-medium">
-                        {selectedEnrollment.studentType}
-                      </span>
-                    </div>
-                    {selectedEnrollment.studentType === "Internee" && (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Internee Type:</span>
-                          <span className="text-sm font-medium">
-                            {selectedEnrollment.interneeType}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Study Status:</span>
-                          <span className="text-sm font-medium">
-                            {selectedEnrollment.studyStatus}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Payment Status:</span>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                              selectedEnrollment.paymentStatus
-                            )}`}
-                          >
-                            {selectedEnrollment.paymentStatus}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Financial Information
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Total Fees:</span>
-                      <span className="text-sm font-medium">
-                        ${selectedEnrollment.totalFees.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Paid Amount:</span>
-                      <span className="text-sm font-medium">
-                        ${selectedEnrollment.paidAmount.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Remaining:</span>
-                      <span className="text-sm font-medium">
-                        ${selectedEnrollment.remainingAmount.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {(modalType === "add" || modalType === "edit") && (
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4">
@@ -927,10 +790,6 @@ const StudentEnrollment = () => {
                     <option value="Still Studying">Still Studying</option>
                     <option value="Graduated">Graduated</option>
                   </select>
-                </>
-              )}
-              {formData.studentType === "Internee" && (
-                <>
                   <Input
                     label="Total Fees"
                     type="number"
@@ -971,6 +830,71 @@ const StudentEnrollment = () => {
                   </select>
                 </>
               )}
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Avatar
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      name="avatar"
+                      onChange={handleInputChange}
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      id="avatar-upload"
+                    />
+                    <label
+                      htmlFor="avatar-upload"
+                      className="flex items-center justify-center w-16 h-16 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-colors relative group overflow-hidden"
+                    >
+                      {formData.avatar && formData.avatar instanceof File ? (
+                        <img
+                          src={URL.createObjectURL(formData.avatar)}
+                          alt="Preview"
+                          className="w-16 h-16 object-cover"
+                        />
+                      ) : modalType === "edit" && selectedEnrollment?.avatar ? (
+                        <img
+                          src={
+                            selectedEnrollment.avatar.startsWith("http")
+                              ? selectedEnrollment.avatar
+                              : `${API_BASE_URL}/${selectedEnrollment.avatar}`
+                          }
+                          alt="Current avatar"
+                          className="w-16 h-16 object-cover"
+                        />
+                      ) : (
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600">
+                      {formData.avatar
+                        ? formData.avatar.name
+                        : "Click to upload profile picture"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => setShowModal(false)}>
