@@ -43,17 +43,37 @@ export const createStudent = (data) => {
   });
 };
 export const updateStudent = (id, data) => {
-  const formData = new FormData();
-  Object.keys(data).forEach((key) => {
-    if (data[key] !== null && data[key] !== undefined) {
-      formData.append(key, data[key]);
-    }
-  });
-  return api.patch(`/student/api/students/${id}/`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  // Check if data contains file fields
+  const hasFileFields = Object.keys(data).some(
+    (key) => data[key] instanceof File || data[key] instanceof Blob
+  );
+
+  if (hasFileFields) {
+    // Use FormData for file uploads
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined) {
+        if (
+          typeof data[key] === "object" &&
+          !(data[key] instanceof File) &&
+          !(data[key] instanceof Blob)
+        ) {
+          // Convert objects/arrays to JSON string for FormData
+          formData.append(key, JSON.stringify(data[key]));
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+    return api.patch(`/student/api/students/${id}/`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  } else {
+    // Use JSON for non-file updates
+    return api.patch(`/student/api/students/${id}/`, data);
+  }
 };
 export const deleteStudent = (id) => api.delete(`/student/api/students/${id}/`);
 export const getStudentById = (id) => api.get(`/student/api/students/${id}/`);

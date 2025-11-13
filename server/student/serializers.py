@@ -1,4 +1,6 @@
 import json
+from decimal import Decimal
+from django.db import models
 from rest_framework import serializers
 from .models import Student
 
@@ -9,14 +11,39 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = '__all__'
 
+    def to_internal_value(self, data):
+        # Convert string values to appropriate types before validation
+        for field_name, field in self.fields.items():
+            if field_name in data and isinstance(data[field_name], str):
+                if hasattr(self.Meta.model, field_name):
+                    model_field = self.Meta.model._meta.get_field(field_name)
+                    if isinstance(model_field, models.DecimalField):
+                        try:
+                            data[field_name] = Decimal(data[field_name])
+                        except:
+                            pass  # Let validation handle it
+        return super().to_internal_value(data)
+
     def validate_gpa(self, value):
-        if value is not None and (value < 0 or value > 4):
-            raise serializers.ValidationError("GPA must be between 0 and 4.")
+        if value is not None:
+            if isinstance(value, str):
+                try:
+                    value = Decimal(value)
+                except:
+                    raise serializers.ValidationError("GPA must be a valid decimal number.")
+            if value < Decimal('0') or value > Decimal('4'):
+                raise serializers.ValidationError("GPA must be between 0 and 4.")
         return value
 
     def validate_cumulative_gpa(self, value):
-        if value is not None and (value < 0 or value > 4):
-            raise serializers.ValidationError("Cumulative GPA must be between 0 and 4.")
+        if value is not None:
+            if isinstance(value, str):
+                try:
+                    value = Decimal(value)
+                except:
+                    raise serializers.ValidationError("Cumulative GPA must be a valid decimal number.")
+            if value < Decimal('0') or value > Decimal('4'):
+                raise serializers.ValidationError("Cumulative GPA must be between 0 and 4.")
         return value
 
     def validate_completed_credits(self, value):
@@ -73,8 +100,36 @@ class StudentSerializer(serializers.ModelSerializer):
         return value
 
     def validate_remainingAmount(self, value):
-        if value < 0:
-            raise serializers.ValidationError("Remaining amount cannot be negative.")
+        if value is not None:
+            if isinstance(value, str):
+                try:
+                    value = Decimal(value)
+                except:
+                    raise serializers.ValidationError("Remaining amount must be a valid decimal number.")
+            if value < Decimal('0'):
+                raise serializers.ValidationError("Remaining amount cannot be negative.")
+        return value
+
+    def validate_totalFees(self, value):
+        if value is not None:
+            if isinstance(value, str):
+                try:
+                    value = Decimal(value)
+                except:
+                    raise serializers.ValidationError("Total fees must be a valid decimal number.")
+            if value < Decimal('0'):
+                raise serializers.ValidationError("Total fees cannot be negative.")
+        return value
+
+    def validate_paidAmount(self, value):
+        if value is not None:
+            if isinstance(value, str):
+                try:
+                    value = Decimal(value)
+                except:
+                    raise serializers.ValidationError("Paid amount must be a valid decimal number.")
+            if value < Decimal('0'):
+                raise serializers.ValidationError("Paid amount cannot be negative.")
         return value
 
     def validate(self, attrs):
