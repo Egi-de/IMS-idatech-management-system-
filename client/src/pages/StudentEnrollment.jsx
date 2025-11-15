@@ -44,6 +44,7 @@ const StudentEnrollment = () => {
     email: "",
     phone: "",
     address: "",
+    gender: "",
     program: "",
     studentType: "",
     enrollmentDate: "",
@@ -101,6 +102,7 @@ const StudentEnrollment = () => {
       email: "",
       phone: "",
       address: "",
+      gender: "",
       program: "",
       studentType: "",
       enrollmentDate: "",
@@ -275,6 +277,7 @@ const StudentEnrollment = () => {
           email: formData.email,
           phone: formData.phone,
           address: formData.address,
+          gender: formData.gender,
           program: formData.program,
           studentType: formData.studentType || null,
           enrollmentDate: formData.enrollmentDate,
@@ -302,6 +305,7 @@ const StudentEnrollment = () => {
           email: formData.email,
           phone: formData.phone,
           address: formData.address,
+          gender: formData.gender,
           program: formData.program,
           studentType: formData.studentType || null,
           enrollmentDate: formData.enrollmentDate,
@@ -818,6 +822,17 @@ const StudentEnrollment = () => {
                 onChange={handleInputChange}
                 placeholder="Enter address"
               />
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
               <select
                 name="program"
                 value={formData.program}

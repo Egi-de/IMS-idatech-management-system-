@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "../components/Card";
 import Button from "../components/Button";
@@ -10,202 +10,34 @@ import FinancialChart from "../components/FinancialChart";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  LineElement,
+  PointElement,
+} from "chart.js";
+import { Pie, Bar, Line } from "react-chartjs-2";
+import { getStudents, getEmployees, getTransactions } from "../services/api";
 
-const employees = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    email: "sarah.johnson@idatech.com",
-    phone: "+1-234-567-8901",
-    position: "Senior IoT Developer",
-    department: "Engineering",
-    salary: 85000,
-    hireDate: "2023-03-15",
-    status: "Active",
-    avatar: "/api/placeholder/40/40",
-    address: "123 Tech Street, Silicon Valley, CA 94025",
-    emergencyContact: "John Johnson (+1-234-567-8902)",
-    skills: ["Python", "IoT", "Machine Learning", "AWS"],
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    email: "michael.chen@idatech.com",
-    phone: "+1-234-567-8903",
-    position: "HR Manager",
-    department: "Human Resources",
-    salary: 75000,
-    hireDate: "2023-01-10",
-    status: "Active",
-    avatar: "/api/placeholder/40/40",
-    address: "456 HR Avenue, San Francisco, CA 94102",
-    emergencyContact: "Lisa Chen (+1-234-567-8904)",
-    skills: ["HR Management", "Recruitment", "Employee Relations"],
-  },
-  {
-    id: 3,
-    name: "Emily Rodriguez",
-    email: "emily.rodriguez@idatech.com",
-    phone: "+1-234-567-8905",
-    position: "Financial Analyst",
-    department: "Finance",
-    salary: 70000,
-    hireDate: "2023-05-20",
-    status: "Active",
-    avatar: "/api/placeholder/40/40",
-    address: "789 Finance Blvd, New York, NY 10001",
-    emergencyContact: "Carlos Rodriguez (+1-234-567-8906)",
-    skills: ["Financial Analysis", "Excel", "SAP", "Budgeting"],
-  },
-  {
-    id: 4,
-    name: "David Kim",
-    email: "david.kim@idatech.com",
-    phone: "+1-234-567-8907",
-    position: "Software Developer",
-    department: "Engineering",
-    salary: 65000,
-    hireDate: "2023-08-01",
-    status: "On Leave",
-    avatar: "/api/placeholder/40/40",
-    address: "321 Code Lane, Seattle, WA 98101",
-    emergencyContact: "Susan Kim (+1-234-567-8908)",
-    skills: ["JavaScript", "React", "Node.js", "Database Design"],
-  },
-];
-
-const students = [
-  {
-    id: 1,
-    name: "Alice Johnson",
-    email: "alice.johnson@idatech.com",
-    phone: "+1-234-567-8901",
-    program: "IoT Development",
-    year: "2023",
-    status: "Active",
-    avatar: "/api/placeholder/40/40",
-    address: "123 Main Street, City, State 12345",
-    emergencyContact: "John Johnson (+1-234-567-8902)",
-    gpa: 3.8,
-    enrollmentDate: "2023-01-15",
-    courses: ["IoT Fundamentals", "Embedded Systems", "Wireless Networks"],
-  },
-  {
-    id: 2,
-    name: "Bob Smith",
-    email: "bob.smith@idatech.com",
-    phone: "+1-234-567-8903",
-    program: "Software Development",
-    year: "2023",
-    status: "Active",
-    avatar: "/api/placeholder/40/40",
-    address: "456 Oak Avenue, City, State 12345",
-    emergencyContact: "Jane Smith (+1-234-567-8904)",
-    gpa: 3.6,
-    enrollmentDate: "2023-02-10",
-    courses: ["Data Structures", "Algorithms", "Web Development"],
-  },
-  {
-    id: 3,
-    name: "Charlie Brown",
-    email: "charlie.brown@idatech.com",
-    phone: "+1-234-567-8905",
-    program: "IoT Development",
-    year: "2022",
-    status: "Active",
-    avatar: "/api/placeholder/40/40",
-    address: "789 Pine Road, City, State 12345",
-    emergencyContact: "Lucy Brown (+1-234-567-8906)",
-    gpa: 3.9,
-    enrollmentDate: "2022-09-01",
-    courses: ["IoT Security", "Cloud Computing", "Machine Learning"],
-  },
-  {
-    id: 4,
-    name: "Diana Prince",
-    email: "diana.prince@idatech.com",
-    phone: "+1-234-567-8907",
-    program: "Software Development",
-    year: "2022",
-    status: "On Leave",
-    avatar: "/api/placeholder/40/40",
-    address: "321 Elm Street, City, State 12345",
-    emergencyContact: "Steve Prince (+1-234-567-8908)",
-    gpa: 3.7,
-    enrollmentDate: "2022-08-15",
-    courses: ["Mobile Development", "Database Design", "UI/UX Design"],
-  },
-];
-
-const transactions = [
-  {
-    id: 1,
-    type: "Income",
-    category: "Student Fees",
-    description: "IoT Program - January Batch",
-    amount: 25000,
-    date: "2024-01-15",
-    status: "Completed",
-    reference: "TXN-2024-001",
-    method: "Bank Transfer",
-  },
-  {
-    id: 2,
-    type: "Expense",
-    category: "Equipment",
-    description: "Raspberry Pi 4 - 50 units",
-    amount: -8500,
-    date: "2024-01-14",
-    status: "Completed",
-    reference: "TXN-2024-002",
-    method: "Credit Card",
-  },
-  {
-    id: 3,
-    type: "Income",
-    category: "Workshop Revenue",
-    description: "AI Workshop - 30 participants",
-    amount: 15000,
-    date: "2024-01-13",
-    status: "Completed",
-    reference: "TXN-2024-003",
-    method: "Online Payment",
-  },
-  {
-    id: 4,
-    type: "Expense",
-    category: "Salary",
-    description: "Employee salaries - January",
-    amount: -45000,
-    date: "2024-01-12",
-    status: "Completed",
-    reference: "TXN-2024-004",
-    method: "Bank Transfer",
-  },
-  {
-    id: 5,
-    type: "Expense",
-    category: "Utilities",
-    description: "Electricity & Internet - January",
-    amount: -2500,
-    date: "2024-01-11",
-    status: "Pending",
-    reference: "TXN-2024-005",
-    method: "Direct Debit",
-  },
-];
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  LineElement,
+  PointElement
+);
 
 const Reports = () => {
-  // Initial overview cards data (before generating any report)
-  const totalStudents = students.length;
-  const totalEmployees = employees.length;
-  const totalIncome = transactions
-    .filter((t) => t.type === "Income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = transactions
-    .filter((t) => t.type === "Expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
   const [formData, setFormData] = useState({
     reportType: "students",
     fromDate: "",
@@ -223,6 +55,42 @@ const Reports = () => {
   });
   const [toast, setToast] = useState(null);
 
+  // Data states
+  const [studentsData, setStudentsData] = useState([]);
+  const [employeesData, setEmployeesData] = useState([]);
+  const [transactionsData, setTransactionsData] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState(null);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setDataLoading(true);
+        const [studentsRes, employeesRes, transactionsRes] = await Promise.all([
+          getStudents(),
+          getEmployees(),
+          getTransactions(),
+        ]);
+        setStudentsData(studentsRes.data);
+        setEmployeesData(employeesRes.data);
+        setTransactionsData(transactionsRes.data);
+        setDataError(null);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setDataError("Failed to load data. Please try again.");
+        setToast({
+          message: "Failed to load data. Please refresh the page.",
+          type: "error",
+        });
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const isDateInRange = (dateStr, from, to) => {
     if (!from || !to) return false;
     if (!dateStr) return false;
@@ -233,6 +101,22 @@ const Reports = () => {
   };
 
   const generateReport = async () => {
+    if (dataLoading) {
+      setToast({
+        message: "Data is still loading. Please wait.",
+        type: "warning",
+      });
+      return;
+    }
+
+    if (dataError) {
+      setToast({
+        message: "Data loading failed. Please refresh the page.",
+        type: "error",
+      });
+      return;
+    }
+
     setIsLoading(true);
     // Simulate processing time for large reports
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -241,14 +125,21 @@ const Reports = () => {
     let data = [];
     let dateField = "";
     if (reportType === "students") {
-      data = students;
-      dateField = "enrollmentDate";
+      data = studentsData;
+      dateField = "enrollment_date";
     } else if (reportType === "employees") {
-      data = employees;
-      dateField = "hireDate";
+      data = employeesData;
+      dateField = "hire_date";
     } else if (reportType === "financial") {
-      data = transactions;
+      data = transactionsData;
       dateField = "date";
+    }
+
+    // Filter data by date range if dates are provided
+    if (fromDate && toDate) {
+      data = data.filter((item) =>
+        isDateInRange(item[dateField], fromDate, toDate)
+      );
     }
 
     // Group by month
@@ -350,7 +241,7 @@ const Reports = () => {
             student.name,
             student.program,
             student.status,
-            student.enrollmentDate,
+            student.enrollment_date,
             student.gpa,
           ]);
         });
@@ -377,7 +268,7 @@ const Reports = () => {
             employee.position,
             employee.department,
             employee.salary,
-            employee.hireDate,
+            employee.hire_date,
             employee.status,
           ]);
         });
@@ -455,38 +346,6 @@ const Reports = () => {
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
         Reports
       </h1>
-
-      {!generatedReport && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-          <Card className="p-6 text-center">
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Students
-            </h3>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">
-              {totalStudents}
-            </p>
-          </Card>
-          <Card className="p-6 text-center">
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Employees
-            </h3>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">
-              {totalEmployees}
-            </p>
-          </Card>
-          <Card className="p-6 text-center">
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Financial
-            </h3>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              Income: ${totalIncome.toLocaleString()}
-            </p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              Expense: ${totalExpenses.toLocaleString()}
-            </p>
-          </Card>
-        </div>
-      )}
 
       <Card className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -601,245 +460,372 @@ const Reports = () => {
         </div>
       </Card>
 
-      {generatedReport && (
+      {generatedReport && generatedReport.type === "students" && (
         <>
-          {/* Summary Cards for Generated Report */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-            {generatedReport.type === "students" && (
-              <>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Total Enrollments
-                  </h3>
-                  <p className="text-4xl font-bold text-gray-900 dark:text-white">
-                    {generatedReport.data.reduce(
-                      (sum, month) =>
-                        sum +
-                        month.items.filter((item) =>
-                          isDateInRange(
-                            item.enrollmentDate,
-                            generatedReport.fromDate,
-                            generatedReport.toDate
-                          )
-                        ).length,
-                      0
-                    )}
-                  </p>
-                </Card>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Active Students
-                  </h3>
-                  <p className="text-4xl font-bold text-green-600 dark:text-green-400">
-                    {generatedReport.data.reduce(
-                      (sum, month) =>
-                        sum +
-                        month.items.filter(
-                          (s) =>
-                            s.status === "Active" &&
-                            isDateInRange(
-                              s.enrollmentDate,
-                              generatedReport.fromDate,
-                              generatedReport.toDate
-                            )
-                        ).length,
-                      0
-                    )}
-                  </p>
-                </Card>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Average GPA
-                  </h3>
-                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                    {(
-                      generatedReport.data.reduce(
-                        (sum, month) =>
-                          sum +
-                          month.items.reduce(
-                            (gpaSum, s) =>
-                              isDateInRange(
-                                s.enrollmentDate,
-                                generatedReport.fromDate,
-                                generatedReport.toDate
-                              )
-                                ? gpaSum + s.gpa
-                                : gpaSum,
-                            0
-                          ),
-                        0
-                      ) /
-                      generatedReport.data.reduce(
-                        (sum, month) =>
-                          sum +
-                          month.items.filter((item) =>
-                            isDateInRange(
-                              item.enrollmentDate,
-                              generatedReport.fromDate,
-                              generatedReport.toDate
-                            )
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Program Distribution Pie Chart */}
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Program Distribution
+              </h3>
+              <div className="h-80">
+                <Pie
+                  data={{
+                    labels: [
+                      "IoT Development",
+                      "Software Development",
+                      "Data Science",
+                    ],
+                    datasets: [
+                      {
+                        data: [
+                          studentsData.filter(
+                            (s) => s.program === "IoT Development"
                           ).length,
-                        0
-                      )
-                    ).toFixed(2)}
-                  </p>
-                </Card>
-              </>
-            )}
-            {generatedReport.type === "employees" && (
-              <>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Total Hires
-                  </h3>
-                  <p className="text-4xl font-bold text-gray-900 dark:text-white">
-                    {generatedReport.data.reduce(
-                      (sum, month) =>
-                        sum +
-                        month.items.filter((item) =>
-                          isDateInRange(
-                            item.hireDate,
-                            generatedReport.fromDate,
-                            generatedReport.toDate
-                          )
-                        ).length,
-                      0
-                    )}
-                  </p>
-                </Card>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Active Employees
-                  </h3>
-                  <p className="text-4xl font-bold text-green-600 dark:text-green-400">
-                    {generatedReport.data.reduce(
-                      (sum, month) =>
-                        sum +
-                        month.items.filter(
-                          (e) =>
-                            e.status === "Active" &&
-                            isDateInRange(
-                              e.hireDate,
-                              generatedReport.fromDate,
-                              generatedReport.toDate
-                            )
-                        ).length,
-                      0
-                    )}
-                  </p>
-                </Card>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Average Salary
-                  </h3>
-                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                    $
-                    {Math.round(
-                      generatedReport.data.reduce(
-                        (sum, month) =>
-                          sum +
-                          month.items.reduce(
-                            (salarySum, e) =>
-                              isDateInRange(
-                                e.hireDate,
-                                generatedReport.fromDate,
-                                generatedReport.toDate
-                              )
-                                ? salarySum + e.salary
-                                : salarySum,
-                            0
-                          ),
-                        0
-                      ) /
-                        generatedReport.data.reduce(
-                          (sum, month) =>
-                            sum +
-                            month.items.filter((item) =>
-                              isDateInRange(
-                                item.hireDate,
-                                generatedReport.fromDate,
-                                generatedReport.toDate
-                              )
-                            ).length,
-                          0
-                        )
-                    ).toLocaleString()}
-                  </p>
-                </Card>
-              </>
-            )}
-            {generatedReport.type === "financial" && (
-              <>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Total Transactions
-                  </h3>
-                  <p className="text-4xl font-bold text-gray-900 dark:text-white">
-                    {generatedReport.data.reduce(
-                      (sum, month) =>
-                        sum +
-                        month.items.filter((item) =>
-                          isDateInRange(
-                            item.date,
-                            generatedReport.fromDate,
-                            generatedReport.toDate
-                          )
-                        ).length,
-                      0
-                    )}
-                  </p>
-                </Card>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Net Income
-                  </h3>
-                  <p className="text-4xl font-bold text-green-600 dark:text-green-400">
-                    $
-                    {generatedReport.data
-                      .reduce(
-                        (sum, month) =>
-                          sum +
-                          month.items.reduce(
-                            (net, t) =>
-                              isDateInRange(
-                                t.date,
-                                generatedReport.fromDate,
-                                generatedReport.toDate
-                              )
-                                ? net + t.amount
-                                : net,
-                            0
-                          ),
-                        0
-                      )
-                      .toLocaleString()}
-                  </p>
-                </Card>
-                <Card className="p-6 text-center">
-                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Completed Transactions
-                  </h3>
-                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                    {generatedReport.data.reduce(
-                      (sum, month) =>
-                        sum +
-                        month.items.filter(
-                          (t) =>
-                            t.status === "Completed" &&
-                            isDateInRange(
-                              t.date,
-                              generatedReport.fromDate,
-                              generatedReport.toDate
-                            )
-                        ).length,
-                      0
-                    )}
-                  </p>
-                </Card>
-              </>
-            )}
+                          studentsData.filter(
+                            (s) => s.program === "Software Development"
+                          ).length,
+                          studentsData.filter(
+                            (s) => s.program === "Data Science"
+                          ).length,
+                        ],
+                        backgroundColor: [
+                          "rgba(54, 162, 235, 0.8)",
+                          "rgba(255, 99, 132, 0.8)",
+                          "rgba(75, 192, 192, 0.8)",
+                        ],
+                        borderColor: [
+                          "rgba(54, 162, 235, 1)",
+                          "rgba(255, 99, 132, 1)",
+                          "rgba(75, 192, 192, 1)",
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </Card>
+
+            {/* Gender Distribution Pie Chart */}
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Gender Distribution
+              </h3>
+              <div className="h-80">
+                <Pie
+                  data={{
+                    labels: ["Male", "Female", "Other"],
+                    datasets: [
+                      {
+                        data: [
+                          studentsData.filter((s) => s.gender === "Male")
+                            .length,
+                          studentsData.filter((s) => s.gender === "Female")
+                            .length,
+                          studentsData.filter((s) => s.gender === "Other")
+                            .length,
+                        ],
+                        backgroundColor: [
+                          "rgba(59, 130, 246, 0.8)",
+                          "rgba(236, 72, 153, 0.8)",
+                          "rgba(75, 192, 192, 0.8)",
+                        ],
+                        borderColor: [
+                          "rgba(59, 130, 246, 1)",
+                          "rgba(236, 72, 153, 1)",
+                          "rgba(75, 192, 192, 1)",
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </Card>
           </div>
 
+          {/* Quiz Performance Comparison Bar Chart */}
+          <Card className="p-6 mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Quiz Performance by Program
+            </h3>
+            <div className="h-80">
+              <Bar
+                data={{
+                  labels: [
+                    "IoT Development",
+                    "Software Development",
+                    "Data Science",
+                  ],
+                  datasets: [
+                    {
+                      label: "Quizzes Taken",
+                      data: [
+                        studentsData
+                          .filter((s) => s.program === "IoT Development")
+                          .reduce(
+                            (sum, s) =>
+                              sum + Object.keys(s.grades || {}).length,
+                            0
+                          ),
+                        studentsData
+                          .filter((s) => s.program === "Software Development")
+                          .reduce(
+                            (sum, s) =>
+                              sum + Object.keys(s.grades || {}).length,
+                            0
+                          ),
+                        studentsData
+                          .filter((s) => s.program === "Data Science")
+                          .reduce(
+                            (sum, s) =>
+                              sum + Object.keys(s.grades || {}).length,
+                            0
+                          ),
+                      ],
+                      backgroundColor: "rgba(59, 130, 246, 0.8)",
+                      borderColor: "rgba(59, 130, 246, 1)",
+                      borderWidth: 1,
+                    },
+                    {
+                      label: "Students Passed",
+                      data: [
+                        studentsData.filter(
+                          (s) =>
+                            s.program === "IoT Development" &&
+                            Object.values(s.grades || {}).some(
+                              (grade) => parseFloat(grade) >= 60
+                            )
+                        ).length,
+                        studentsData.filter(
+                          (s) =>
+                            s.program === "Software Development" &&
+                            Object.values(s.grades || {}).some(
+                              (grade) => parseFloat(grade) >= 60
+                            )
+                        ).length,
+                        studentsData.filter(
+                          (s) =>
+                            s.program === "Data Science" &&
+                            Object.values(s.grades || {}).some(
+                              (grade) => parseFloat(grade) >= 60
+                            )
+                        ).length,
+                      ],
+                      backgroundColor: "rgba(34, 197, 94, 0.8)",
+                      borderColor: "rgba(34, 197, 94, 1)",
+                      borderWidth: 1,
+                    },
+                    {
+                      label: "Students Failed",
+                      data: [
+                        studentsData.filter(
+                          (s) =>
+                            s.program === "IoT Development" &&
+                            Object.values(s.grades || {}).some(
+                              (grade) => parseFloat(grade) < 60
+                            )
+                        ).length,
+                        studentsData.filter(
+                          (s) =>
+                            s.program === "Software Development" &&
+                            Object.values(s.grades || {}).some(
+                              (grade) => parseFloat(grade) < 60
+                            )
+                        ).length,
+                        studentsData.filter(
+                          (s) =>
+                            s.program === "Data Science" &&
+                            Object.values(s.grades || {}).some(
+                              (grade) => parseFloat(grade) < 60
+                            )
+                        ).length,
+                      ],
+                      backgroundColor: "rgba(239, 68, 68, 0.8)",
+                      borderColor: "rgba(239, 68, 68, 1)",
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                    },
+                  },
+                  plugins: {
+                    legend: {
+                      position: "top",
+                    },
+                  },
+                }}
+              />
+            </div>
+          </Card>
+
+          {/* Top Performers Table */}
+          <Card className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Top Performers
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white dark:bg-gray-800">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 border">Rank</th>
+                    <th className="px-4 py-2 border">Name</th>
+                    <th className="px-4 py-2 border">Program</th>
+                    <th className="px-4 py-2 border">GPA</th>
+                    <th className="px-4 py-2 border">Attendance</th>
+                    <th className="px-4 py-2 border">Projects</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentsData
+                    .sort((a, b) => (b.gpa || 0) - (a.gpa || 0))
+                    .slice(0, 10)
+                    .map((student, index) => (
+                      <tr
+                        key={student.id}
+                        className={
+                          index % 2 === 0
+                            ? "bg-gray-50 dark:bg-gray-700"
+                            : "bg-white dark:bg-gray-800"
+                        }
+                      >
+                        <td className="px-4 py-2 border font-bold">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-2 border">{student.name}</td>
+                        <td className="px-4 py-2 border">{student.program}</td>
+                        <td className="px-4 py-2 border">
+                          {student.gpa || "N/A"}
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {student.overallAttendance || 0}%
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {student.totalProjects || 0}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Students Needing Improvement */}
+          <Card className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Students Needing Improvement
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white dark:bg-gray-800">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 border">Name</th>
+                    <th className="px-4 py-2 border">Program</th>
+                    <th className="px-4 py-2 border">GPA</th>
+                    <th className="px-4 py-2 border">Attendance</th>
+                    <th className="px-4 py-2 border">Issues</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentsData
+                    .filter(
+                      (s) =>
+                        (s.gpa || 0) < 2.0 || (s.overallAttendance || 0) < 70
+                    )
+                    .map((student) => (
+                      <tr
+                        key={student.id}
+                        className="bg-red-50 dark:bg-red-900/20"
+                      >
+                        <td className="px-4 py-2 border">{student.name}</td>
+                        <td className="px-4 py-2 border">{student.program}</td>
+                        <td className="px-4 py-2 border">
+                          {student.gpa || "N/A"}
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {student.overallAttendance || 0}%
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {(student.gpa || 0) < 2.0 &&
+                          (student.overallAttendance || 0) < 70
+                            ? "Low GPA & Attendance"
+                            : (student.gpa || 0) < 2.0
+                            ? "Low GPA"
+                            : "Low Attendance"}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Feedback Summary */}
+          <Card className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Recent Feedback Summary
+            </h3>
+            <div className="space-y-4">
+              {studentsData.slice(0, 5).map((student) => (
+                <div
+                  key={student.id}
+                  className="border-b border-gray-200 dark:border-gray-700 pb-4"
+                >
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    {student.name}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Latest feedback:{" "}
+                    {student.feedback?.[student.feedback.length - 1]
+                      ?.comments || "No feedback yet"}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {student.feedback?.[
+                      student.feedback.length - 1
+                    ]?.strengths?.map((strength, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
+                      >
+                        {strength}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </>
+      )}
+
+      {generatedReport && generatedReport.type !== "students" && (
+        <>
           <Card className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Generated{" "}
@@ -856,15 +842,6 @@ const Reports = () => {
                   <tr>
                     <th className="px-4 py-2 border">Month</th>
                     <th className="px-4 py-2 border">Count</th>
-                    {generatedReport.type === "students" && (
-                      <>
-                        <th className="px-4 py-2 border">Name</th>
-                        <th className="px-4 py-2 border">Program</th>
-                        <th className="px-4 py-2 border">Status</th>
-                        <th className="px-4 py-2 border">Enrollment Date</th>
-                        <th className="px-4 py-2 border">GPA</th>
-                      </>
-                    )}
                     {generatedReport.type === "employees" && (
                       <>
                         <th className="px-4 py-2 border">Name</th>
@@ -892,10 +869,8 @@ const Reports = () => {
                     <React.Fragment key={index}>
                       {monthData.items.map((item, idx) => {
                         const isHighlighted = isDateInRange(
-                          generatedReport.type === "students"
-                            ? item.enrollmentDate
-                            : generatedReport.type === "employees"
-                            ? item.hireDate
+                          generatedReport.type === "employees"
+                            ? item.hire_date
                             : item.date,
                           generatedReport.fromDate,
                           generatedReport.toDate
@@ -926,33 +901,14 @@ const Reports = () => {
                               >
                                 {monthData.items.filter((item) =>
                                   isDateInRange(
-                                    generatedReport.type === "students"
-                                      ? item.enrollmentDate
-                                      : generatedReport.type === "employees"
-                                      ? item.hireDate
+                                    generatedReport.type === "employees"
+                                      ? item.hire_date
                                       : item.date,
                                     generatedReport.fromDate,
                                     generatedReport.toDate
                                   )
                                 ).length || monthData.items.length}
                               </td>
-                            )}
-                            {generatedReport.type === "students" && (
-                              <>
-                                <td className="px-4 py-2 border">
-                                  {item.name}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.program}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.status}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.enrollmentDate}
-                                </td>
-                                <td className="px-4 py-2 border">{item.gpa}</td>
-                              </>
                             )}
                             {generatedReport.type === "employees" && (
                               <>
@@ -969,7 +925,7 @@ const Reports = () => {
                                   ${item.salary}
                                 </td>
                                 <td className="px-4 py-2 border">
-                                  {item.hireDate}
+                                  {item.hire_date}
                                 </td>
                                 <td className="px-4 py-2 border">
                                   {item.status}
