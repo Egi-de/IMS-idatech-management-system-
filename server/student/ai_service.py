@@ -26,9 +26,30 @@ class StudentAIEvaluator:
         # Note: the generative ai package interface may change; callers should handle exceptions
 
     def _build_prompt(self, student):
-        # Build a compact prompt collecting only achievements, attendance, performance, and grades
+        # Build a comprehensive prompt including achievements, attendance, performance, grades, and manual feedback
+        feedback = getattr(student, 'feedback', [])
+        feedback_text = ""
+        if feedback:
+            feedback_text = "\nManual Feedback:\n"
+            for f in feedback:
+                feedback_type = f.get('type', 'unknown')
+                if feedback_type == 'instructor':
+                    name = f.get('instructor', 'Unknown Instructor')
+                elif feedback_type == 'peer':
+                    name = f.get('peer', 'Unknown Peer')
+                elif feedback_type == 'self':
+                    name = 'Self'
+                else:
+                    name = 'Unknown'
+
+                feedback_text += f"- {feedback_type.title()} ({name}): Rating {f.get('rating', 'N/A')}/5\n"
+                feedback_text += f"  Comments: {f.get('comments', 'No comments')}\n"
+                if f.get('recommendations'):
+                    feedback_text += f"  Recommendations: {f.get('recommendations')}\n"
+                feedback_text += "\n"
+
         prompt = f"""
-Analyze this student's performance and provide unbiased feedback in JSON format based solely on the following sections: achievements, attendance, performance, and grades.
+Analyze this student's performance and provide unbiased feedback in JSON format based on all available data: achievements, attendance, performance, grades, and manual feedback.
 
 Student Data:
 - Achievements: {getattr(student, 'achievements', [])}
@@ -37,6 +58,7 @@ Student Data:
 - GPA: {getattr(student, 'gpa', None)}
 - Cumulative GPA: {getattr(student, 'cumulative_gpa', None)}
 - Grades: {getattr(student, 'grades', {})}
+{feedback_text}
 
 Provide the response as JSON with these keys:
  - overall_rating (0-5)
@@ -48,7 +70,7 @@ Provide the response as JSON with these keys:
  - areas_for_improvement: list of 3-5 items
  - recommendations: list of actionable recommendations
 
-Return only valid JSON.
+Consider all manual feedback (instructor, peer, self) in your analysis and ratings. Return only valid JSON.
 """
         return prompt
 

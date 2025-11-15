@@ -267,7 +267,9 @@ const StudentFeedback = () => {
         goals: "",
       });
       setShowAddModal(false);
-      alert("Feedback added successfully!");
+      alert(
+        "Feedback added successfully! Consider regenerating AI evaluation to incorporate this new feedback."
+      );
     } catch (err) {
       console.error("Update error:", err);
       const errorMsg =
@@ -909,6 +911,18 @@ const StudentFeedback = () => {
                       </p>
                     )}
                   </div>
+                  {selectedStudent.feedback.length > 0 && (
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600" />
+                        <p className="text-sm text-yellow-800">
+                          New feedback added? Click "Regenerate AI Evaluation"
+                          above to incorporate the latest manual feedback into
+                          AI analysis.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
