@@ -4,6 +4,8 @@ import Input from "../components/Input";
 import Select from "../components/Select";
 import { toast } from "react-toastify";
 import { getStudents, updateStudent } from "../services/api.js";
+import { API_BASE_URL } from "../services/api";
+import { UserIcon } from "@heroicons/react/24/outline";
 
 // Grading scale constants
 const GRADING_SCALE = {
@@ -57,6 +59,7 @@ const StudentPerformance = () => {
           studentId: student.idNumber || "N/A",
           program: student.program || "N/A",
           grades: student.grades || {},
+          avatar: student.avatar,
         }));
 
         setStudents(mappedStudents);
@@ -271,8 +274,31 @@ const StudentPerformance = () => {
                     key={student.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {student.studentName}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          {student.avatar ? (
+                            <img
+                              className="h-10 w-10 rounded-full object-cover"
+                              src={
+                                student.avatar.startsWith("http")
+                                  ? student.avatar
+                                  : `${API_BASE_URL}/${student.avatar}`
+                              }
+                              alt={student.studentName}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                              <UserIcon className="h-5 w-5 text-gray-500" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {student.studentName}
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                       {student.studentId}

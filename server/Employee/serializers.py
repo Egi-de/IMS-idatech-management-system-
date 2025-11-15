@@ -16,6 +16,12 @@ class EmployeeSerializer(serializers.ModelSerializer):
         source="department",
         write_only=True
     )
+    avatar_url = serializers.SerializerMethodField()
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            return obj.avatar.url
+        return None
 
     class Meta:
         model = Employee
@@ -34,5 +40,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'status',
             'date_joined',
             'avatar',
+            'avatar_url',
         ]
         read_only_fields = ['employeeId', 'id', 'date_joined']

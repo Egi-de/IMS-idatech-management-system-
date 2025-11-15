@@ -40,6 +40,7 @@ const Employees = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -134,6 +135,52 @@ const Employees = () => {
       avatar: null,
     });
     setShowModal(true);
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedEmployees(filteredEmployees.map((e) => e.id));
+    } else {
+      setSelectedEmployees([]);
+    }
+  };
+
+  const handleSelectEmployee = (employeeId, checked) => {
+    if (checked) {
+      setSelectedEmployees((prev) => [...prev, employeeId]);
+    } else {
+      setSelectedEmployees((prev) => prev.filter((id) => id !== employeeId));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEmployees.length === 0) {
+      alert("Please select employees to delete.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedEmployees.length} employee(s)?`
+      )
+    ) {
+      try {
+        const deletePromises = selectedEmployees.map((id) =>
+          fetch(`${API_BASE}/employees/${id}/`, {
+            method: "DELETE",
+          })
+        );
+        await Promise.all(deletePromises);
+
+        setEmployees((prev) =>
+          prev.filter((e) => !selectedEmployees.includes(e.id))
+        );
+        setSelectedEmployees([]);
+        alert(`${selectedEmployees.length} employee(s) deleted successfully!`);
+      } catch (err) {
+        setError(err.message);
+      }
+    }
   };
 
   const handleDeleteEmployee = async (employeeId) => {
@@ -303,13 +350,6 @@ const Employees = () => {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const totalSalary = employees.reduce(
-    (sum, emp) => sum + parseFloat(emp.salary),
-    0
-  );
-  const departmentsCount = new Set(employees.map((emp) => emp.department.name))
-    .size;
-
   if (loading)
     return (
       <div className="flex justify-center items-center h-64">
@@ -331,236 +371,213 @@ const Employees = () => {
         </Button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100">
-                <UsersIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Total Employees
-                </h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  {employees.length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Search and Filters */}
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1 min-w-64">
+          <div className="relative">
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search employees..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
 
-        <Card>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100">
-                <CurrencyDollarIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Total Salary
-                </h3>
-                <p className="text-2xl font-bold text-green-600">
-                  ${totalSalary.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <select
+          value={filterDepartment}
+          onChange={(e) => setFilterDepartment(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Departments</option>
+          {departments.map((dept) => (
+            <option key={dept.id} value={dept.name}>
+              {dept.display_name || dept.name}
+            </option>
+          ))}
+        </select>
 
-        <Card>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100">
-                <BuildingOfficeIcon className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Departments
-                </h3>
-                <p className="text-2xl font-bold text-purple-600">
-                  {departmentsCount}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Statuses</option>
+          {statuses.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
+        </select>
+
+        {selectedEmployees.length > 0 && (
+          <Button variant="danger" onClick={handleBulkDelete}>
+            <TrashIcon className="h-4 w-4 mr-2" />
+            Delete Selected ({selectedEmployees.length})
+          </Button>
+        )}
+
+        <Button
+          variant="outline"
+          onClick={() => {
+            setSearchQuery("");
+            setFilterDepartment("");
+            setFilterStatus("");
+          }}
+        >
+          <FunnelIcon className="h-4 w-4 mr-2" />
+          Clear
+        </Button>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search employees..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <select
-              value={filterDepartment}
-              onChange={(e) => setFilterDepartment(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.name}>
-                  {dept.display_name || dept.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Statuses</option>
-              {statuses.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery("");
-                setFilterDepartment("");
-                setFilterStatus("");
-              }}
-            >
-              <FunnelIcon className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Employees Table */}
-      <Card>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Employee</th>
-                  <th className="text-left py-3 px-4">ID</th>
-                  <th className="text-left py-3 px-4">Position</th>
-                  <th className="text-left py-3 px-4">Department</th>
-                  <th className="text-left py-3 px-4">Address</th>
-                  <th className="text-left py-3 px-4">Salary</th>
-                  <th className="text-left py-3 px-4">Status</th>
-                  <th className="text-left py-3 px-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEmployees.map((employee) => (
-                  <tr key={employee.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-3">
-                        <img
-                          src={
-                            employee.avatar
-                              ? API_BASE_URL + "/media/" + employee.avatar
-                              : "/api/placeholder/40/40"
-                          }
-                          alt={employee.name}
-                          className="h-10 w-10 rounded-full"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {employee.name}{" "}
-                            {employee.idNumber && `(${employee.idNumber})`}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredEmployees.length > 0 &&
+                      selectedEmployees.length === filteredEmployees.length
+                    }
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Employee
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  ID Number
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Position
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Department
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Address
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Salary
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredEmployees.map((employee) => (
+                <tr
+                  key={employee.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployees.includes(employee.id)}
+                      onChange={(e) =>
+                        handleSelectEmployee(employee.id, e.target.checked)
+                      }
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        {employee.avatar_url ? (
+                          <img
+                            className="h-10 w-10 rounded-full object-cover"
+                            src={API_BASE_URL + employee.avatar_url}
+                            alt={employee.name}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <UsersIcon className="h-5 w-5 text-gray-500" />
                           </div>
-                          <div className="text-sm text-gray-600">
-                            {employee.email}
-                          </div>
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {employee.name}
                         </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="font-mono text-sm font-medium text-gray-900">
-                        {employee.idNumber}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{employee.position}</div>
-                      <div className="text-sm text-gray-600">
-                        Since{" "}
-                        {new Date(employee.date_joined).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                        {employee.department.display_name ||
-                          employee.department.name}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div
-                        className="text-sm text-gray-600 max-w-xs truncate"
-                        title={employee.address}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {employee.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    {employee.idNumber}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {employee.position}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                      {employee.department.display_name ||
+                        employee.department.name}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    {employee.address}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    Rwf {parseFloat(employee.salary).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                        employee.status
+                      )}`}
+                    >
+                      {statuses.find((s) => s.value === employee.status)
+                        ?.label || employee.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleViewEmployee(employee)}
                       >
-                        {employee.address}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="font-medium">
-                        ${parseFloat(employee.salary).toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          employee.status
-                        )}`}
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleEditEmployee(employee)}
                       >
-                        {statuses.find((s) => s.value === employee.status)
-                          ?.label || employee.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="small"
-                          onClick={() => handleViewEmployee(employee)}
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="small"
-                          onClick={() => handleEditEmployee(employee)}
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="small"
-                          onClick={() => handleDeleteEmployee(employee.id)}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                        <PencilIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleDeleteEmployee(employee.id)}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Employee Modal */}
       <Modal
@@ -581,8 +598,8 @@ const Employees = () => {
             <div className="flex items-center space-x-4">
               <img
                 src={
-                  selectedEmployee.avatar
-                    ? API_BASE_URL + "/media/" + selectedEmployee.avatar
+                  selectedEmployee.avatar_url
+                    ? API_BASE_URL + selectedEmployee.avatar_url
                     : "/api/placeholder/40/40"
                 }
                 alt={selectedEmployee.name}
@@ -644,7 +661,7 @@ const Employees = () => {
                   <div>
                     <span className="text-gray-600">Salary:</span>
                     <span className="ml-2 font-medium">
-                      ${parseFloat(selectedEmployee.salary).toLocaleString()}
+                      Rwf {parseFloat(selectedEmployee.salary).toLocaleString()}
                     </span>
                   </div>
                   <div>
