@@ -14,14 +14,37 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from django.http import FileResponse
 from io import BytesIO
+from django.conf import settings
+from .ai_service import TransactionAIClassifier
 
 class TransactionListCreateView(generics.ListCreateAPIView):
     queryset = Transaction.objects.all().order_by('-date')
     serializer_class = TransactionSerializer
 
+    def get_serializer(self, *args, **kwargs):
+        if self.request.method == 'POST':
+            kwargs['data'] = self.request.data.copy()
+        return super().get_serializer(*args, **kwargs)
+
+    def perform_create(self, serializer):
+        # Classify the transaction type and status using AI before saving
+        transaction_data = serializer.validated_data
+        classifier = TransactionAIClassifier()
+        classification = classifier.classify_transaction({
+            'category': transaction_data.get('category'),
+            'description': transaction_data.get('description'),
+            'amount': str(transaction_data.get('amount')),
+        })
+        serializer.save(type=classification['type'], status=classification['status'])
+
 class TransactionDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+
+    def get_serializer(self, *args, **kwargs):
+        if self.request.method in ['PUT', 'PATCH']:
+            kwargs['data'] = self.request.data.copy()
+        return super().get_serializer(*args, **kwargs)
 
 class SummaryView(APIView):
     def get(self, request):

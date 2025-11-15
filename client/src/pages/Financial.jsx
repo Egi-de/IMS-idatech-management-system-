@@ -9,7 +9,6 @@ import {
   PlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  EyeIcon,
   PencilIcon,
   TrashIcon,
   ArrowUpIcon,
@@ -50,6 +49,7 @@ const Financial = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
 
   // Report states
   const [showReportModal, setShowReportModal] = useState(false);
@@ -67,14 +67,12 @@ const Financial = () => {
 
   // Form state for modals
   const [formData, setFormData] = useState({
-    type: "Income",
     category: "",
     description: "",
     amount: "",
     date: "",
-    status: "Completed",
-    reference: "",
     method: "",
+    screenshot: null,
   });
 
   const tabs = [
@@ -84,8 +82,6 @@ const Financial = () => {
     { id: "expenses", name: "Expenses", icon: ArrowDownIcon },
     { id: "reports", name: "Financial Reports", icon: ReceiptRefundIcon },
   ];
-
-  const statuses = ["All", "Completed", "Pending", "Failed"];
 
   // Fetch transactions
   const fetchTransactions = async () => {
@@ -119,24 +115,16 @@ const Financial = () => {
     fetchTransactions();
   }, []);
 
-  const handleViewTransaction = (transaction) => {
-    setSelectedTransaction(transaction);
-    setModalType("view");
-    setShowModal(true);
-  };
-
   const handleAddTransaction = () => {
     setSelectedTransaction(null);
     setModalType("add");
     setFormData({
-      type: "Income",
       category: "",
       description: "",
       amount: "",
       date: "",
-      status: "Completed",
-      reference: "",
       method: "",
+      screenshot: null,
     });
     setShowModal(true);
   };
@@ -145,14 +133,12 @@ const Financial = () => {
     setSelectedTransaction(transaction);
     setModalType("edit");
     setFormData({
-      type: transaction.type,
       category: transaction.category,
       description: transaction.description,
       amount: Math.abs(transaction.amount),
       date: transaction.date,
-      status: transaction.status,
-      reference: transaction.reference,
       method: transaction.method,
+      screenshot: null,
     });
     setShowModal(true);
   };
@@ -178,6 +164,54 @@ const Financial = () => {
       setRecentTransactions((prev) =>
         prev.filter((t) => t.id !== transactionId)
       );
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedTransactions(filteredTransactions.map((t) => t.id));
+    } else {
+      setSelectedTransactions([]);
+    }
+  };
+
+  const handleSelectTransaction = (transactionId, checked) => {
+    if (checked) {
+      setSelectedTransactions((prev) => [...prev, transactionId]);
+    } else {
+      setSelectedTransactions((prev) =>
+        prev.filter((id) => id !== transactionId)
+      );
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTransactions.length === 0) {
+      alert("Please select transactions to delete.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedTransactions.length} transaction(s)?`
+      )
+    ) {
+      try {
+        const deletePromises = selectedTransactions.map((id) =>
+          deleteTransaction(id)
+        );
+        await Promise.all(deletePromises);
+
+        setTransactions((prev) =>
+          prev.filter((t) => !selectedTransactions.includes(t.id))
+        );
+        setSelectedTransactions([]);
+        alert(
+          `${selectedTransactions.length} transaction(s) deleted successfully!`
+        );
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -289,18 +323,13 @@ const Financial = () => {
       transaction.description
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.reference.toLowerCase().includes(searchQuery.toLowerCase());
+      transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType =
       filterType === "" ||
       filterType === "All" ||
       transaction.type === filterType;
-    const matchesStatus =
-      filterStatus === "" ||
-      filterStatus === "All" ||
-      transaction.status === filterStatus;
 
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesType;
   });
 
   const totalIncome = transactions
@@ -315,7 +344,7 @@ const Financial = () => {
     <div className="space-y-6">
       {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-green-100">
@@ -334,7 +363,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-red-100">
@@ -353,7 +382,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-blue-100">
@@ -378,7 +407,7 @@ const Financial = () => {
       </div>
 
       {/* Income vs Expenses Chart */}
-      <Card>
+      <Card hover={false}>
         <CardHeader>
           <CardTitle>Income vs Expenses Overview</CardTitle>
         </CardHeader>
@@ -388,7 +417,7 @@ const Financial = () => {
       </Card>
 
       {/* Recent Transactions */}
-      <Card>
+      <Card hover={false}>
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
         </CardHeader>
@@ -472,18 +501,12 @@ const Financial = () => {
                         .includes(recentSearchQuery.toLowerCase()) ||
                       transaction.category
                         .toLowerCase()
-                        .includes(recentSearchQuery.toLowerCase()) ||
-                      transaction.reference
-                        .toLowerCase()
                         .includes(recentSearchQuery.toLowerCase());
                     const matchesType =
                       recentFilterType === "" ||
                       transaction.type === recentFilterType;
-                    const matchesStatus =
-                      recentFilterStatus === "" ||
-                      transaction.status === recentFilterStatus;
 
-                    return matchesSearch && matchesType && matchesStatus;
+                    return matchesSearch && matchesType;
                   });
 
                   // Sort recent transactions
@@ -583,177 +606,221 @@ const Financial = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search transactions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Types</option>
-              <option value="Income">Income</option>
-              <option value="Expense">Expense</option>
-            </select>
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery("");
-                setFilterType("");
-                setFilterStatus("");
-              }}
-            >
-              <FunnelIcon className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1 min-w-64">
+          <div className="relative">
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search transactions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Types</option>
+          <option value="Income">Income</option>
+          <option value="Expense">Expense</option>
+        </select>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Statuses</option>
+          <option value="Completed">Completed</option>
+          <option value="Pending">Pending</option>
+          <option value="Failed">Failed</option>
+        </select>
+
+        {selectedTransactions.length > 0 && (
+          <Button variant="danger" onClick={handleBulkDelete}>
+            <TrashIcon className="h-4 w-4 mr-2" />
+            Delete Selected ({selectedTransactions.length})
+          </Button>
+        )}
+
+        <Button
+          variant="outline"
+          onClick={() => {
+            setSearchQuery("");
+            setFilterType("");
+            setFilterStatus("");
+            setSelectedTransactions([]);
+          }}
+        >
+          <FunnelIcon className="h-4 w-4 mr-2" />
+          Clear
+        </Button>
+      </div>
 
       {/* Transactions Table */}
-      <Card>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-600">{error}</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4">Type</th>
-                    <th className="text-left py-3 px-4">Description</th>
-                    <th className="text-left py-3 px-4">Category</th>
-                    <th className="text-left py-3 px-4">Amount</th>
-                    <th className="text-left py-3 px-4">Date</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">Payment Method</th>
-                    <th className="text-left py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((transaction) => (
-                    <tr
-                      key={transaction.id}
-                      className="border-b hover:bg-gray-50"
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredTransactions.length > 0 &&
+                      selectedTransactions.length ===
+                        filteredTransactions.length
+                    }
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Payment Method
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Screenshot
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredTransactions.map((transaction) => (
+                <tr
+                  key={transaction.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedTransactions.includes(transaction.id)}
+                      onChange={(e) =>
+                        handleSelectTransaction(
+                          transaction.id,
+                          e.target.checked
+                        )
+                      }
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(
+                        transaction.type
+                      )}`}
                     >
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(
-                            transaction.type
-                          )}`}
-                        >
-                          {transaction.type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {transaction.description}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {transaction.reference}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                          {transaction.category}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`font-semibold ${
-                            transaction.type === "Income"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {transaction.type === "Income" ? "+" : ""}Rwf
-                          {Math.abs(transaction.amount).toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm">
-                          {new Date(transaction.date).toLocaleDateString()}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            transaction.status
-                          )}`}
-                        >
-                          {transaction.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">
-                          {transaction.method || "N/A"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="small"
-                            onClick={() => handleViewTransaction(transaction)}
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="small"
-                            onClick={() => handleEditTransaction(transaction)}
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="small"
-                            onClick={() =>
-                              handleDeleteTransaction(transaction.id)
-                            }
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      {transaction.type}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                        transaction.status
+                      )}`}
+                    >
+                      {transaction.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div
+                      className="font-medium text-gray-900 dark:text-white truncate max-w-xs cursor-pointer"
+                      title={transaction.description}
+                    >
+                      {transaction.description}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                      {transaction.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`font-semibold ${
+                        transaction.type === "Income"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {transaction.type === "Income" ? "+" : ""}Rwf
+                      {Math.abs(transaction.amount).toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <span className="text-sm">
+                      {new Date(transaction.date).toLocaleDateString()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    <span className="text-sm text-gray-600">
+                      {transaction.method || "N/A"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {transaction.screenshot ? (
+                      <img
+                        src={transaction.screenshot}
+                        alt="Transaction screenshot"
+                        className="w-16 h-16 object-cover rounded-lg cursor-pointer"
+                        onClick={() =>
+                          window.open(transaction.screenshot, "_blank")
+                        }
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-400">
+                        No screenshot
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleEditTransaction(transaction)}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleDeleteTransaction(transaction.id)}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 
@@ -762,7 +829,7 @@ const Financial = () => {
       <h2 className="text-xl font-semibold">Income Management</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <ArrowUpIcon className="h-12 w-12 text-green-500 mx-auto mb-3" />
@@ -774,7 +841,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <BanknotesIcon className="h-12 w-12 text-blue-500 mx-auto mb-3" />
@@ -786,7 +853,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <ChartBarIcon className="h-12 w-12 text-purple-500 mx-auto mb-3" />
@@ -805,7 +872,7 @@ const Financial = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card hover={false}>
         <CardContent>
           <div className="space-y-4">
             <h3 className="font-semibold">Income Breakdown by Category</h3>
@@ -847,7 +914,7 @@ const Financial = () => {
       <h2 className="text-xl font-semibold">Expense Management</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <ArrowDownIcon className="h-12 w-12 text-red-500 mx-auto mb-3" />
@@ -859,7 +926,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <CreditCardIcon className="h-12 w-12 text-orange-500 mx-auto mb-3" />
@@ -871,7 +938,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <BuildingLibraryIcon className="h-12 w-12 text-indigo-500 mx-auto mb-3" />
@@ -890,7 +957,7 @@ const Financial = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card hover={false}>
         <CardContent>
           <div className="space-y-4">
             <h3 className="font-semibold">Expense Breakdown by Category</h3>
@@ -934,7 +1001,7 @@ const Financial = () => {
       <h2 className="text-xl font-semibold">Financial Reports</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <ReceiptRefundIcon className="h-12 w-12 text-blue-500 mx-auto mb-3" />
@@ -953,7 +1020,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <ChartBarIcon className="h-12 w-12 text-green-500 mx-auto mb-3" />
@@ -972,7 +1039,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hover={false}>
           <CardContent>
             <div className="text-center">
               <CurrencyDollarIcon className="h-12 w-12 text-purple-500 mx-auto mb-3" />
@@ -990,7 +1057,7 @@ const Financial = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card hover={false}>
         <CardContent>
           <div className="text-center py-8">
             <ReceiptRefundIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -1106,104 +1173,29 @@ const Financial = () => {
         }
         size="large"
       >
-        {selectedTransaction && modalType === "view" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Type
-                </label>
-                <p
-                  className={`mt-1 px-3 py-2 rounded-lg text-sm font-medium ${getTypeColor(
-                    selectedTransaction.type
-                  )}`}
-                >
-                  {selectedTransaction.type}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Amount
-                </label>
-                <p
-                  className={`mt-1 text-lg font-semibold ${
-                    selectedTransaction.type === "Income"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {selectedTransaction.type === "Income" ? "+" : ""}Rwf
-                  {Math.abs(selectedTransaction.amount).toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Category
-                </label>
-                <p className="mt-1">{selectedTransaction.category}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Date
-                </label>
-                <p className="mt-1">
-                  {new Date(selectedTransaction.date).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <p className="mt-1">{selectedTransaction.description}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Reference
-                </label>
-                <p className="mt-1">{selectedTransaction.reference}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Payment Method
-                </label>
-                <p className="mt-1">{selectedTransaction.method}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {(modalType === "add" || modalType === "edit") && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type
+                  Category
                 </label>
                 <select
-                  name="type"
-                  value={formData.type}
+                  name="category"
+                  value={formData.category}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Income">Income</option>
-                  <option value="Expense">Expense</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Completed">Completed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Failed">Failed</option>
+                  <option value="">Select Category</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Rent">Rent</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Groceries">Groceries</option>
+                  <option value="Transportation">Transportation</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Education">Education</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
               <Input
@@ -1215,34 +1207,11 @@ const Financial = () => {
                 placeholder="Enter amount"
               />
               <Input
-                label="Category"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                placeholder="Select category"
-              />
-              <Input
                 label="Date"
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
-              />
-            </div>
-            <Input
-              label="Description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Enter description"
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Reference"
-                name="reference"
-                value={formData.reference}
-                onChange={handleInputChange}
-                placeholder="Enter reference"
               />
               <Input
                 label="Payment Method"
@@ -1250,6 +1219,34 @@ const Financial = () => {
                 value={formData.method}
                 onChange={handleInputChange}
                 placeholder="Enter payment method"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Enter description"
+                rows={3}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Screenshot (Optional)
+              </label>
+              <input
+                type="file"
+                name="screenshot"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  setFormData((prev) => ({ ...prev, screenshot: file }));
+                }}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex justify-end space-x-3">
@@ -1288,7 +1285,7 @@ const Financial = () => {
                 return (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                      <Card>
+                      <Card hover={false}>
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Income</h3>
                           <p className="text-2xl font-bold text-green-600">
@@ -1296,7 +1293,7 @@ const Financial = () => {
                           </p>
                         </CardContent>
                       </Card>
-                      <Card>
+                      <Card hover={false}>
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Expenses</h3>
                           <p className="text-2xl font-bold text-red-600">
@@ -1304,7 +1301,7 @@ const Financial = () => {
                           </p>
                         </CardContent>
                       </Card>
-                      <Card>
+                      <Card hover={false}>
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Net Profit</h3>
                           <p
@@ -1319,7 +1316,7 @@ const Financial = () => {
                         </CardContent>
                       </Card>
                     </div>
-                    <Card>
+                    <Card hover={false}>
                       <CardHeader>
                         <CardTitle>Transactions</CardTitle>
                       </CardHeader>
@@ -1368,7 +1365,7 @@ const Financial = () => {
                 return (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <Card>
+                      <Card hover={false}>
                         <CardContent>
                           <h3 className="font-semibold mb-2">
                             Income Breakdown
@@ -1393,7 +1390,7 @@ const Financial = () => {
                           </div>
                         </CardContent>
                       </Card>
-                      <Card>
+                      <Card hover={false}>
                         <CardContent>
                           <h3 className="font-semibold mb-2">
                             Expenses Breakdown
@@ -1419,7 +1416,7 @@ const Financial = () => {
                         </CardContent>
                       </Card>
                     </div>
-                    <Card>
+                    <Card hover={false}>
                       <CardContent className="text-center">
                         <h3 className="font-semibold mb-2">Net Profit/Loss</h3>
                         <p
@@ -1442,7 +1439,7 @@ const Financial = () => {
                 return (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <Card>
+                      <Card hover={false}>
                         <CardContent>
                           <h3 className="font-semibold mb-2">
                             Income Breakdown
@@ -1467,7 +1464,7 @@ const Financial = () => {
                           </div>
                         </CardContent>
                       </Card>
-                      <Card>
+                      <Card hover={false}>
                         <CardContent>
                           <h3 className="font-semibold mb-2">
                             Expenses Breakdown
@@ -1493,7 +1490,7 @@ const Financial = () => {
                         </CardContent>
                       </Card>
                     </div>
-                    <Card>
+                    <Card hover={false}>
                       <CardContent className="text-center">
                         <h3 className="font-semibold mb-2">Net Cash Flow</h3>
                         <p
@@ -1516,7 +1513,7 @@ const Financial = () => {
                 return (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                      <Card>
+                      <Card hover={false}>
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Income</h3>
                           <p className="text-2xl font-bold text-green-600">
@@ -1524,7 +1521,7 @@ const Financial = () => {
                           </p>
                         </CardContent>
                       </Card>
-                      <Card>
+                      <Card hover={false}>
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Total Expenses</h3>
                           <p className="text-2xl font-bold text-red-600">
@@ -1532,7 +1529,7 @@ const Financial = () => {
                           </p>
                         </CardContent>
                       </Card>
-                      <Card>
+                      <Card hover={false}>
                         <CardContent className="text-center">
                           <h3 className="font-semibold">Net Profit</h3>
                           <p
@@ -1547,7 +1544,7 @@ const Financial = () => {
                         </CardContent>
                       </Card>
                     </div>
-                    <Card>
+                    <Card hover={false}>
                       <CardHeader>
                         <CardTitle>Transactions</CardTitle>
                       </CardHeader>
