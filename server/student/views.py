@@ -37,7 +37,71 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = StudentSerializer
 
     def perform_update(self, serializer):
+        # Get the original student data before update
+        original_student = self.get_object()
+        original_paid_amount = original_student.paidAmount or 0
+
         updated_student = serializer.save(partial=True)
+
+        # Check if this is an internee and paidAmount increased
+        if (updated_student.studentType == 'Internee' and
+            updated_student.paidAmount and
+            updated_student.paidAmount > original_paid_amount):
+
+            payment_amount = updated_student.paidAmount - original_paid_amount
+
+            # Update remaining amount
+            if updated_student.totalFees:
+                updated_student.remainingAmount = updated_student.totalFees - updated_student.paidAmount
+                updated_student.save()
+
+            # Create transaction in finance section
+            try:
+                from finance.models import Transaction
+
+                # Generate description (fallback for now)
+                description = f"School fees payment from {updated_student.name} (ID: {updated_student.idNumber}) - {updated_student.program} program - Amount: ${payment_amount}"
+
+                # Create the transaction
+                Transaction.objects.create(
+                    type='Income',
+                    status='Completed',
+                    category='Education',
+                    description=description,
+                    amount=payment_amount,
+                    date=timezone.now().date(),
+                    method='School Payment',
+                )
+
+                # Log the transaction creation
+                ActivityLog.objects.create(
+                    user=self.request.user if self.request.user.is_authenticated else None,
+                    activity_type='create',
+                    description=f'Created transaction for student fee payment: {updated_student.name}',
+                    item_type='transaction',
+                    item_id=f'transaction_fee_{updated_student.id}',
+                    metadata={
+                        'student_name': updated_student.name,
+                        'student_id': updated_student.idNumber,
+                        'payment_amount': str(payment_amount),
+                        'transaction_type': 'Income',
+                        'category': 'Education'
+                    }
+                )
+
+            except Exception as e:
+                # Log error but don't fail the student update
+                ActivityLog.objects.create(
+                    user=self.request.user if self.request.user.is_authenticated else None,
+                    activity_type='error',
+                    description=f'Failed to create transaction for student fee payment: {updated_student.name} - {str(e)}',
+                    item_type='transaction',
+                    item_id=f'error_fee_{updated_student.id}',
+                    metadata={
+                        'student_name': updated_student.name,
+                        'error': str(e)
+                    }
+                )
 
         # Log activity
         ActivityLog.objects.create(
