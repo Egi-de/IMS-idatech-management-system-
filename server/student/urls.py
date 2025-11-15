@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/students/attendance/', views.StudentAttendanceView.as_view(), name='student-attendance'),
     path('api/students/deleted/', views.DeletedStudentsView.as_view(), name='deleted-students'),
     path('api/students/<int:pk>/restore/', views.RestoreStudentView.as_view(), name='restore-student'),
+    path('api/students/<int:pk>/ai-evaluation/', views.StudentAIEvaluationView.as_view(), name='student-ai-evaluation'),
 ]

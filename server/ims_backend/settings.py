@@ -11,6 +11,16 @@ For the full list of settings and their values, see
 """
 
 from pathlib import Path
+import os
+
+# Load environment variables from .env file if available
+try:
+    from dotenv import load_dotenv
+    # Load from the server directory (parent of ims_backend)
+    env_path = Path(__file__).resolve().parent.parent / '.env'
+    load_dotenv(dotenv_path=env_path, override=True)
+except ImportError:
+    pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -142,3 +152,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ]
 }
+
+# Gemini (Google) generative AI configuration - do NOT hardcode secrets here.
+# Set the environment variable `GEMINI_API_KEY` on the host or in your deployment.
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+# Default model name (can be overridden via env)
+# Using gemini-2.5-flash which is the recommended model for most use cases
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')

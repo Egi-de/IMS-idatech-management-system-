@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getStudents, updateStudent } from "../services/api";
+import {
+  getStudents,
+  getStudentAIEvaluation,
+  generateStudentAIEvaluation,
+  updateStudent,
+} from "../services/api";
+import { API_BASE_URL } from "../services/api";
+import { AcademicCapIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/Card";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
@@ -16,6 +23,9 @@ import {
   PlusIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
+  CpuChipIcon,
+  ArrowPathIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
 const StudentFeedback = () => {
@@ -23,6 +33,8 @@ const StudentFeedback = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
+  const [aiEvaluation, setAiEvaluation] = useState(null);
   const [newFeedback, setNewFeedback] = useState({
     studentId: "",
     type: "instructor",
@@ -57,26 +69,46 @@ const StudentFeedback = () => {
             ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
             : 0;
 
+        // Check if AI evaluation data is available and use AI ratings when possible
+        const aiEvaluation = student.ai_evaluation_data;
+        const hasAI = aiEvaluation && aiEvaluation.result;
+
         const performanceRating =
-          getPerformanceRating(student.performance) ||
-          (student.gpa ? parseFloat(student.gpa) : 0);
-        const participationRating = (student.overallAttendance / 100) * 5;
+          hasAI && aiEvaluation.result.performance_rating
+            ? parseFloat(aiEvaluation.result.performance_rating)
+            : getPerformanceRating(student.performance) ||
+              (student.gpa ? parseFloat(student.gpa) : 0);
+
+        const participationRating =
+          hasAI && aiEvaluation.result.participation_rating
+            ? parseFloat(aiEvaluation.result.participation_rating)
+            : (student.overallAttendance / 100) * 5;
+
         const attitudeRating =
-          Math.min(
-            5,
-            (student.totalPoints || 0) / 20 +
-              (student.achievements ? student.achievements.length : 0) * 0.5
-          ) || 3.0;
-        let skillRating = 0;
-        if (student.gpa) {
-          skillRating = parseFloat(student.gpa);
-        } else if (student.grades && Object.keys(student.grades).length > 0) {
-          const gradeValues = Object.values(student.grades)
-            .map((g) => parseFloat(g))
-            .filter((g) => !isNaN(g));
-          if (gradeValues.length > 0) {
-            skillRating =
-              gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length;
+          hasAI && aiEvaluation.result.attitude_rating
+            ? parseFloat(aiEvaluation.result.attitude_rating)
+            : Math.min(
+                5,
+                (student.totalPoints || 0) / 20 +
+                  (student.achievements ? student.achievements.length : 0) * 0.5
+              );
+
+        let skillRating =
+          hasAI && aiEvaluation.result.skills_rating
+            ? parseFloat(aiEvaluation.result.skills_rating)
+            : 0;
+
+        if (!hasAI || !aiEvaluation.result.skills_rating) {
+          if (student.gpa) {
+            skillRating = parseFloat(student.gpa);
+          } else if (student.grades && Object.keys(student.grades).length > 0) {
+            const gradeValues = Object.values(student.grades)
+              .map((g) => parseFloat(g))
+              .filter((g) => !isNaN(g));
+            if (gradeValues.length > 0) {
+              skillRating =
+                gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length;
+            }
           }
         }
 
@@ -87,7 +119,11 @@ const StudentFeedback = () => {
             skillRating) /
           4;
         const overallRating =
-          feedbackAvg > 0 ? (feedbackAvg + subRatingsAvg) / 2 : subRatingsAvg;
+          hasAI && aiEvaluation.result.overall_rating
+            ? parseFloat(aiEvaluation.result.overall_rating)
+            : feedbackAvg > 0
+            ? (feedbackAvg + subRatingsAvg) / 2
+            : subRatingsAvg;
         const cappedOverall = Math.min(5, Math.max(0, overallRating));
 
         const allStrengths = feedback.flatMap((f) => f.strengths || []);
@@ -108,6 +144,7 @@ const StudentFeedback = () => {
           studentId: student.idNumber,
           email: student.email,
           program: student.program,
+          avatar: student.avatar,
           feedback,
           feedbackCount: feedback.length,
           lastFeedback,
@@ -144,8 +181,21 @@ const StudentFeedback = () => {
     return mapping[performance] || 0;
   };
 
-  const handleViewDetails = (student) => {
+  const handleViewDetails = async (student) => {
     setSelectedStudent(student);
+    setAiEvaluation(null);
+    setGeneratingAI(false);
+
+    // Fetch AI evaluation if available
+    try {
+      const aiResponse = await getStudentAIEvaluation(student.id);
+      if (aiResponse.data.ai_evaluation_data) {
+        setAiEvaluation(aiResponse.data.ai_evaluation_data);
+      }
+    } catch {
+      console.log("No AI evaluation available for this student");
+    }
+
     setShowModal(true);
   };
 
@@ -301,82 +351,16 @@ const StudentFeedback = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Feedback & Evaluation
+            AI-Powered Feedback & Evaluation
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage student feedback, evaluations, and performance reviews
+            AI-generated unbiased evaluations and performance insights
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <PlusIcon className="h-4 w-4 mr-2" />
-          Add Feedback
+          Add Manual Feedback
         </Button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div
-                className={`text-3xl font-bold ${getRatingColor(
-                  feedbackData.reduce(
-                    (acc, student) => acc + student.overallRating,
-                    0
-                  ) / feedbackData.length
-                )}`}
-              >
-                {(
-                  feedbackData.reduce(
-                    (acc, student) => acc + student.overallRating,
-                    0
-                  ) / feedbackData.length
-                ).toFixed(1)}
-              </div>
-              <div className="text-sm text-gray-600">Average Rating</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">
-                {feedbackData.reduce(
-                  (acc, student) => acc + student.feedbackCount,
-                  0
-                )}
-              </div>
-              <div className="text-sm text-gray-600">Total Feedback</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {feedbackData.filter((s) => s.overallRating >= 4.0).length}
-              </div>
-              <div className="text-sm text-gray-600">High Performers</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600">
-                {
-                  feedbackData.filter(
-                    (s) => s.overallRating >= 3.0 && s.overallRating < 4.0
-                  ).length
-                }
-              </div>
-              <div className="text-sm text-gray-600">Average Performers</div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -410,98 +394,134 @@ const StudentFeedback = () => {
         </select>
       </div>
 
-      {/* Feedback List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Student Feedback & Evaluations</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredData.length > 0 ? (
-              filteredData.map((student) => (
-                <div
-                  key={student.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <UserIcon className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {student.studentName}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {student.studentId} • {student.program}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {student.feedbackCount} feedback • Last:{" "}
-                        {student.lastFeedback
-                          ? new Date(student.lastFeedback).toLocaleDateString()
-                          : "No feedback yet"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
+      {/* Feedback Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Student
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Program
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Overall Rating
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Performance
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Participation
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Attitude
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Skills
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredData.length > 0 ? (
+                filteredData.map((student) => (
+                  <tr
+                    key={student.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          {student.avatar ? (
+                            <img
+                              className="h-10 w-10 rounded-full object-cover"
+                              src={
+                                student.avatar.startsWith("http")
+                                  ? student.avatar
+                                  : `${API_BASE_URL}/${student.avatar}`
+                              }
+                              alt={student.studentName}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                              <AcademicCapIcon className="h-5 w-5 text-gray-500" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {student.studentName}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-300">
+                            ID: {student.studentId}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {student.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      {student.program}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       <div
-                        className={`text-2xl font-bold ${getRatingColor(
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRatingBgColor(
                           student.overallRating
-                        )}`}
+                        )} ${getRatingColor(student.overallRating)}`}
                       >
                         {student.overallRating}
                       </div>
-                      <div className="text-xs text-gray-600">Overall</div>
-                    </div>
-
-                    <div className="text-center">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                       <div
-                        className={`text-lg font-semibold ${getRatingColor(
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRatingBgColor(
                           student.performanceRating
-                        )}`}
+                        )} ${getRatingColor(student.performanceRating)}`}
                       >
                         {student.performanceRating}
                       </div>
-                      <div className="text-xs text-gray-600">Performance</div>
-                    </div>
-
-                    <div className="text-center">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                       <div
-                        className={`text-lg font-semibold ${getRatingColor(
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRatingBgColor(
                           student.participationRating
-                        )}`}
+                        )} ${getRatingColor(student.participationRating)}`}
                       >
                         {student.participationRating}
                       </div>
-                      <div className="text-xs text-gray-600">Participation</div>
-                    </div>
-
-                    <div className="text-center">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                       <div
-                        className={`text-lg font-semibold ${getRatingColor(
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRatingBgColor(
                           student.attitudeRating
-                        )}`}
+                        )} ${getRatingColor(student.attitudeRating)}`}
                       >
                         {student.attitudeRating}
                       </div>
-                      <div className="text-xs text-gray-600">Attitude</div>
-                    </div>
-
-                    <div className="text-center">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                       <div
-                        className={`text-lg font-semibold ${getRatingColor(
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRatingBgColor(
                           student.skillRating
-                        )}`}
+                        )} ${getRatingColor(student.skillRating)}`}
                       >
                         {student.skillRating}
                       </div>
-                      <div className="text-xs text-gray-600">Skills</div>
-                    </div>
-
-                    <div className="flex space-x-2">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getRatingBgColor(
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getRatingBgColor(
                           student.overallRating
                         )} ${getRatingColor(student.overallRating)}`}
                       >
@@ -511,142 +531,297 @@ const StudentFeedback = () => {
                           ? "Good"
                           : "Needs Improvement"}
                       </span>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={() => handleViewDetails(student)}
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-8">
-                No students found matching the search criteria.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleViewDetails(student)}
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="10"
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
+                    No students found matching the search criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Feedback Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title="Feedback & Evaluation Details"
+        title="AI-Powered Feedback & Evaluation Details"
         size="large"
       >
         {selectedStudent && (
           <div className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <UserIcon className="h-8 w-8 text-blue-600" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
+                  <UserIcon className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {selectedStudent.studentName}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {selectedStudent.email}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    ID: {selectedStudent.studentId}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {selectedStudent.studentName}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedStudent.email}
-                </p>
-                <p className="text-sm text-gray-500">
-                  ID: {selectedStudent.studentId}
-                </p>
-              </div>
+              <Button
+                onClick={async () => {
+                  setGeneratingAI(true);
+                  try {
+                    const response = await generateStudentAIEvaluation(
+                      selectedStudent.id
+                    );
+                    setAiEvaluation(response.data.ai_evaluation_data);
+                    await fetchFeedbackData(); // Refresh data
+                    alert("AI evaluation generated successfully!");
+                  } catch (err) {
+                    console.error("AI generation error:", err);
+                    alert(
+                      "Failed to generate AI evaluation. Please try again."
+                    );
+                  } finally {
+                    setGeneratingAI(false);
+                  }
+                }}
+                disabled={generatingAI}
+                className="flex items-center space-x-2"
+              >
+                {generatingAI ? (
+                  <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CpuChipIcon className="h-4 w-4" />
+                )}
+                <span>
+                  {generatingAI ? "Generating..." : "Regenerate AI Evaluation"}
+                </span>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Rating Summary
+                    AI-Generated Rating Summary
                   </label>
                   <div className="mt-2 grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <div
-                        className={`text-2xl font-bold ${getRatingColor(
-                          selectedStudent.overallRating
-                        )}`}
-                      >
-                        {selectedStudent.overallRating}
-                      </div>
-                      <div className="text-sm text-blue-600">
-                        Overall Rating
-                      </div>
-                    </div>
-                    <div className="bg-green-50 p-3 rounded-lg">
-                      <div
-                        className={`text-2xl font-bold ${getRatingColor(
-                          selectedStudent.performanceRating
-                        )}`}
-                      >
-                        {selectedStudent.performanceRating}
-                      </div>
-                      <div className="text-sm text-green-600">Performance</div>
-                    </div>
-                    <div className="bg-yellow-50 p-3 rounded-lg">
-                      <div
-                        className={`text-2xl font-bold ${getRatingColor(
-                          selectedStudent.participationRating
-                        )}`}
-                      >
-                        {selectedStudent.participationRating}
-                      </div>
-                      <div className="text-sm text-yellow-600">
-                        Participation
-                      </div>
-                    </div>
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <div
-                        className={`text-2xl font-bold ${getRatingColor(
-                          selectedStudent.skillRating
-                        )}`}
-                      >
-                        {selectedStudent.skillRating}
-                      </div>
-                      <div className="text-sm text-purple-600">Skills</div>
-                    </div>
+                    {aiEvaluation ? (
+                      <>
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              aiEvaluation.result?.overall_rating ||
+                                selectedStudent.overallRating
+                            )}`}
+                          >
+                            {aiEvaluation.result?.overall_rating ||
+                              selectedStudent.overallRating}
+                          </div>
+                          <div className="text-sm text-blue-600">
+                            Overall Rating
+                          </div>
+                        </div>
+                        <div className="bg-green-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              aiEvaluation.result?.performance_rating ||
+                                selectedStudent.performanceRating
+                            )}`}
+                          >
+                            {aiEvaluation.result?.performance_rating ||
+                              selectedStudent.performanceRating}
+                          </div>
+                          <div className="text-sm text-green-600">
+                            Performance
+                          </div>
+                        </div>
+                        <div className="bg-yellow-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              aiEvaluation.result?.participation_rating ||
+                                selectedStudent.participationRating
+                            )}`}
+                          >
+                            {aiEvaluation.result?.participation_rating ||
+                              selectedStudent.participationRating}
+                          </div>
+                          <div className="text-sm text-yellow-600">
+                            Participation
+                          </div>
+                        </div>
+                        <div className="bg-purple-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              aiEvaluation.result?.skills_rating ||
+                                selectedStudent.skillRating
+                            )}`}
+                          >
+                            {aiEvaluation.result?.skills_rating ||
+                              selectedStudent.skillRating}
+                          </div>
+                          <div className="text-sm text-purple-600">Skills</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              selectedStudent.overallRating
+                            )}`}
+                          >
+                            {selectedStudent.overallRating}
+                          </div>
+                          <div className="text-sm text-blue-600">
+                            Overall Rating
+                          </div>
+                        </div>
+                        <div className="bg-green-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              selectedStudent.performanceRating
+                            )}`}
+                          >
+                            {selectedStudent.performanceRating}
+                          </div>
+                          <div className="text-sm text-green-600">
+                            Performance
+                          </div>
+                        </div>
+                        <div className="bg-yellow-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              selectedStudent.participationRating
+                            )}`}
+                          >
+                            {selectedStudent.participationRating}
+                          </div>
+                          <div className="text-sm text-yellow-600">
+                            Participation
+                          </div>
+                        </div>
+                        <div className="bg-purple-50 p-3 rounded-lg">
+                          <div
+                            className={`text-2xl font-bold ${getRatingColor(
+                              selectedStudent.skillRating
+                            )}`}
+                          >
+                            {selectedStudent.skillRating}
+                          </div>
+                          <div className="text-sm text-purple-600">Skills</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Strengths & Areas for Improvement
+                    AI-Generated Strengths & Areas for Improvement
                   </label>
                   <div className="mt-2 space-y-3">
-                    <div>
-                      <h4 className="text-sm font-medium text-green-600 mb-2">
-                        Strengths
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedStudent.strengths.map((strength, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
-                          >
-                            {strength}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-yellow-600 mb-2">
-                        Areas for Improvement
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedStudent.improvementAreas.map((area, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full"
-                          >
-                            {area}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    {aiEvaluation ? (
+                      <>
+                        <div>
+                          <h4 className="text-sm font-medium text-green-600 mb-2">
+                            Strengths
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {aiEvaluation.result?.strengths?.map(
+                              (strength, index) => (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                                >
+                                  {strength}
+                                </span>
+                              )
+                            ) || (
+                              <span className="text-gray-500 text-xs">
+                                No AI strengths available
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-yellow-600 mb-2">
+                            Areas for Improvement
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {aiEvaluation.result?.areas_for_improvement?.map(
+                              (area, index) => (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full"
+                                >
+                                  {area}
+                                </span>
+                              )
+                            ) || (
+                              <span className="text-gray-500 text-xs">
+                                No AI improvements available
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <h4 className="text-sm font-medium text-green-600 mb-2">
+                            Strengths
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedStudent.strengths.map(
+                              (strength, index) => (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                                >
+                                  {strength}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-yellow-600 mb-2">
+                            Areas for Improvement
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedStudent.improvementAreas.map(
+                              (area, index) => (
+                                <span
+                                  key={index}
+                                  className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full"
+                                >
+                                  {area}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -654,52 +829,85 @@ const StudentFeedback = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Recent Feedback
+                    AI Recommendations
+                  </label>
+                  <div className="mt-2">
+                    {aiEvaluation?.result?.recommendations ? (
+                      <div className="space-y-2">
+                        {aiEvaluation.result.recommendations.map(
+                          (rec, index) => (
+                            <div
+                              key={index}
+                              className="p-3 bg-blue-50 rounded-lg"
+                            >
+                              <p className="text-sm text-blue-700">{rec}</p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        No AI recommendations available. Click "Regenerate AI
+                        Evaluation" to generate insights.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Manual Feedback History
                   </label>
                   <div className="mt-2 space-y-3">
-                    {selectedStudent.feedback.map((feedback) => (
-                      <div
-                        key={feedback.id}
-                        className="p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="text-sm font-medium">
-                              {feedback.type === "instructor" &&
-                                `Instructor: ${feedback.instructor}`}
-                              {feedback.type === "peer" &&
-                                `Peer: ${feedback.peer}`}
-                              {feedback.type === "self" && "Self Evaluation"}
-                            </h4>
-                            {feedback.course && (
-                              <p className="text-xs text-gray-600">
-                                {feedback.course}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <div className="flex">
-                              {renderStars(feedback.rating)}
+                    {selectedStudent.feedback.length > 0 ? (
+                      selectedStudent.feedback.map((feedback) => (
+                        <div
+                          key={feedback.id}
+                          className="p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="text-sm font-medium">
+                                {feedback.type === "instructor" &&
+                                  `Instructor: ${feedback.instructor}`}
+                                {feedback.type === "peer" &&
+                                  `Peer: ${feedback.peer}`}
+                                {feedback.type === "self" && "Self Evaluation"}
+                              </h4>
+                              {feedback.course && (
+                                <p className="text-xs text-gray-600">
+                                  {feedback.course}
+                                </p>
+                              )}
                             </div>
-                            <span className="text-sm font-medium ml-2">
-                              {feedback.rating}
-                            </span>
+                            <div className="flex items-center space-x-1">
+                              <div className="flex">
+                                {renderStars(feedback.rating)}
+                              </div>
+                              <span className="text-sm font-medium ml-2">
+                                {feedback.rating}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-sm text-gray-700 mb-2">
-                          {feedback.comments}
-                        </p>
-                        {feedback.recommendations && (
-                          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                            <strong>Recommendations:</strong>{" "}
-                            {feedback.recommendations}
+                          <p className="text-sm text-gray-700 mb-2">
+                            {feedback.comments}
                           </p>
-                        )}
-                        <p className="text-xs text-gray-500 mt-2">
-                          {new Date(feedback.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))}
+                          {feedback.recommendations && (
+                            <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                              <strong>Recommendations:</strong>{" "}
+                              {feedback.recommendations}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-2">
+                            {new Date(feedback.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">
+                        No manual feedback available.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

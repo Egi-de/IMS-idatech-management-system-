@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from .models import UserSettings, Notification, TrashBin, ActivityLog
 from .serializers import UserSettingsSerializer, NotificationSerializer, TrashBinSerializer
+from student.models import Student
+from Employee.models import Employee
 
 class UserSettingsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -165,6 +167,45 @@ class TrashBinView(APIView):
     def delete(self, request, pk):
         try:
             trash_item = TrashBin.objects.get(pk=pk, user=request.user)
+
+            # Permanently delete the actual record based on item_type
+            if trash_item.item_type == 'student':
+                try:
+                    student = Student.objects.get(pk=trash_item.item_id)
+                    student_name = student.name
+                    student.delete()  # Hard delete
+
+                    # Log activity
+                    ActivityLog.objects.create(
+                        user=request.user,
+                        activity_type='delete',
+                        description=f"Permanently deleted student: {student_name}",
+                        item_type='student',
+                        item_id=trash_item.item_id,
+                        metadata={'permanent_delete': True, 'item_data': trash_item.item_data}
+                    )
+                except Student.DoesNotExist:
+                    pass  # Student already deleted or doesn't exist
+
+            elif trash_item.item_type == 'employee':
+                try:
+                    employee = Employee.objects.get(pk=trash_item.item_id)
+                    employee_name = employee.name
+                    employee.delete()  # Hard delete
+
+                    # Log activity
+                    ActivityLog.objects.create(
+                        user=request.user,
+                        activity_type='delete',
+                        description=f"Permanently deleted employee: {employee_name}",
+                        item_type='employee',
+                        item_id=trash_item.item_id,
+                        metadata={'permanent_delete': True, 'item_data': trash_item.item_data}
+                    )
+                except Employee.DoesNotExist:
+                    pass  # Employee already deleted or doesn't exist
+
+            # Delete the trash bin entry
             trash_item.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except TrashBin.DoesNotExist:

@@ -132,6 +132,26 @@ class StudentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Paid amount cannot be negative.")
         return value
 
+    def validate_studentType(self, value):
+        if value is not None and value != '' and value not in dict(Student.STUDENT_TYPE_CHOICES):
+            raise serializers.ValidationError(f"'{value}' is not a valid choice for student type.")
+        return value
+
+    def validate_interneeType(self, value):
+        if value is not None and value != '' and value not in dict(Student.INTERnee_TYPE_CHOICES):
+            raise serializers.ValidationError(f"'{value}' is not a valid choice for internee type.")
+        return value
+
+    def validate_studyStatus(self, value):
+        if value is not None and value != '' and value not in dict(Student.STUDY_STATUS_CHOICES):
+            raise serializers.ValidationError(f"'{value}' is not a valid choice for study status.")
+        return value
+
+    def validate_paymentStatus(self, value):
+        if value is not None and value != '' and value not in dict(Student.PAYMENT_STATUS_CHOICES):
+            raise serializers.ValidationError(f"'{value}' is not a valid choice for payment status.")
+        return value
+
     def validate(self, attrs):
         avatar = attrs.get('avatar')
         if avatar and isinstance(avatar, str):

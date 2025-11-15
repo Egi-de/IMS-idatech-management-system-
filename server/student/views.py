@@ -6,6 +6,7 @@ from .models import Student
 from .serializers import StudentSerializer
 from datetime import datetime
 from settings.models import ActivityLog, TrashBin
+from django.utils import timezone
 
 class StudentListCreateView(generics.ListCreateAPIView):
     queryset = Student.objects.filter(is_deleted=False).order_by('-created_at')
@@ -297,3 +298,69 @@ class DeletedStudentsView(APIView):
                 'deleted_at': student.created_at,  # Approximate, or add deleted_at field if needed
             })
         return Response(deleted_data)
+
+
+class StudentAIEvaluationView(APIView):
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(pk=pk, is_deleted=False)
+            return Response({
+                'id': student.id,
+                'studentName': student.name,
+                'ai_evaluation_last_updated': student.ai_evaluation_last_updated,
+                'ai_evaluation_data': student.ai_evaluation_data,
+                'ai_evaluation_history': student.ai_evaluation_history,
+            })
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found.'}, status=404)
+
+    def post(self, request, pk):
+        """Generate new AI evaluation for a student"""
+        try:
+            student = Student.objects.get(pk=pk, is_deleted=False)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found.'}, status=404)
+
+        try:
+            from .ai_service import StudentAIEvaluator
+            evaluator = StudentAIEvaluator()
+            result = evaluator.generate_evaluation(student)
+
+            now = timezone.now()
+
+            # Append to history
+            history = student.ai_evaluation_history or []
+            history_entry = {
+                'ts': now.isoformat(),
+                'data': result,
+            }
+            history.append(history_entry)
+
+            student.ai_evaluation_history = history
+            student.ai_evaluation_data = result
+            student.ai_evaluation_last_updated = now
+            student.save()
+
+            # Log activity
+            ActivityLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                activity_type='update',
+                description=f"Generated AI evaluation for student: {student.name}",
+                item_type='student',
+                item_id=str(student.id),
+                metadata={
+                    'name': student.name,
+                    'idNumber': student.idNumber,
+                    'program': student.program,
+                    'ai_evaluation_generated': True
+                }
+            )
+
+            return Response({
+                'message': 'AI evaluation generated successfully.',
+                'ai_evaluation_data': result,
+                'ai_evaluation_last_updated': now.isoformat(),
+            })
+
+        except Exception as exc:
+            return Response({'error': f'Failed to generate AI evaluation: {str(exc)}'}, status=500)

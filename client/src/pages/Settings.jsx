@@ -24,6 +24,7 @@ import {
 const Settings = () => {
   const { setTheme } = useContext(ThemeContext);
   const [trashItems, setTrashItems] = useState([]);
+  const [selectedTrashItems, setSelectedTrashItems] = useState([]);
 
   const fetchTrashItems = async () => {
     try {
@@ -55,10 +56,90 @@ const Settings = () => {
     try {
       await deleteFromTrash(id);
       setTrashItems((prev) => prev.filter((item) => item.id !== id));
+      setSelectedTrashItems((prev) => prev.filter((itemId) => itemId !== id));
       toast.success("Item permanently deleted");
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete item");
+    }
+  };
+
+  const handleSelectAllTrash = (checked) => {
+    if (checked) {
+      setSelectedTrashItems(trashItems.map((item) => item.id));
+    } else {
+      setSelectedTrashItems([]);
+    }
+  };
+
+  const handleSelectTrashItem = (itemId, checked) => {
+    if (checked) {
+      setSelectedTrashItems((prev) => [...prev, itemId]);
+    } else {
+      setSelectedTrashItems((prev) => prev.filter((id) => id !== itemId));
+    }
+  };
+
+  const handleBulkRestore = async () => {
+    if (selectedTrashItems.length === 0) {
+      toast.error("Please select items to restore.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to restore ${selectedTrashItems.length} item(s)?`
+      )
+    ) {
+      try {
+        const restorePromises = selectedTrashItems.map((id) => {
+          const item = trashItems.find((item) => item.id === id);
+          if (item.item_type === "student") {
+            return restoreStudent(item.item_id);
+          } else if (item.item_type === "employee") {
+            return restoreEmployee(item.item_id);
+          }
+        });
+        await Promise.all(restorePromises);
+        await fetchTrashItems();
+        setSelectedTrashItems([]);
+        toast.success(
+          `${selectedTrashItems.length} item(s) restored successfully!`
+        );
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to restore some items.");
+      }
+    }
+  };
+
+  const handleBulkDeletePermanently = async () => {
+    if (selectedTrashItems.length === 0) {
+      toast.error("Please select items to delete.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to permanently delete ${selectedTrashItems.length} item(s)? This action cannot be undone.`
+      )
+    ) {
+      try {
+        const deletePromises = selectedTrashItems.map((id) =>
+          deleteFromTrash(id)
+        );
+        await Promise.all(deletePromises);
+        setTrashItems((prev) =>
+          prev.filter((item) => !selectedTrashItems.includes(item.id))
+        );
+        setSelectedTrashItems([]);
+        toast.success(
+          `${selectedTrashItems.length} item(s) permanently deleted!`
+        );
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to delete some items.");
+      }
     }
   };
 
@@ -561,98 +642,141 @@ const Settings = () => {
       case "trash":
         return (
           <div className="space-y-6">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Trash Bin
-            </h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Trash Bin
+              </h3>
+              {selectedTrashItems.length > 0 && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleBulkRestore}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+                  >
+                    Restore Selected ({selectedTrashItems.length})
+                  </button>
+                  <button
+                    onClick={handleBulkDeletePermanently}
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
+                  >
+                    Delete Selected Forever ({selectedTrashItems.length})
+                  </button>
+                </div>
+              )}
+            </div>
             {trashItems.length === 0 ? (
               <p className="text-gray-500 dark:text-gray-400">
                 Trash is empty.
               </p>
             ) : (
               <div className="space-y-4">
+                <div className="flex items-center space-x-2 mb-4">
+                  <input
+                    type="checkbox"
+                    checked={
+                      trashItems.length > 0 &&
+                      selectedTrashItems.length === trashItems.length
+                    }
+                    onChange={(e) => handleSelectAllTrash(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label className="text-sm text-gray-700 dark:text-gray-300">
+                    Select All
+                  </label>
+                </div>
                 {trashItems.map((item) => (
                   <div
                     key={item.id}
                     className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-medium rounded-full capitalize">
-                            {item.item_type}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            ID: {item.item_id}
-                          </span>
+                      <div className="flex items-start space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedTrashItems.includes(item.id)}
+                          onChange={(e) =>
+                            handleSelectTrashItem(item.id, e.target.checked)
+                          }
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-medium rounded-full capitalize">
+                              {item.item_type}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              ID: {item.item_id}
+                            </span>
+                          </div>
+
+                          {item.item_type === "employee" && (
+                            <div className="space-y-1">
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {item.item_data?.name || "Unknown Employee"}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Position: {item.item_data?.position || "N/A"}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Department:{" "}
+                                {item.item_data?.department || "N/A"}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Email: {item.item_data?.email || "N/A"}
+                              </p>
+                              {item.item_data?.salary && (
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                  Salary: $
+                                  {parseFloat(
+                                    item.item_data.salary
+                                  ).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {item.item_type === "student" && (
+                            <div className="space-y-1">
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {item.item_data?.name || "Unknown Student"}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                ID: {item.item_data?.idNumber || "N/A"}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Program: {item.item_data?.program || "N/A"}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Email: {item.item_data?.email || "N/A"}
+                              </p>
+                              {item.item_data?.gpa && (
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                  GPA: {item.item_data.gpa}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Status: {item.item_data?.status || "N/A"}
+                              </p>
+                            </div>
+                          )}
+
+                          {item.item_type === "other" && (
+                            <div className="space-y-1">
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {item.item_data?.name || "Unknown Item"}
+                              </p>
+                              {item.item_data?.details && (
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                  {item.item_data.details}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                            Deleted at:{" "}
+                            {new Date(item.deleted_at).toLocaleString()}
+                          </p>
                         </div>
-
-                        {item.item_type === "employee" && (
-                          <div className="space-y-1">
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {item.item_data?.name || "Unknown Employee"}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Position: {item.item_data?.position || "N/A"}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Department: {item.item_data?.department || "N/A"}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Email: {item.item_data?.email || "N/A"}
-                            </p>
-                            {item.item_data?.salary && (
-                              <p className="text-sm text-gray-600 dark:text-gray-300">
-                                Salary: $
-                                {parseFloat(
-                                  item.item_data.salary
-                                ).toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {item.item_type === "student" && (
-                          <div className="space-y-1">
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {item.item_data?.name || "Unknown Student"}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              ID: {item.item_data?.idNumber || "N/A"}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Program: {item.item_data?.program || "N/A"}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Email: {item.item_data?.email || "N/A"}
-                            </p>
-                            {item.item_data?.gpa && (
-                              <p className="text-sm text-gray-600 dark:text-gray-300">
-                                GPA: {item.item_data.gpa}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Status: {item.item_data?.status || "N/A"}
-                            </p>
-                          </div>
-                        )}
-
-                        {item.item_type === "other" && (
-                          <div className="space-y-1">
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {item.item_data?.name || "Unknown Item"}
-                            </p>
-                            {item.item_data?.details && (
-                              <p className="text-sm text-gray-600 dark:text-gray-300">
-                                {item.item_data.details}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                          Deleted at:{" "}
-                          {new Date(item.deleted_at).toLocaleString()}
-                        </p>
                       </div>
 
                       <div className="ml-4 flex flex-col space-y-2">

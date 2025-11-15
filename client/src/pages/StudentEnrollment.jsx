@@ -35,6 +35,7 @@ const StudentEnrollment = () => {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedEnrollments, setSelectedEnrollments] = useState([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -171,9 +172,75 @@ const StudentEnrollment = () => {
       try {
         await deleteStudent(enrollmentId);
         setEnrollments((prev) => prev.filter((e) => e.id !== enrollmentId));
+        setSelectedEnrollments((prev) =>
+          prev.filter((id) => id !== enrollmentId)
+        );
         toast.success("Enrollment deleted successfully!");
       } catch (err) {
         toast.error("Failed to delete enrollment.");
+        console.error(err);
+      }
+    }
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const filteredEnrollments = enrollments.filter(
+        (enrollment) =>
+          (enrollment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            enrollment.email
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            enrollment.program
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            enrollment.idNumber.includes(searchQuery)) &&
+          (programFilter === "" || enrollment.program === programFilter) &&
+          (statusFilter === "" || enrollment.status === statusFilter)
+      );
+      setSelectedEnrollments(filteredEnrollments.map((e) => e.id));
+    } else {
+      setSelectedEnrollments([]);
+    }
+  };
+
+  const handleSelectEnrollment = (enrollmentId, checked) => {
+    if (checked) {
+      setSelectedEnrollments((prev) => [...prev, enrollmentId]);
+    } else {
+      setSelectedEnrollments((prev) =>
+        prev.filter((id) => id !== enrollmentId)
+      );
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEnrollments.length === 0) {
+      toast.error("Please select enrollments to delete.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedEnrollments.length} enrollment(s)?`
+      )
+    ) {
+      try {
+        // Delete enrollments one by one
+        const deletePromises = selectedEnrollments.map((id) =>
+          deleteStudent(id)
+        );
+        await Promise.all(deletePromises);
+
+        setEnrollments((prev) =>
+          prev.filter((e) => !selectedEnrollments.includes(e.id))
+        );
+        setSelectedEnrollments([]);
+        toast.success(
+          `${selectedEnrollments.length} enrollment(s) deleted successfully!`
+        );
+      } catch (err) {
+        toast.error("Failed to delete some enrollments.");
         console.error(err);
       }
     }
@@ -209,58 +276,23 @@ const StudentEnrollment = () => {
           phone: formData.phone,
           address: formData.address,
           program: formData.program,
-          year: new Date().getFullYear().toString(),
-          status: "Active",
+          studentType: formData.studentType || null,
+          enrollmentDate: formData.enrollmentDate,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
           ...(formData.avatar instanceof File
             ? { avatar: formData.avatar }
             : {}),
-          emergencyContact: "",
-          gpa: null,
-          enrollmentDate: formData.enrollmentDate,
-          courses: [],
-          dateOfBirth: null,
-          credits: 0,
-          expectedGraduation: null,
-          studentType: formData.studentType,
-          interneeType:
-            formData.studentType === "Internee"
-              ? formData.interneeType || null
-              : null,
-          studyStatus:
-            formData.studentType === "Internee"
-              ? formData.studyStatus || null
-              : null,
-          paymentStatus:
-            formData.studentType === "Internee" ? paymentStatusValue : null,
-          totalFees: formData.studentType === "Internee" ? totalFeesValue : 0,
-          paidAmount: formData.studentType === "Internee" ? paidAmountValue : 0,
-          remainingAmount:
-            formData.studentType === "Internee" ? remainingAmountValue : 0,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          attendance: 0,
-          performance: null,
-          cumulative_gpa: null,
-          completed_credits: 0,
-          grades: {},
-          assignments: {},
-          current_semester: "Spring 2024",
-          academic_standing: null,
-          achievements: [],
-          projects: [],
-          extracurricular: [],
-          totalPoints: 0,
-          totalProjects: 0,
-          certifications: 0,
-          overallAttendance: 0,
-          presentDays: 0,
-          absentDays: 0,
-          lateDays: 0,
-          excusedAbsences: 0,
-          currentStreak: 0,
-          lastAttendance: null,
-          monthlyData: {},
-          feedback: [],
+          ...(formData.studentType === "Internee"
+            ? {
+                interneeType: formData.interneeType || null,
+                studyStatus: formData.studyStatus || null,
+                totalFees: totalFeesValue,
+                paidAmount: paidAmountValue,
+                remainingAmount: remainingAmountValue,
+                paymentStatus: paymentStatusValue,
+              }
+            : {}),
         };
       } else {
         // For edit, send only the fields that can be changed in the form
@@ -271,7 +303,7 @@ const StudentEnrollment = () => {
           phone: formData.phone,
           address: formData.address,
           program: formData.program,
-          studentType: formData.studentType,
+          studentType: formData.studentType || null,
           enrollmentDate: formData.enrollmentDate,
           startDate: formData.startDate,
           endDate: formData.endDate,
@@ -426,6 +458,17 @@ const StudentEnrollment = () => {
           <option value="asc">Ascending</option>
           <option value="desc">Descending</option>
         </select>
+
+        {selectedEnrollments.length > 0 && (
+          <Button
+            variant="destructive"
+            onClick={handleBulkDelete}
+            className="ml-4"
+          >
+            <TrashIcon className="h-4 w-4 mr-2" />
+            Delete Selected ({selectedEnrollments.length})
+          </Button>
+        )}
       </div>
 
       {/* Loading State */}
@@ -449,6 +492,50 @@ const StudentEnrollment = () => {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={
+                        enrollments.filter(
+                          (enrollment) =>
+                            (enrollment.name
+                              .toLowerCase()
+                              .includes(searchQuery.toLowerCase()) ||
+                              enrollment.email
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase()) ||
+                              enrollment.program
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase()) ||
+                              enrollment.idNumber.includes(searchQuery)) &&
+                            (programFilter === "" ||
+                              enrollment.program === programFilter) &&
+                            (statusFilter === "" ||
+                              enrollment.status === statusFilter)
+                        ).length > 0 &&
+                        selectedEnrollments.length ===
+                          enrollments.filter(
+                            (enrollment) =>
+                              (enrollment.name
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase()) ||
+                                enrollment.email
+                                  .toLowerCase()
+                                  .includes(searchQuery.toLowerCase()) ||
+                                enrollment.program
+                                  .toLowerCase()
+                                  .includes(searchQuery.toLowerCase()) ||
+                                enrollment.idNumber.includes(searchQuery)) &&
+                              (programFilter === "" ||
+                                enrollment.program === programFilter) &&
+                              (statusFilter === "" ||
+                                enrollment.status === statusFilter)
+                          ).length
+                      }
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Student
                   </th>
@@ -545,6 +632,19 @@ const StudentEnrollment = () => {
                       key={enrollment.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedEnrollments.includes(enrollment.id)}
+                          onChange={(e) =>
+                            handleSelectEnrollment(
+                              enrollment.id,
+                              e.target.checked
+                            )
+                          }
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">

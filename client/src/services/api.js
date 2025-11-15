@@ -1,5 +1,4 @@
 import axios from "axios";
-
 export const API_BASE_URL = "http://localhost:8000";
 
 const api = axios.create({
@@ -36,11 +35,37 @@ export const generatePDFReport = (params) =>
 /* ----------------------------- STUDENTS API ----------------------------- */
 export const getStudents = () => api.get("/student/api/students/");
 export const createStudent = (data) => {
-  return api.post("/student/api/students/", data, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  // Check if data contains file fields
+  const hasFileFields = Object.keys(data).some(
+    (key) => data[key] instanceof File || data[key] instanceof Blob
+  );
+
+  if (hasFileFields) {
+    // Use FormData for file uploads
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined) {
+        if (
+          typeof data[key] === "object" &&
+          !(data[key] instanceof File) &&
+          !(data[key] instanceof Blob)
+        ) {
+          // Convert objects/arrays to JSON string for FormData
+          formData.append(key, JSON.stringify(data[key]));
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+    return api.post("/student/api/students/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  } else {
+    // Use JSON for non-file data
+    return api.post("/student/api/students/", data);
+  }
 };
 export const updateStudent = (id, data) => {
   // Check if data contains file fields
@@ -91,6 +116,10 @@ export const markAttendance = (data) =>
   api.post("/student/api/students/attendance/", data);
 export const getAttendanceByDate = (date) =>
   api.get(`/student/api/students/attendance/?date=${date}`);
+export const getStudentAIEvaluation = (id) =>
+  api.get(`/student/api/students/${id}/ai-evaluation/`);
+export const generateStudentAIEvaluation = (id) =>
+  api.post(`/student/api/students/${id}/ai-evaluation/`);
 
 /* ----------------------------- EMPLOYEES API ----------------------------- */
 export const getEmployees = () => api.get("/api/employees/");

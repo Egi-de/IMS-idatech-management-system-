@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from decimal import Decimal
 
 class Student(models.Model):
     PROGRAM_CHOICES = [
@@ -58,7 +59,7 @@ class Student(models.Model):
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     emergencyContact = models.CharField(max_length=100, blank=True, null=True)
-    gpa = models.DecimalField(max_digits=3, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(4)], blank=True, null=True)
+    gpa = models.DecimalField(max_digits=3, decimal_places=2, validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('4'))], blank=True, null=True)
     enrollmentDate = models.DateField()
     courses = models.JSONField(default=list, blank=True)  # List of course names
 
@@ -71,9 +72,9 @@ class Student(models.Model):
     interneeType = models.CharField(max_length=20, choices=INTERnee_TYPE_CHOICES, blank=True, null=True)
     studyStatus = models.CharField(max_length=20, choices=STUDY_STATUS_CHOICES, blank=True, null=True)
     paymentStatus = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, blank=True, null=True)
-    totalFees = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
-    paidAmount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
-    remainingAmount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    totalFees = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'), validators=[MinValueValidator(Decimal('0'))])
+    paidAmount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'), validators=[MinValueValidator(Decimal('0'))])
+    remainingAmount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'), validators=[MinValueValidator(Decimal('0'))])
     enrollmentType = models.CharField(max_length=20, choices=ENROLLMENT_TYPE_CHOICES, blank=True, null=True)
     startDate = models.DateField(blank=True, null=True)
     endDate = models.DateField(blank=True, null=True)
@@ -81,7 +82,7 @@ class Student(models.Model):
     performance = models.CharField(max_length=20, choices=PERFORMANCE_CHOICES, blank=True, null=True)
 
     # Enhanced Performance Fields
-    cumulative_gpa = models.DecimalField(max_digits=3, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(4)], blank=True, null=True)
+    cumulative_gpa = models.DecimalField(max_digits=3, decimal_places=2, validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('4'))], blank=True, null=True)
     completed_credits = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     grades = models.JSONField(default=dict, blank=True)  # {course_name: grade}
     assignments = models.JSONField(default=dict, blank=True)  # {completed: int, total: int, averageScore: float}
@@ -112,6 +113,11 @@ class Student(models.Model):
 
     # Feedback Information
     feedback = models.JSONField(default=list, blank=True)  # List of feedback objects
+
+    # AI Evaluation Fields
+    ai_evaluation_last_updated = models.DateTimeField(null=True, blank=True)
+    ai_evaluation_data = models.JSONField(default=dict, blank=True)  # Store latest AI analysis
+    ai_evaluation_history = models.JSONField(default=list, blank=True)  # Track previous evaluations
 
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default=False)

@@ -44,7 +44,7 @@ class TrashBin(models.Model):
     can_restore = models.BooleanField(default=True)  # Whether the item can still be restored
 
     def __str__(self):
-        return f"Deleted {self.item_type} by {self.user.username}"
+        return f"Deleted {self.item_type} by {self.user.username if self.user else 'System'}"
 
     class Meta:
         ordering = ['-deleted_at']
