@@ -30,6 +30,8 @@ import {
 
 const StudentFeedback = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProgram, setSelectedProgram] = useState("");
+  const [selectedRating, setSelectedRating] = useState("");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -339,13 +341,41 @@ const StudentFeedback = () => {
     );
   }
 
-  const filteredData = feedbackData.filter(
-    (student) =>
+  const filteredData = feedbackData.filter((student) => {
+    const matchesSearch =
       student.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.program.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.studentId.includes(searchQuery) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      student.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Map filter values to actual program names
+    const programMapping = {
+      iot: "IoT Development",
+      software: "Software Development",
+      data: "Data Science",
+    };
+
+    const matchesProgram =
+      !selectedProgram ||
+      student.program === programMapping[selectedProgram] ||
+      student.program === selectedProgram;
+
+    let matchesRating = true;
+    if (selectedRating) {
+      const rating = student.overallRating;
+      if (selectedRating === "4-5") {
+        matchesRating = rating >= 4.0 && rating <= 5.0;
+      } else if (selectedRating === "3-4") {
+        matchesRating = rating >= 3.0 && rating < 4.0;
+      } else if (selectedRating === "2-3") {
+        matchesRating = rating >= 2.0 && rating < 3.0;
+      } else if (selectedRating === "below-2") {
+        matchesRating = rating < 2.0;
+      }
+    }
+
+    return matchesSearch && matchesProgram && matchesRating;
+  });
 
   return (
     <div className="space-y-6">
@@ -380,14 +410,22 @@ const StudentFeedback = () => {
           </div>
         </div>
 
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={selectedProgram}
+          onChange={(e) => setSelectedProgram(e.target.value)}
+        >
           <option value="">All Programs</option>
           <option value="iot">IoT Development</option>
           <option value="software">Software Development</option>
           <option value="data">Data Science</option>
         </select>
 
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={selectedRating}
+          onChange={(e) => setSelectedRating(e.target.value)}
+        >
           <option value="">All Ratings</option>
           <option value="4-5">4.0 - 5.0</option>
           <option value="3-4">3.0 - 3.9</option>

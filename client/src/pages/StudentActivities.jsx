@@ -30,6 +30,17 @@ const StudentActivities = () => {
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addData, setAddData] = useState({
+    studentId: "",
+    title: "",
+    description: "",
+    date: "",
+    type: "award",
+    category: "Project",
+  });
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState(null);
 
   // Fetch activities data on component mount
   useEffect(() => {
@@ -119,6 +130,61 @@ const StudentActivities = () => {
     }));
   };
 
+  const handleAddInputChange = (e) => {
+    const { name, value } = e.target;
+    setAddData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    setAddLoading(true);
+    setAddError(null);
+
+    try {
+      const student = activitiesData.find(
+        (s) => s.id === parseInt(addData.studentId)
+      );
+      const newAchievement = {
+        id: Date.now(),
+        title: addData.title,
+        description: addData.description,
+        date: addData.date,
+        type: addData.type,
+        category: addData.category,
+      };
+      const updatedAchievements = [
+        ...(student.achievements || []),
+        newAchievement,
+      ];
+
+      await updateStudent(addData.studentId, {
+        achievements: updatedAchievements,
+      });
+
+      // Refetch data
+      const response = await getStudents();
+      setActivitiesData(response.data);
+
+      setShowAddModal(false);
+      setAddData({
+        studentId: "",
+        title: "",
+        description: "",
+        date: "",
+        type: "award",
+        category: "Project",
+      });
+    } catch (err) {
+      console.error("Error adding achievement:", err);
+      setAddError("Failed to add achievement. Please try again.");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -159,11 +225,7 @@ const StudentActivities = () => {
             Track student activities, projects, and achievements
           </p>
         </div>
-        <Button
-          onClick={() =>
-            alert("Add Achievement functionality removed as per requirements")
-          }
-        >
+        <Button onClick={() => setShowAddModal(true)}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Add Achievement
         </Button>
@@ -236,7 +298,7 @@ const StudentActivities = () => {
                       allAchievements.push({
                         ...achievement,
                         studentId: student.id,
-                        studentName: student.studentName,
+                        studentName: student.name,
                         program: student.program,
                         avatar: student.avatar,
                         idNumber: student.idNumber,
@@ -256,13 +318,7 @@ const StudentActivities = () => {
                         <p className="text-gray-600 dark:text-gray-400 mb-4">
                           Get started by adding a student's first achievement.
                         </p>
-                        <Button
-                          onClick={() =>
-                            alert(
-                              "Add Achievement functionality removed as per requirements"
-                            )
-                          }
-                        >
+                        <Button onClick={() => setShowAddModal(true)}>
                           <PlusIcon className="h-4 w-4 mr-2" />
                           Add First Achievement
                         </Button>
@@ -447,6 +503,148 @@ const StudentActivities = () => {
                 </>
               ) : (
                 "Update Achievement"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Achievement Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setAddError(null);
+          setAddData({
+            studentId: "",
+            title: "",
+            description: "",
+            date: "",
+            type: "award",
+            category: "Project",
+          });
+        }}
+        title="Add Achievement"
+        size="medium"
+      >
+        <form className="space-y-4" onSubmit={handleAddSubmit}>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Select Student
+            </label>
+            <select
+              name="studentId"
+              value={addData.studentId}
+              onChange={handleAddInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              required
+            >
+              <option value="">Select a student</option>
+              {activitiesData.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Input
+            label="Achievement Title"
+            name="title"
+            value={addData.title}
+            onChange={handleAddInputChange}
+            placeholder="e.g. Best Student Award"
+            required
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description
+            </label>
+            <textarea
+              name="description"
+              value={addData.description}
+              onChange={handleAddInputChange}
+              placeholder="Enter achievement description"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              required
+            />
+          </div>
+          <Input
+            label="Date"
+            type="date"
+            name="date"
+            value={addData.date}
+            onChange={handleAddInputChange}
+            required
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Type
+              </label>
+              <select
+                name="type"
+                value={addData.type}
+                onChange={handleAddInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="award">Award</option>
+                <option value="certification">Certification</option>
+                <option value="publication">Publication</option>
+                <option value="academic">Academic</option>
+                <option value="workshop">Workshop</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Category
+              </label>
+              <select
+                name="category"
+                value={addData.category}
+                onChange={handleAddInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="Project">Project</option>
+                <option value="Technical">Technical</option>
+                <option value="Research">Research</option>
+                <option value="Academic">Academic</option>
+                <option value="Workshop">Workshop</option>
+              </select>
+            </div>
+          </div>
+          {addError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{addError}</p>
+            </div>
+          )}
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddModal(false);
+                setAddError(null);
+                setAddData({
+                  studentId: "",
+                  title: "",
+                  description: "",
+                  date: "",
+                  type: "award",
+                  category: "Project",
+                });
+              }}
+              disabled={addLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={addLoading}>
+              {addLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Adding...
+                </>
+              ) : (
+                "Add Achievement"
               )}
             </Button>
           </div>

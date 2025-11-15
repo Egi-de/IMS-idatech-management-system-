@@ -17,7 +17,6 @@ import StudentAttendance from "./pages/StudentAttendance";
 import StudentPerformance from "./pages/StudentPerformance";
 import StudentActivities from "./pages/StudentActivities";
 import StudentFeedback from "./pages/StudentFeedback";
-import StudentStatus from "./pages/StudentStatus";
 import Employees from "./pages/Employees";
 import Financial from "./pages/Financial";
 import Profile from "./pages/Profile";
@@ -200,16 +199,6 @@ function App() {
             }
           />
           <Route
-            path="/student-status"
-            element={
-              <ProtectedRoute>
-                <Layout isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}>
-                  <StudentStatus />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/employees"
             element={
               <ProtectedRoute>
@@ -258,6 +247,10 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/student-status"
+            element={<Navigate to="/dashboard" replace />}
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>

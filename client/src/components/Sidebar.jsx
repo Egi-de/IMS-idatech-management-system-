@@ -41,7 +41,6 @@ const Sidebar = () => {
         { name: "Performance / Grades", href: "/student-performance" },
         { name: "Activities & Achievements", href: "/student-activities" },
         { name: "Feedback & Evaluation", href: "/student-feedback" },
-        { name: "Status & Recommendations", href: "/student-status" },
       ],
     },
     {
