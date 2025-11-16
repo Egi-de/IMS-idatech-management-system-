@@ -472,11 +472,7 @@ const Reports = () => {
               <div className="h-80">
                 <Pie
                   data={{
-                    labels: [
-                      "IoT Development",
-                      "Software Development",
-                      "Data Science",
-                    ],
+                    labels: ["IoT Development", "Software Development"],
                     datasets: [
                       {
                         data: [
@@ -485,9 +481,6 @@ const Reports = () => {
                           ).length,
                           studentsData.filter(
                             (s) => s.program === "Software Development"
-                          ).length,
-                          studentsData.filter(
-                            (s) => s.program === "Data Science"
                           ).length,
                         ],
                         backgroundColor: [
@@ -529,12 +522,15 @@ const Reports = () => {
                     datasets: [
                       {
                         data: [
-                          studentsData.filter((s) => s.gender === "Male")
-                            .length,
-                          studentsData.filter((s) => s.gender === "Female")
-                            .length,
-                          studentsData.filter((s) => s.gender === "Other")
-                            .length,
+                          studentsData.filter(
+                            (s) => s.gender?.toLowerCase() === "male"
+                          ).length,
+                          studentsData.filter(
+                            (s) => s.gender?.toLowerCase() === "female"
+                          ).length,
+                          studentsData.filter(
+                            (s) => s.gender?.toLowerCase() === "other"
+                          ).length,
                         ],
                         backgroundColor: [
                           "rgba(59, 130, 246, 0.8)",
@@ -572,11 +568,7 @@ const Reports = () => {
             <div className="h-80">
               <Bar
                 data={{
-                  labels: [
-                    "IoT Development",
-                    "Software Development",
-                    "Data Science",
-                  ],
+                  labels: ["IoT Development", "Software Development"],
                   datasets: [
                     {
                       label: "Quizzes Taken",
@@ -595,13 +587,6 @@ const Reports = () => {
                               sum + Object.keys(s.grades || {}).length,
                             0
                           ),
-                        studentsData
-                          .filter((s) => s.program === "Data Science")
-                          .reduce(
-                            (sum, s) =>
-                              sum + Object.keys(s.grades || {}).length,
-                            0
-                          ),
                       ],
                       backgroundColor: "rgba(59, 130, 246, 0.8)",
                       borderColor: "rgba(59, 130, 246, 1)",
@@ -610,27 +595,62 @@ const Reports = () => {
                     {
                       label: "Students Passed",
                       data: [
-                        studentsData.filter(
-                          (s) =>
-                            s.program === "IoT Development" &&
-                            Object.values(s.grades || {}).some(
-                              (grade) => parseFloat(grade) >= 60
-                            )
-                        ).length,
-                        studentsData.filter(
-                          (s) =>
-                            s.program === "Software Development" &&
-                            Object.values(s.grades || {}).some(
-                              (grade) => parseFloat(grade) >= 60
-                            )
-                        ).length,
-                        studentsData.filter(
-                          (s) =>
-                            s.program === "Data Science" &&
-                            Object.values(s.grades || {}).some(
-                              (grade) => parseFloat(grade) >= 60
-                            )
-                        ).length,
+                        studentsData
+                          .filter((s) => s.program === "IoT Development")
+                          .filter((s) => {
+                            const grades = Object.values(s.grades || {});
+                            if (grades.length === 0) return false;
+                            const gradePoints = grades.map((grade) => {
+                              const scale = {
+                                A: 4.0,
+                                "A-": 3.7,
+                                "B+": 3.3,
+                                B: 3.0,
+                                "B-": 2.7,
+                                "C+": 2.3,
+                                C: 2.0,
+                                "C-": 1.7,
+                                "D+": 1.3,
+                                D: 1.0,
+                                F: 0.0,
+                              };
+                              return scale[grade] || 0;
+                            });
+                            const average =
+                              gradePoints.reduce(
+                                (sum, point) => sum + point,
+                                0
+                              ) / gradePoints.length;
+                            return average >= 2.0;
+                          }).length,
+                        studentsData
+                          .filter((s) => s.program === "Software Development")
+                          .filter((s) => {
+                            const grades = Object.values(s.grades || {});
+                            if (grades.length === 0) return false;
+                            const gradePoints = grades.map((grade) => {
+                              const scale = {
+                                A: 4.0,
+                                "A-": 3.7,
+                                "B+": 3.3,
+                                B: 3.0,
+                                "B-": 2.7,
+                                "C+": 2.3,
+                                C: 2.0,
+                                "C-": 1.7,
+                                "D+": 1.3,
+                                D: 1.0,
+                                F: 0.0,
+                              };
+                              return scale[grade] || 0;
+                            });
+                            const average =
+                              gradePoints.reduce(
+                                (sum, point) => sum + point,
+                                0
+                              ) / gradePoints.length;
+                            return average >= 3.0;
+                          }).length,
                       ],
                       backgroundColor: "rgba(34, 197, 94, 0.8)",
                       borderColor: "rgba(34, 197, 94, 1)",
@@ -639,27 +659,62 @@ const Reports = () => {
                     {
                       label: "Students Failed",
                       data: [
-                        studentsData.filter(
-                          (s) =>
-                            s.program === "IoT Development" &&
-                            Object.values(s.grades || {}).some(
-                              (grade) => parseFloat(grade) < 60
-                            )
-                        ).length,
-                        studentsData.filter(
-                          (s) =>
-                            s.program === "Software Development" &&
-                            Object.values(s.grades || {}).some(
-                              (grade) => parseFloat(grade) < 60
-                            )
-                        ).length,
-                        studentsData.filter(
-                          (s) =>
-                            s.program === "Data Science" &&
-                            Object.values(s.grades || {}).some(
-                              (grade) => parseFloat(grade) < 60
-                            )
-                        ).length,
+                        studentsData
+                          .filter((s) => s.program === "IoT Development")
+                          .filter((s) => {
+                            const grades = Object.values(s.grades || {});
+                            if (grades.length === 0) return false;
+                            const gradePoints = grades.map((grade) => {
+                              const scale = {
+                                A: 4.0,
+                                "A-": 3.7,
+                                "B+": 3.3,
+                                B: 3.0,
+                                "B-": 2.7,
+                                "C+": 2.3,
+                                C: 2.0,
+                                "C-": 1.7,
+                                "D+": 1.3,
+                                D: 1.0,
+                                F: 0.0,
+                              };
+                              return scale[grade] || 0;
+                            });
+                            const average =
+                              gradePoints.reduce(
+                                (sum, point) => sum + point,
+                                0
+                              ) / gradePoints.length;
+                            return average < 3.0;
+                          }).length,
+                        studentsData
+                          .filter((s) => s.program === "Software Development")
+                          .filter((s) => {
+                            const grades = Object.values(s.grades || {});
+                            if (grades.length === 0) return false;
+                            const gradePoints = grades.map((grade) => {
+                              const scale = {
+                                A: 4.0,
+                                "A-": 3.7,
+                                "B+": 3.3,
+                                B: 3.0,
+                                "B-": 2.7,
+                                "C+": 2.3,
+                                C: 2.0,
+                                "C-": 1.7,
+                                "D+": 1.3,
+                                D: 1.0,
+                                F: 0.0,
+                              };
+                              return scale[grade] || 0;
+                            });
+                            const average =
+                              gradePoints.reduce(
+                                (sum, point) => sum + point,
+                                0
+                              ) / gradePoints.length;
+                            return average < 3.0;
+                          }).length,
                       ],
                       backgroundColor: "rgba(239, 68, 68, 0.8)",
                       borderColor: "rgba(239, 68, 68, 1)",

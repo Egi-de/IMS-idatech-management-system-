@@ -6,7 +6,6 @@ class Student(models.Model):
     PROGRAM_CHOICES = [
         ('IoT Development', 'IoT Development'),
         ('Software Development', 'Software Development'),
-        ('Data Science', 'Data Science'),
     ]
 
     STATUS_CHOICES = [
@@ -49,8 +48,15 @@ class Student(models.Model):
         ('Poor', 'Poor'),
     ]
 
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+
     # Basic Information
     name = models.CharField(max_length=100)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     program = models.CharField(max_length=50, choices=PROGRAM_CHOICES)
