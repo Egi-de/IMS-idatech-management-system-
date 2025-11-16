@@ -10,4 +10,6 @@ urlpatterns = [
     path('api/students/deleted/', views.DeletedStudentsView.as_view(), name='deleted-students'),
     path('api/students/<int:pk>/restore/', views.RestoreStudentView.as_view(), name='restore-student'),
     path('api/students/<int:pk>/ai-evaluation/', views.StudentAIEvaluationView.as_view(), name='student-ai-evaluation'),
+    path('api/students/<int:pk>/ai-report/', views.StudentAIReportView.as_view(), name='student-ai-report'),
+    path('api/students/comprehensive-report/', views.ComprehensiveStudentReportView.as_view(), name='comprehensive-student-report'),
 ]

@@ -23,7 +23,12 @@ import {
   PointElement,
 } from "chart.js";
 import { Pie, Bar, Line } from "react-chartjs-2";
-import { getStudents, getEmployees, getTransactions } from "../services/api";
+import {
+  getStudents,
+  getEmployees,
+  getTransactions,
+  getComprehensiveStudentReport,
+} from "../services/api";
 
 ChartJS.register(
   ArcElement,
@@ -54,6 +59,8 @@ const Reports = () => {
     message: "",
   });
   const [toast, setToast] = useState(null);
+  const [aiReport, setAiReport] = useState(null);
+  const [aiReportLoading, setAiReportLoading] = useState(false);
 
   // Data states
   const [studentsData, setStudentsData] = useState([]);
@@ -127,6 +134,21 @@ const Reports = () => {
     if (reportType === "students") {
       data = studentsData;
       dateField = "enrollment_date";
+
+      // Generate AI comprehensive report for students
+      try {
+        setAiReportLoading(true);
+        const aiResponse = await getComprehensiveStudentReport();
+        setAiReport(aiResponse.data);
+      } catch (error) {
+        console.error("Error generating AI report:", error);
+        setToast({
+          message: "Failed to generate AI report. Please try again.",
+          type: "error",
+        });
+      } finally {
+        setAiReportLoading(false);
+      }
     } else if (reportType === "employees") {
       data = employeesData;
       dateField = "hire_date";
@@ -516,46 +538,59 @@ const Reports = () => {
                 Gender Distribution
               </h3>
               <div className="h-80">
-                <Pie
-                  data={{
-                    labels: ["Male", "Female", "Other"],
-                    datasets: [
-                      {
-                        data: [
-                          studentsData.filter(
-                            (s) => s.gender?.toLowerCase() === "male"
-                          ).length,
-                          studentsData.filter(
-                            (s) => s.gender?.toLowerCase() === "female"
-                          ).length,
-                          studentsData.filter(
-                            (s) => s.gender?.toLowerCase() === "other"
-                          ).length,
+                {(() => {
+                  const genderData = [
+                    studentsData.filter(
+                      (s) => s.gender?.toLowerCase() === "male"
+                    ).length,
+                    studentsData.filter(
+                      (s) => s.gender?.toLowerCase() === "female"
+                    ).length,
+                    studentsData.filter(
+                      (s) => s.gender?.toLowerCase() === "other"
+                    ).length,
+                  ];
+                  const total = genderData.reduce((sum, val) => sum + val, 0);
+                  if (total === 0) {
+                    return (
+                      <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                        No gender data available
+                      </div>
+                    );
+                  }
+                  return (
+                    <Pie
+                      data={{
+                        labels: ["Male", "Female", "Other"],
+                        datasets: [
+                          {
+                            data: genderData,
+                            backgroundColor: [
+                              "rgba(59, 130, 246, 0.8)",
+                              "rgba(236, 72, 153, 0.8)",
+                              "rgba(75, 192, 192, 0.8)",
+                            ],
+                            borderColor: [
+                              "rgba(59, 130, 246, 1)",
+                              "rgba(236, 72, 153, 1)",
+                              "rgba(75, 192, 192, 1)",
+                            ],
+                            borderWidth: 1,
+                          },
                         ],
-                        backgroundColor: [
-                          "rgba(59, 130, 246, 0.8)",
-                          "rgba(236, 72, 153, 0.8)",
-                          "rgba(75, 192, 192, 0.8)",
-                        ],
-                        borderColor: [
-                          "rgba(59, 130, 246, 1)",
-                          "rgba(236, 72, 153, 1)",
-                          "rgba(75, 192, 192, 1)",
-                        ],
-                        borderWidth: 1,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "bottom",
-                      },
-                    },
-                  }}
-                />
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            position: "bottom",
+                          },
+                        },
+                      }}
+                    />
+                  );
+                })()}
               </div>
             </Card>
           </div>
@@ -841,41 +876,49 @@ const Reports = () => {
             </div>
           </Card>
 
-          {/* Feedback Summary */}
-          <Card className="mb-6">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Recent Feedback Summary
-            </h3>
-            <div className="space-y-4">
-              {studentsData.slice(0, 5).map((student) => (
-                <div
-                  key={student.id}
-                  className="border-b border-gray-200 dark:border-gray-700 pb-4"
-                >
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    {student.name}
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Latest feedback:{" "}
-                    {student.feedback?.[student.feedback.length - 1]
-                      ?.comments || "No feedback yet"}
+          {/* AI Comprehensive Report */}
+          {aiReport && (
+            <Card className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  AI Comprehensive Student Report
+                </h3>
+                <img
+                  src="/idalogo.png"
+                  alt="IDA Tech Logo"
+                  className="h-12 w-auto"
+                />
+              </div>
+              {aiReportLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600 dark:text-gray-400">
+                    Generating comprehensive AI report...
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {student.feedback?.[
-                      student.feedback.length - 1
-                    ]?.strengths?.map((strength, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-                      >
-                        {strength}
-                      </span>
-                    ))}
-                  </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div
+                    className="text-gray-700 dark:text-gray-300 leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: aiReport.report
+                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                        .replace(/<u>(.*?)<\/u>/g, "<u>$1</u>")
+                        .replace(
+                          /<span style="color: green;">(.*?)<\/span>/g,
+                          '<span class="text-green-600 font-semibold">$1</span>'
+                        )
+                        .replace(
+                          /<span style="color: red;">(.*?)<\/span>/g,
+                          '<span class="text-red-600 font-semibold">$1</span>'
+                        )
+                        .replace(/\n/g, "<br />"),
+                    }}
+                  />
+                </div>
+              )}
+            </Card>
+          )}
         </>
       )}
 

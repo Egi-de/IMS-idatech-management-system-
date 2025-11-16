@@ -428,3 +428,51 @@ class StudentAIEvaluationView(APIView):
 
         except Exception as exc:
             return Response({'error': f'Failed to generate AI evaluation: {str(exc)}'}, status=500)
+
+
+class StudentAIReportView(APIView):
+    def get(self, request, pk):
+        """Generate comprehensive AI report for a student"""
+        try:
+            student = Student.objects.get(pk=pk, is_deleted=False)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found.'}, status=404)
+
+        try:
+            from .ai_service import StudentAIEvaluator
+            evaluator = StudentAIEvaluator()
+            result = evaluator.generate_evaluation(student)
+
+            # Return the detailed narrative report
+            return Response({
+                'student_id': student.id,
+                'student_name': student.name,
+                'report': result.get('raw_text', 'Report generation failed'),
+                'generated_at': result.get('generated_at'),
+            })
+
+        except Exception as exc:
+            return Response({'error': f'Failed to generate AI report: {str(exc)}'}, status=500)
+
+
+class ComprehensiveStudentReportView(APIView):
+    def get(self, request):
+        """Generate comprehensive AI report for all students"""
+        try:
+            students = Student.objects.filter(is_deleted=False)
+            if not students:
+                return Response({'error': 'No students found.'}, status=404)
+
+            from .ai_service import StudentAIEvaluator
+            evaluator = StudentAIEvaluator()
+            result = evaluator.generate_comprehensive_report(students)
+
+            # Return the comprehensive report
+            return Response({
+                'report': result.get('report', 'Report generation failed'),
+                'generated_at': result.get('generated_at'),
+                'total_students': students.count(),
+            })
+
+        except Exception as exc:
+            return Response({'error': f'Failed to generate comprehensive report: {str(exc)}'}, status=500)

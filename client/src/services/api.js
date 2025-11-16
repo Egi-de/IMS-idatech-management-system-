@@ -164,6 +164,10 @@ export const getStudentAIEvaluation = (id) =>
   api.get(`/student/api/students/${id}/ai-evaluation/`);
 export const generateStudentAIEvaluation = (id) =>
   api.post(`/student/api/students/${id}/ai-evaluation/`);
+export const getStudentAIReport = (id) =>
+  api.get(`/student/api/students/${id}/ai-report/`);
+export const getComprehensiveStudentReport = () =>
+  api.get("/student/api/students/comprehensive-report/");
 
 /* ----------------------------- EMPLOYEES API ----------------------------- */
 export const getEmployees = () => api.get("/api/employees/");
