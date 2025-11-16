@@ -22,10 +22,17 @@ class Employee(models.Model):
         ("terminated", "Terminated"),
     ]
 
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+
     # Auto-increment employeeId like EMP001, EMP002
     employeeId = models.CharField(max_length=20, unique=True, editable=False, blank=True, null=True)
     idNumber = models.CharField(max_length=50, blank=True, null=True)
     name = models.CharField(max_length=100)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     position = models.CharField(max_length=100)

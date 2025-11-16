@@ -47,6 +47,7 @@ const Employees = () => {
     employeeId: "",
     idNumber: "",
     name: "",
+    gender: "",
     email: "",
     phone: undefined,
     position: "",
@@ -106,6 +107,7 @@ const Employees = () => {
       employeeId: "",
       idNumber: "",
       name: "",
+      gender: "",
       email: "",
       phone: undefined,
       position: "",
@@ -125,6 +127,7 @@ const Employees = () => {
       employeeId: employee.employeeId,
       idNumber: employee.idNumber || "",
       name: employee.name,
+      gender: employee.gender || "",
       email: employee.email,
       phone: employee.phone,
       position: employee.position,
@@ -265,6 +268,7 @@ const Employees = () => {
     formDataToSend.append("address", formData.address);
     formDataToSend.append("status", formData.status);
     formDataToSend.append("idNumber", formData.idNumber);
+    formDataToSend.append("gender", formData.gender);
     if (formData.avatar) {
       formDataToSend.append("avatar", formData.avatar);
     }
@@ -307,6 +311,7 @@ const Employees = () => {
       employeeId: "",
       idNumber: "",
       name: "",
+      gender: "",
       email: "",
       phone: undefined,
       position: "",
@@ -712,6 +717,18 @@ const Employees = () => {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
+              />
+              <Select
+                label="Gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                options={[
+                  { value: "Male", label: "Male" },
+                  { value: "Female", label: "Female" },
+                  { value: "Other", label: "Other" },
+                ]}
+                placeholder="Select Gender"
               />
               <Input
                 label="Position"

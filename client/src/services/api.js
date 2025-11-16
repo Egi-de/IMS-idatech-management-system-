@@ -169,6 +169,11 @@ export const getStudentAIReport = (id) =>
 export const getComprehensiveStudentReport = () =>
   api.get("/student/api/students/comprehensive-report/");
 
+export const getComprehensiveEmployeeReport = (userFeedback) =>
+  api.post("/api/comprehensive-employee-report/", {
+    user_feedback: userFeedback,
+  });
+
 /* ----------------------------- EMPLOYEES API ----------------------------- */
 export const getEmployees = () => api.get("/api/employees/");
 export const createEmployee = (data) => api.post("/api/employees/", data);

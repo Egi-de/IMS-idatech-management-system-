@@ -30,6 +30,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'employeeId',   # auto-generated
             'idNumber',
             'name',
+            'gender',
             'email',
             'phone',
             'position',

@@ -5,6 +5,7 @@ from rest_framework import status
 from .models import Employee, Department
 from .serializers import EmployeeSerializer, DepartmentSerializer
 from settings.models import ActivityLog, TrashBin
+from .ai_service import EmployeeAIEvaluator
 
 # GET all employees / POST new employee
 @api_view(['GET', 'POST'])
@@ -146,3 +147,18 @@ def restore_employee(request, pk):
         return Response(serializer.data)
     except Employee.DoesNotExist:
         return Response({'error': 'Deleted employee not found.'}, status=404)
+
+
+# AI Comprehensive Employee Report
+@api_view(['POST'])
+def comprehensive_employee_report(request):
+    try:
+        user_feedback = request.data.get('user_feedback', '')
+        employees = Employee.objects.filter(is_deleted=False).order_by("id")
+
+        evaluator = EmployeeAIEvaluator()
+        result = evaluator.generate_comprehensive_report(list(employees), user_feedback)
+
+        return Response(result)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -28,6 +28,7 @@ import {
   getEmployees,
   getTransactions,
   getComprehensiveStudentReport,
+  getComprehensiveEmployeeReport,
 } from "../services/api";
 
 ChartJS.register(
@@ -61,6 +62,8 @@ const Reports = () => {
   const [toast, setToast] = useState(null);
   const [aiReport, setAiReport] = useState(null);
   const [aiReportLoading, setAiReportLoading] = useState(false);
+  const [employeeAiReport, setEmployeeAiReport] = useState(null);
+  const [employeeAiReportLoading, setEmployeeAiReportLoading] = useState(false);
 
   // Data states
   const [studentsData, setStudentsData] = useState([]);
@@ -98,6 +101,12 @@ const Reports = () => {
     fetchData();
   }, []);
 
+  // Clear AI reports when report type changes
+  useEffect(() => {
+    setAiReport(null);
+    setEmployeeAiReport(null);
+  }, [formData.reportType]);
+
   const isDateInRange = (dateStr, from, to) => {
     if (!from || !to) return false;
     if (!dateStr) return false;
@@ -133,7 +142,7 @@ const Reports = () => {
     let dateField = "";
     if (reportType === "students") {
       data = studentsData;
-      dateField = "enrollment_date";
+      dateField = "enrollmentDate";
 
       // Generate AI comprehensive report for students
       try {
@@ -151,39 +160,44 @@ const Reports = () => {
       }
     } else if (reportType === "employees") {
       data = employeesData;
-      dateField = "hire_date";
+      // No dateField, no filtering for employees
     } else if (reportType === "financial") {
       data = transactionsData;
       dateField = "date";
     }
 
-    // Filter data by date range if dates are provided
-    if (fromDate && toDate) {
+    // Filter data by date range if dates are provided and not employees
+    if (reportType !== "employees" && fromDate && toDate) {
       data = data.filter((item) =>
         isDateInRange(item[dateField], fromDate, toDate)
       );
     }
 
-    // Group by month
-    const monthlyData = {};
-    data.forEach((item) => {
-      const date = new Date(item[dateField]);
-      const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-      if (!monthlyData[monthKey]) monthlyData[monthKey] = [];
-      monthlyData[monthKey].push(item);
-    });
+    // Group by month if not employees
+    if (reportType !== "employees") {
+      const monthlyData = {};
+      data.forEach((item) => {
+        const date = new Date(item[dateField]);
+        const monthKey = `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
+        if (!monthlyData[monthKey]) monthlyData[monthKey] = [];
+        monthlyData[monthKey].push(item);
+      });
 
-    const report = Object.keys(monthlyData)
-      .sort()
-      .map((month) => ({
-        month,
-        items: monthlyData[month],
-        count: monthlyData[month].length,
-      }));
+      const report = Object.keys(monthlyData)
+        .sort()
+        .map((month) => ({
+          month,
+          items: monthlyData[month],
+          count: monthlyData[month].length,
+        }));
 
-    setGeneratedReport({ type: reportType, data: report, fromDate, toDate });
+      setGeneratedReport({ type: reportType, data: report, fromDate, toDate });
+    } else {
+      // For employees, set data as flat
+      setGeneratedReport({ type: reportType, data: data, fromDate, toDate });
+    }
     setIsLoading(false);
   };
 
@@ -263,7 +277,7 @@ const Reports = () => {
             student.name,
             student.program,
             student.status,
-            student.enrollment_date,
+            student.enrollmentDate,
             student.gpa,
           ]);
         });
@@ -482,7 +496,8 @@ const Reports = () => {
         </div>
       </Card>
 
-      {generatedReport && generatedReport.type === "students" && (
+      {/* Student Charts and Reports */}
+      {formData.reportType === "students" && (
         <>
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -538,59 +553,46 @@ const Reports = () => {
                 Gender Distribution
               </h3>
               <div className="h-80">
-                {(() => {
-                  const genderData = [
-                    studentsData.filter(
-                      (s) => s.gender?.toLowerCase() === "male"
-                    ).length,
-                    studentsData.filter(
-                      (s) => s.gender?.toLowerCase() === "female"
-                    ).length,
-                    studentsData.filter(
-                      (s) => s.gender?.toLowerCase() === "other"
-                    ).length,
-                  ];
-                  const total = genderData.reduce((sum, val) => sum + val, 0);
-                  if (total === 0) {
-                    return (
-                      <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                        No gender data available
-                      </div>
-                    );
-                  }
-                  return (
-                    <Pie
-                      data={{
-                        labels: ["Male", "Female", "Other"],
-                        datasets: [
-                          {
-                            data: genderData,
-                            backgroundColor: [
-                              "rgba(59, 130, 246, 0.8)",
-                              "rgba(236, 72, 153, 0.8)",
-                              "rgba(75, 192, 192, 0.8)",
-                            ],
-                            borderColor: [
-                              "rgba(59, 130, 246, 1)",
-                              "rgba(236, 72, 153, 1)",
-                              "rgba(75, 192, 192, 1)",
-                            ],
-                            borderWidth: 1,
-                          },
+                <Pie
+                  data={{
+                    labels: ["Male", "Female", "Other"],
+                    datasets: [
+                      {
+                        data: [
+                          studentsData.filter(
+                            (s) => s.gender?.toLowerCase() === "male"
+                          ).length,
+                          studentsData.filter(
+                            (s) => s.gender?.toLowerCase() === "female"
+                          ).length,
+                          studentsData.filter(
+                            (s) => s.gender?.toLowerCase() === "other"
+                          ).length,
                         ],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: "bottom",
-                          },
-                        },
-                      }}
-                    />
-                  );
-                })()}
+                        backgroundColor: [
+                          "rgba(59, 130, 246, 0.8)",
+                          "rgba(236, 72, 153, 0.8)",
+                          "rgba(75, 192, 192, 0.8)",
+                        ],
+                        borderColor: [
+                          "rgba(59, 130, 246, 1)",
+                          "rgba(236, 72, 153, 1)",
+                          "rgba(75, 192, 192, 1)",
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                      },
+                    },
+                  }}
+                />
               </div>
             </Card>
           </div>
@@ -922,14 +924,12 @@ const Reports = () => {
         </>
       )}
 
-      {generatedReport && generatedReport.type !== "students" && (
+      {generatedReport && generatedReport.type === "students" && (
         <>
+          {/* Generated Student Report Table */}
           <Card className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Generated{" "}
-              {generatedReport.type.charAt(0).toUpperCase() +
-                generatedReport.type.slice(1)}{" "}
-              Report
+              Generated Students Report
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               From: {generatedReport.fromDate} To: {generatedReport.toDate}
@@ -939,37 +939,20 @@ const Reports = () => {
                 <thead>
                   <tr>
                     <th className="px-4 py-2 border">Month</th>
-                    <th className="px-4 py-2 border">Count</th>
-                    {generatedReport.type === "employees" && (
-                      <>
-                        <th className="px-4 py-2 border">Name</th>
-                        <th className="px-4 py-2 border">Position</th>
-                        <th className="px-4 py-2 border">Department</th>
-                        <th className="px-4 py-2 border">Salary</th>
-                        <th className="px-4 py-2 border">Hire Date</th>
-                        <th className="px-4 py-2 border">Status</th>
-                      </>
-                    )}
-                    {generatedReport.type === "financial" && (
-                      <>
-                        <th className="px-4 py-2 border">Type</th>
-                        <th className="px-4 py-2 border">Category</th>
-                        <th className="px-4 py-2 border">Description</th>
-                        <th className="px-4 py-2 border">Amount</th>
-                        <th className="px-4 py-2 border">Date</th>
-                        <th className="px-4 py-2 border">Status</th>
-                      </>
-                    )}
+                    <th className="px-4 py-2 border">Enrollments</th>
+                    <th className="px-4 py-2 border">Name</th>
+                    <th className="px-4 py-2 border">Program</th>
+                    <th className="px-4 py-2 border">Status</th>
+                    <th className="px-4 py-2 border">Enrollment Date</th>
+                    <th className="px-4 py-2 border">GPA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {generatedReport.data.map((monthData, index) => (
                     <React.Fragment key={index}>
-                      {monthData.items.map((item, idx) => {
+                      {monthData.items.map((student, idx) => {
                         const isHighlighted = isDateInRange(
-                          generatedReport.type === "employees"
-                            ? item.hire_date
-                            : item.date,
+                          student.enrollmentDate,
                           generatedReport.fromDate,
                           generatedReport.toDate
                         );
@@ -999,59 +982,327 @@ const Reports = () => {
                               >
                                 {monthData.items.filter((item) =>
                                   isDateInRange(
-                                    generatedReport.type === "employees"
-                                      ? item.hire_date
-                                      : item.date,
+                                    item.enrollmentDate,
                                     generatedReport.fromDate,
                                     generatedReport.toDate
                                   )
                                 ).length || monthData.items.length}
                               </td>
                             )}
-                            {generatedReport.type === "employees" && (
-                              <>
-                                <td className="px-4 py-2 border">
-                                  {item.name}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.position}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.department}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  ${item.salary}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.hire_date}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.status}
-                                </td>
-                              </>
+                            <td className="px-4 py-2 border">{student.name}</td>
+                            <td className="px-4 py-2 border">
+                              {student.program}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {student.status}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {student.enrollmentDate}
+                            </td>
+                            <td className="px-4 py-2 border">{student.gpa}</td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* Employee Charts and Reports */}
+      {formData.reportType === "employees" && (
+        <>
+          {/* Department Distribution Pie Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Department Distribution Pie Chart */}
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Department Distribution
+              </h3>
+              <div className="h-80">
+                <Pie
+                  data={{
+                    labels: [
+                      "Academic",
+                      "Catering",
+                      "Finance",
+                      "Discipline & Welfare",
+                    ],
+                    datasets: [
+                      {
+                        data: [
+                          employeesData.filter(
+                            (e) => e.department?.name === "academic"
+                          ).length,
+                          employeesData.filter(
+                            (e) => e.department?.name === "catering"
+                          ).length,
+                          employeesData.filter(
+                            (e) => e.department?.name === "finance"
+                          ).length,
+                          employeesData.filter(
+                            (e) => e.department?.name === "discipline_welfare"
+                          ).length,
+                        ],
+                        backgroundColor: [
+                          "rgba(54, 162, 235, 0.8)",
+                          "rgba(255, 99, 132, 0.8)",
+                          "rgba(75, 192, 192, 0.8)",
+                          "rgba(255, 205, 86, 0.8)",
+                        ],
+                        borderColor: [
+                          "rgba(54, 162, 235, 1)",
+                          "rgba(255, 99, 132, 1)",
+                          "rgba(75, 192, 192, 1)",
+                          "rgba(255, 205, 86, 1)",
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </Card>
+
+            {/* Gender Distribution Pie Chart */}
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Gender Distribution
+              </h3>
+              <div className="h-80">
+                <Pie
+                  data={{
+                    labels: ["Male", "Female", "Other"],
+                    datasets: [
+                      {
+                        data: [
+                          employeesData.filter(
+                            (e) => e.gender?.toLowerCase() === "male"
+                          ).length,
+                          employeesData.filter(
+                            (e) => e.gender?.toLowerCase() === "female"
+                          ).length,
+                          employeesData.filter(
+                            (e) => e.gender?.toLowerCase() === "other"
+                          ).length,
+                        ],
+                        backgroundColor: [
+                          "rgba(59, 130, 246, 0.8)",
+                          "rgba(236, 72, 153, 0.8)",
+                          "rgba(75, 192, 192, 0.8)",
+                        ],
+                        borderColor: [
+                          "rgba(59, 130, 246, 1)",
+                          "rgba(236, 72, 153, 1)",
+                          "rgba(75, 192, 192, 1)",
+                        ],
+                        borderWidth: 1,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </Card>
+          </div>
+
+          {/* Employee Report Generation */}
+          <Card className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Generate AI Employee Report
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Your Feedback on Employee Behavior (Optional)
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  rows={4}
+                  value={formData.employeeFeedback || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      employeeFeedback: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <Button
+                onClick={async () => {
+                  setEmployeeAiReportLoading(true);
+                  try {
+                    const response = await getComprehensiveEmployeeReport(
+                      formData.employeeFeedback || ""
+                    );
+                    setEmployeeAiReport(response.data);
+                  } catch (error) {
+                    console.error(
+                      "Error generating employee AI report:",
+                      error
+                    );
+                    setToast({
+                      message:
+                        "Failed to generate AI report. Please try again.",
+                      type: "error",
+                    });
+                  } finally {
+                    setEmployeeAiReportLoading(false);
+                  }
+                }}
+                disabled={employeeAiReportLoading}
+              >
+                {employeeAiReportLoading
+                  ? "Generating..."
+                  : "Generate AI Employee Report"}
+              </Button>
+            </div>
+          </Card>
+
+          {/* AI Comprehensive Employee Report Display */}
+          {employeeAiReport && employeeAiReport.report && (
+            <Card className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  AI Comprehensive Employee Report
+                </h3>
+                <img
+                  src="/idalogo.png"
+                  alt="IDA Tech Logo"
+                  className="h-12 w-auto"
+                />
+              </div>
+              {employeeAiReportLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600 dark:text-gray-400">
+                    Generating comprehensive AI report...
+                  </p>
+                </div>
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div
+                    className="text-gray-700 dark:text-gray-300 leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: employeeAiReport.report
+                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                        .replace(/<u>(.*?)<\/u>/g, "<u>$1</u>")
+                        .replace(
+                          /<span style="color: green;">(.*?)<\/span>/g,
+                          '<span class="text-green-600 font-semibold">$1</span>'
+                        )
+                        .replace(
+                          /<span style="color: red;">(.*?)<\/span>/g,
+                          '<span class="text-red-600 font-semibold">$1</span>'
+                        )
+                        .replace(/\n/g, "<br />"),
+                    }}
+                  />
+                </div>
+              )}
+            </Card>
+          )}
+        </>
+      )}
+
+      {generatedReport && generatedReport.type === "financial" && (
+        <>
+          <Card className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Generated{" "}
+              {generatedReport.type.charAt(0).toUpperCase() +
+                generatedReport.type.slice(1)}{" "}
+              Report
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              From: {generatedReport.fromDate} To: {generatedReport.toDate}
+            </p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white dark:bg-gray-800">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 border">Month</th>
+                    <th className="px-4 py-2 border">Count</th>
+                    <th className="px-4 py-2 border">Type</th>
+                    <th className="px-4 py-2 border">Category</th>
+                    <th className="px-4 py-2 border">Description</th>
+                    <th className="px-4 py-2 border">Amount</th>
+                    <th className="px-4 py-2 border">Date</th>
+                    <th className="px-4 py-2 border">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedReport.data.map((monthData, index) => (
+                    <React.Fragment key={index}>
+                      {monthData.items.map((item, idx) => {
+                        const isHighlighted = isDateInRange(
+                          item.date,
+                          generatedReport.fromDate,
+                          generatedReport.toDate
+                        );
+                        return (
+                          <tr
+                            key={idx}
+                            className={
+                              isHighlighted
+                                ? "bg-yellow-200 dark:bg-yellow-800"
+                                : idx % 2 === 0
+                                ? "bg-gray-50 dark:bg-gray-700"
+                                : "bg-white dark:bg-gray-800"
+                            }
+                          >
+                            {idx === 0 && (
+                              <td
+                                className="px-4 py-2 border"
+                                rowSpan={monthData.items.length}
+                              >
+                                {monthData.month}
+                              </td>
                             )}
-                            {generatedReport.type === "financial" && (
-                              <>
-                                <td className="px-4 py-2 border">
-                                  {item.type}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.category}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.description}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  ${item.amount}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.date}
-                                </td>
-                                <td className="px-4 py-2 border">
-                                  {item.status}
-                                </td>
-                              </>
+                            {idx === 0 && (
+                              <td
+                                className="px-4 py-2 border"
+                                rowSpan={monthData.items.length}
+                              >
+                                {monthData.items.filter((item) =>
+                                  isDateInRange(
+                                    item.date,
+                                    generatedReport.fromDate,
+                                    generatedReport.toDate
+                                  )
+                                ).length || monthData.items.length}
+                              </td>
                             )}
+                            <td className="px-4 py-2 border">{item.type}</td>
+                            <td className="px-4 py-2 border">
+                              {item.category}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {item.description}
+                            </td>
+                            <td className="px-4 py-2 border">${item.amount}</td>
+                            <td className="px-4 py-2 border">{item.date}</td>
+                            <td className="px-4 py-2 border">{item.status}</td>
                           </tr>
                         );
                       })}
