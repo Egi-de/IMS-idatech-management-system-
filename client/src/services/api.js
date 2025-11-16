@@ -75,6 +75,7 @@ export const getReports = (params) =>
   api.get("/finance/api/reports/", { params });
 export const generatePDFReport = (params) =>
   api.post("/finance/api/reports/pdf/", params, { responseType: "blob" });
+export const getFinancialAIReport = () => api.post("/finance/api/reports/ai/");
 
 /* ----------------------------- STUDENTS API ----------------------------- */
 export const getStudents = () => api.get("/student/api/students/");

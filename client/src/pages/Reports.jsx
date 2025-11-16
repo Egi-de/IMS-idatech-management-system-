@@ -29,6 +29,7 @@ import {
   getTransactions,
   getComprehensiveStudentReport,
   getComprehensiveEmployeeReport,
+  getFinancialAIReport,
 } from "../services/api";
 
 ChartJS.register(
@@ -64,6 +65,9 @@ const Reports = () => {
   const [aiReportLoading, setAiReportLoading] = useState(false);
   const [employeeAiReport, setEmployeeAiReport] = useState(null);
   const [employeeAiReportLoading, setEmployeeAiReportLoading] = useState(false);
+  const [financialAiReport, setFinancialAiReport] = useState(null);
+  const [financialAiReportLoading, setFinancialAiReportLoading] =
+    useState(false);
 
   // Data states
   const [studentsData, setStudentsData] = useState([]);
@@ -84,7 +88,15 @@ const Reports = () => {
         ]);
         setStudentsData(studentsRes.data);
         setEmployeesData(employeesRes.data);
-        setTransactionsData(transactionsRes.data);
+        // Adjust transaction amounts: make expenses negative
+        const adjustedTransactions = transactionsRes.data.map((t) => ({
+          ...t,
+          amount:
+            t.type === "Expense"
+              ? -Math.abs(parseFloat(t.amount))
+              : parseFloat(t.amount),
+        }));
+        setTransactionsData(adjustedTransactions);
         setDataError(null);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -105,6 +117,7 @@ const Reports = () => {
   useEffect(() => {
     setAiReport(null);
     setEmployeeAiReport(null);
+    setFinancialAiReport(null);
   }, [formData.reportType]);
 
   const isDateInRange = (dateStr, from, to) => {
@@ -1225,147 +1238,235 @@ const Reports = () => {
         </>
       )}
 
-      {generatedReport && generatedReport.type === "financial" && (
+      {/* Financial Charts and Reports */}
+      {formData.reportType === "financial" && (
         <>
-          <Card className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Generated{" "}
-              {generatedReport.type.charAt(0).toUpperCase() +
-                generatedReport.type.slice(1)}{" "}
-              Report
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              From: {generatedReport.fromDate} To: {generatedReport.toDate}
-            </p>
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white dark:bg-gray-800">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-2 border">Month</th>
-                    <th className="px-4 py-2 border">Count</th>
-                    <th className="px-4 py-2 border">Type</th>
-                    <th className="px-4 py-2 border">Category</th>
-                    <th className="px-4 py-2 border">Description</th>
-                    <th className="px-4 py-2 border">Amount</th>
-                    <th className="px-4 py-2 border">Date</th>
-                    <th className="px-4 py-2 border">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {generatedReport.data.map((monthData, index) => (
-                    <React.Fragment key={index}>
-                      {monthData.items.map((item, idx) => {
-                        const isHighlighted = isDateInRange(
-                          item.date,
-                          generatedReport.fromDate,
-                          generatedReport.toDate
-                        );
-                        return (
-                          <tr
-                            key={idx}
-                            className={
-                              isHighlighted
-                                ? "bg-yellow-200 dark:bg-yellow-800"
-                                : idx % 2 === 0
-                                ? "bg-gray-50 dark:bg-gray-700"
-                                : "bg-white dark:bg-gray-800"
-                            }
-                          >
-                            {idx === 0 && (
-                              <td
-                                className="px-4 py-2 border"
-                                rowSpan={monthData.items.length}
-                              >
-                                {monthData.month}
-                              </td>
-                            )}
-                            {idx === 0 && (
-                              <td
-                                className="px-4 py-2 border"
-                                rowSpan={monthData.items.length}
-                              >
-                                {monthData.items.filter((item) =>
-                                  isDateInRange(
-                                    item.date,
-                                    generatedReport.fromDate,
-                                    generatedReport.toDate
-                                  )
-                                ).length || monthData.items.length}
-                              </td>
-                            )}
-                            <td className="px-4 py-2 border">{item.type}</td>
-                            <td className="px-4 py-2 border">
-                              {item.category}
-                            </td>
-                            <td className="px-4 py-2 border">
-                              {item.description}
-                            </td>
-                            <td className="px-4 py-2 border">${item.amount}</td>
-                            <td className="px-4 py-2 border">{item.date}</td>
-                            <td className="px-4 py-2 border">{item.status}</td>
-                          </tr>
-                        );
-                      })}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          {dataLoading ? (
+            <Card className="mb-6">
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600 dark:text-gray-400">
+                  Loading financial data...
+                </p>
+              </div>
+            </Card>
+          ) : dataError ? (
+            <Card className="mb-6">
+              <div className="text-center py-8">
+                <p className="text-red-600 dark:text-red-400">{dataError}</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-400">
+                  Please refresh the page or try again later.
+                </p>
+              </div>
+            </Card>
+          ) : (
+            <>
+              {/* Executive Summary */}
+              <Card className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Executive Summary
+                  </h2>
+                  <img
+                    src="/idalogo.png"
+                    alt="IDA Tech Logo"
+                    className="h-12 w-auto"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                      Total Revenue
+                    </h3>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      $
+                      {transactionsData
+                        .filter((t) => t.type === "Income")
+                        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+                        .toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
+                      Total Expenses
+                    </h3>
+                    <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+                      $
+                      {transactionsData
+                        .filter((t) => t.type === "Expense")
+                        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+                        .toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                      Net Profit
+                    </h3>
+                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                      $
+                      {(
+                        transactionsData
+                          .filter((t) => t.type === "Income")
+                          .reduce(
+                            (sum, t) => sum + parseFloat(t.amount || 0),
+                            0
+                          ) -
+                        transactionsData
+                          .filter((t) => t.type === "Expense")
+                          .reduce(
+                            (sum, t) => sum + parseFloat(t.amount || 0),
+                            0
+                          )
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300">
+                  This financial report provides a comprehensive overview of the
+                  organization's financial performance for the selected period.
+                  Key highlights include steady revenue growth and controlled
+                  expenses, leading to positive net profit. Areas of focus
+                  include optimizing expense categories and expanding revenue
+                  streams.
+                </p>
+              </Card>
+              {/* Financial Statement Breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                {/* Income Sources */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Income Sources
+                  </h3>
+                  <div className="h-80">
+                    <FinancialChart
+                      type="income"
+                      transactionsData={transactionsData}
+                    />
+                  </div>
+                </Card>
+                {/* Expense Categories */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Expense Categories
+                  </h3>
+                  <div className="h-80">
+                    <FinancialChart
+                      type="expense"
+                      transactionsData={transactionsData}
+                    />
+                  </div>
+                </Card>
+                {/* Monthly Trend */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Monthly Trend
+                  </h3>
+                  <div className="h-80">
+                    <FinancialChart
+                      type="trend"
+                      transactionsData={transactionsData}
+                    />
+                  </div>
+                </Card>
+              </div>
+              {/* AI Financial Report */}
+              {financialAiReport && (
+                <Card className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      AI Comprehensive Financial Report
+                    </h3>
+                    <img
+                      src="/idalogo.png"
+                      alt="IDA Tech Logo"
+                      className="h-12 w-auto"
+                    />
+                  </div>
+                  {financialAiReportLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="mt-4 text-gray-600 dark:text-gray-400">
+                        Generating comprehensive AI report...
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <div
+                        className="text-gray-700 dark:text-gray-300 leading-relaxed"
+                        dangerouslySetInnerHTML={{
+                          __html: financialAiReport.report
+                            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                            .replace(/<u>(.*?)<\/u>/g, "<u>$1</u>")
+                            .replace(
+                              /<span style="color: green;">(.*?)<\/span>/g,
+                              '<span class="text-green-600 font-semibold">$1</span>'
+                            )
+                            .replace(
+                              /<span style="color: red;">(.*?)<\/span>/g,
+                              '<span class="text-red-600 font-semibold">$1</span>'
+                            )
+                            .replace(/\n/g, "<br />"),
+                        }}
+                      />
+                    </div>
+                  )}
+                </Card>
+              )}
+            </>
+          )}
         </>
       )}
 
       {/* Email Modal */}
-      <Modal
-        isOpen={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        title="Email Report"
-      >
-        <div className="space-y-4">
-          <Input
-            label="Recipient Email"
-            type="email"
-            value={emailData.recipient}
-            onChange={(e) =>
-              setEmailData({ ...emailData, recipient: e.target.value })
-            }
-            placeholder="Enter recipient email"
-          />
-          <Input
-            label="Subject"
-            value={emailData.subject}
-            onChange={(e) =>
-              setEmailData({ ...emailData, subject: e.target.value })
-            }
-            placeholder="Enter email subject"
-          />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Message
-            </label>
-            <textarea
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              rows={4}
-              value={emailData.message}
+      {showEmailModal && (
+        <Modal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          title="Email Report"
+        >
+          <div className="space-y-4">
+            <Input
+              label="Recipient Email"
+              type="email"
+              value={emailData.recipient}
               onChange={(e) =>
-                setEmailData({ ...emailData, message: e.target.value })
+                setEmailData({ ...emailData, recipient: e.target.value })
               }
-              placeholder="Enter your message"
             />
+            <Input
+              label="Subject"
+              value={emailData.subject}
+              onChange={(e) =>
+                setEmailData({ ...emailData, subject: e.target.value })
+              }
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Message
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                rows={4}
+                value={emailData.message}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, message: e.target.value })
+                }
+              />
+            </div>
+            <div className="flex justify-end gap-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowEmailModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={sendEmail}>Send Email</Button>
+            </div>
           </div>
-          <div className="flex justify-end gap-4">
-            <Button
-              onClick={() => setShowEmailModal(false)}
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-            <Button onClick={sendEmail}>Send Email</Button>
-          </div>
-        </div>
-      </Modal>
+        </Modal>
+      )}
 
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && (
         <Toast
           message={toast.message}
@@ -1373,10 +1474,6 @@ const Reports = () => {
           onClose={() => setToast(null)}
         />
       )}
-
-      {/* Restoring summary cards to show numbers based on filtered data */}
-
-      {/* Removed Overview Chart as per user request */}
     </div>
   );
 };

@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/summary/', views.SummaryView.as_view(), name='summary'),
     path('api/reports/', views.ReportView.as_view(), name='reports'),
     path('api/reports/pdf/', views.ReportPDFView.as_view(), name='report-pdf'),
+    path('api/reports/ai/', views.FinancialAIReportView.as_view(), name='financial-ai-report'),
 ]

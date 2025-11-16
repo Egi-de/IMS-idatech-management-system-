@@ -15,7 +15,7 @@ from reportlab.lib import colors
 from django.http import FileResponse
 from io import BytesIO
 from django.conf import settings
-from .ai_service import TransactionAIClassifier
+from .ai_service import TransactionAIClassifier, FinancialAIReportGenerator
 
 class TransactionListCreateView(generics.ListCreateAPIView):
     queryset = Transaction.objects.all().order_by('-date')
@@ -124,6 +124,65 @@ class ReportView(APIView):
         }
 
         return Response(response_data)
+
+
+class FinancialAIReportView(APIView):
+    def post(self, request):
+        # Get financial data from request or compute from database
+        financial_data = request.data.get('financial_data', {})
+
+        # If no data provided, compute from database
+        if not financial_data:
+            from .models import Transaction
+            from django.db.models import Sum
+            from datetime import datetime, timedelta
+
+            # Get total revenue and expenses
+            total_revenue = Transaction.objects.filter(type='Income').aggregate(Sum('amount'))['amount__sum'] or 0
+            total_expenses = Transaction.objects.filter(type='Expense').aggregate(Sum('amount'))['amount__sum'] or 0
+            net_profit = total_revenue - total_expenses
+
+            # Get category breakdowns
+            revenue_breakdown = dict(
+                Transaction.objects.filter(type='Income')
+                .values('category')
+                .annotate(total=Sum('amount'))
+                .values_list('category', 'total')
+            )
+            expense_breakdown = dict(
+                Transaction.objects.filter(type='Expense')
+                .values('category')
+                .annotate(total=Sum('amount'))
+                .values_list('category', 'total')
+            )
+
+            # Get monthly revenue for last 6 months
+            now = timezone.now()
+            monthly_revenue = {}
+            for i in range(5, -1, -1):
+                month_start = (now - timedelta(days=30*i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(seconds=1)
+                month_revenue = Transaction.objects.filter(
+                    type='Income',
+                    date__range=[month_start.date(), month_end.date()]
+                ).aggregate(Sum('amount'))['amount__sum'] or 0
+                month_key = month_start.strftime('%Y-%m')
+                monthly_revenue[month_key] = float(month_revenue)
+
+            financial_data = {
+                'total_revenue': float(total_revenue),
+                'total_expenses': float(total_expenses),
+                'net_profit': float(net_profit),
+                'revenue_breakdown': revenue_breakdown,
+                'expense_breakdown': expense_breakdown,
+                'monthly_revenue': monthly_revenue,
+            }
+
+        # Generate AI report
+        generator = FinancialAIReportGenerator()
+        ai_report = generator.generate_insights_and_recommendations(financial_data)
+
+        return Response(ai_report)
 
 
 class ReportPDFView(APIView):
