@@ -156,6 +156,10 @@ class FinancialAIReportView(APIView):
                 .values_list('category', 'total')
             )
 
+            # Convert Decimal to float for JSON serialization
+            revenue_breakdown = {k: float(v) for k, v in revenue_breakdown.items()}
+            expense_breakdown = {k: float(v) for k, v in expense_breakdown.items()}
+
             # Get monthly revenue for last 6 months
             now = timezone.now()
             monthly_revenue = {}
@@ -169,6 +173,11 @@ class FinancialAIReportView(APIView):
                 month_key = month_start.strftime('%Y-%m')
                 monthly_revenue[month_key] = float(month_revenue)
 
+            # Get transaction screenshots
+            screenshots = list(
+                Transaction.objects.exclude(screenshot__isnull=True).exclude(screenshot='').values_list('screenshot', flat=True)
+            )
+
             financial_data = {
                 'total_revenue': float(total_revenue),
                 'total_expenses': float(total_expenses),
@@ -176,6 +185,7 @@ class FinancialAIReportView(APIView):
                 'revenue_breakdown': revenue_breakdown,
                 'expense_breakdown': expense_breakdown,
                 'monthly_revenue': monthly_revenue,
+                'screenshots': screenshots,
             }
 
         # Generate AI report

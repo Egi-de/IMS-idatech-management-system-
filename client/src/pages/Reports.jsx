@@ -177,6 +177,21 @@ const Reports = () => {
     } else if (reportType === "financial") {
       data = transactionsData;
       dateField = "date";
+
+      // Generate AI comprehensive report for financial
+      try {
+        setFinancialAiReportLoading(true);
+        const aiResponse = await getFinancialAIReport();
+        setFinancialAiReport(aiResponse.data);
+      } catch (error) {
+        console.error("Error generating AI report:", error);
+        setToast({
+          message: "Failed to generate AI report. Please try again.",
+          type: "error",
+        });
+      } finally {
+        setFinancialAiReportLoading(false);
+      }
     }
 
     // Filter data by date range if dates are provided and not employees
@@ -1337,7 +1352,7 @@ const Reports = () => {
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Income Sources
                   </h3>
-                  <div className="h-80">
+                  <div className="h-30">
                     <FinancialChart
                       type="income"
                       transactionsData={transactionsData}
@@ -1349,7 +1364,7 @@ const Reports = () => {
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Expense Categories
                   </h3>
-                  <div className="h-80">
+                  <div className="h-30">
                     <FinancialChart
                       type="expense"
                       transactionsData={transactionsData}
@@ -1361,7 +1376,7 @@ const Reports = () => {
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Monthly Trend
                   </h3>
-                  <div className="h-80">
+                  <div className="h-30">
                     <FinancialChart
                       type="trend"
                       transactionsData={transactionsData}
@@ -1392,9 +1407,47 @@ const Reports = () => {
                   ) : (
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <div
-                        className="text-gray-700 dark:text-gray-300 leading-relaxed"
+                        className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-4"
                         dangerouslySetInnerHTML={{
                           __html: financialAiReport.report
+                            .replace(
+                              /<h2>/g,
+                              '<h2 class="text-2xl font-bold text-gray-900 dark:text-white mt-6 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">'
+                            )
+                            .replace(
+                              /<h3>/g,
+                              '<h3 class="text-xl font-semibold text-gray-900 dark:text-white mt-4 mb-2">'
+                            )
+                            .replace(/<p>/g, '<p class="mb-3">')
+                            .replace(
+                              /<ul>/g,
+                              '<ul class="list-disc list-inside mb-4 space-y-1">'
+                            )
+                            .replace(
+                              /<li>/g,
+                              '<li class="text-gray-700 dark:text-gray-300">'
+                            )
+                            .replace(
+                              /<table>/g,
+                              '<div class="overflow-x-auto mb-4"><table class="min-w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600">'
+                            )
+                            .replace(/<\/table>/g, "</table></div>")
+                            .replace(
+                              /<tr>/g,
+                              '<tr class="border-b border-gray-200 dark:border-gray-600">'
+                            )
+                            .replace(
+                              /<th/g,
+                              '<th class="px-4 py-2 text-left bg-gray-50 dark:bg-gray-700 font-semibold text-gray-900 dark:text-white border-r border-gray-300 dark:border-gray-600 last:border-r-0"'
+                            )
+                            .replace(
+                              /<td/g,
+                              '<td class="px-4 py-2 text-gray-700 dark:text-gray-300 border-r border-gray-300 dark:border-gray-600 last:border-r-0"'
+                            )
+                            .replace(
+                              /<div style="border: 2px solid #ccc; padding: 10px; margin: 10px 0; background-color: #f9f9f9;">/g,
+                              '<div class="border-2 border-gray-300 dark:border-gray-600 p-4 my-4 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm">'
+                            )
                             .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                             .replace(/<u>(.*?)<\/u>/g, "<u>$1</u>")
                             .replace(
@@ -1405,7 +1458,7 @@ const Reports = () => {
                               /<span style="color: red;">(.*?)<\/span>/g,
                               '<span class="text-red-600 font-semibold">$1</span>'
                             )
-                            .replace(/\n/g, "<br />"),
+                            .replace(/\n/g, ""),
                         }}
                       />
                     </div>
