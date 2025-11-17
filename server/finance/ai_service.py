@@ -173,9 +173,6 @@ Additionally, include:
 - **Highlights Box**: Key numbers: total revenue, total expenses, total profit.
 - **Trend Analysis**: Analyze monthly trends.
 - **Scenario Analysis**: Best case (20% increase), worst case (20% decrease).
-- **Attachments Section**: Display actual transaction screenshots if available, otherwise list potential attachments like invoices, screenshots, source data as placeholders.
-
-For the Attachments Section, if screenshots are available, display them as images with proper HTML img tags. If no screenshots, use placeholders.
 
 Ensure the entire response is valid HTML content wrapped in a single string. Do not include JSON structure; just the HTML report.
 """
@@ -284,11 +281,5 @@ Ensure the entire response is valid HTML content wrapped in a single string. Do 
 <h2>Scenario Analysis</h2>
 <p><strong>Best Case:</strong> 20% revenue increase leads to ${total_revenue * 1.2:.2f} revenue and ${net_profit * 1.2:.2f} profit.</p>
 <p><strong>Worst Case:</strong> 20% revenue decrease leads to ${total_revenue * 0.8:.2f} revenue and ${net_profit * 0.8:.2f} profit.</p>
-
-<h2>Attachments Section</h2>
-<p><strong>Transaction Screenshots:</strong></p>
-<ul>
-    {''.join(f'<li><img src="/media/{screenshot}" alt="Transaction Screenshot" style="max-width: 200px; max-height: 200px; border: 1px solid #ccc; margin: 5px;"></li>' for screenshot in screenshots) if screenshots else '<li>No screenshots available</li>'}
-</ul>
 """
         return {"report": html}

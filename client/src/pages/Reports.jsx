@@ -30,6 +30,7 @@ import {
   getComprehensiveStudentReport,
   getComprehensiveEmployeeReport,
   getFinancialAIReport,
+  API_BASE_URL,
 } from "../services/api";
 
 ChartJS.register(
@@ -1345,6 +1346,43 @@ const Reports = () => {
                   streams.
                 </p>
               </Card>
+
+              {/* Transaction Screenshots */}
+              <Card className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Transaction Screenshots
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {transactionsData
+                    .filter((transaction) => transaction.screenshot)
+                    .map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex flex-col items-center"
+                      >
+                        <img
+                          src={transaction.screenshot}
+                          alt={`Screenshot for ${transaction.description}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                        />
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 text-center">
+                          {transaction.description}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          {transaction.date}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+                {transactionsData.filter(
+                  (transaction) => transaction.screenshot
+                ).length === 0 && (
+                  <p className="text-gray-600 dark:text-gray-400">
+                    No screenshots available.
+                  </p>
+                )}
+              </Card>
+
               {/* Financial Statement Breakdown */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 {/* Income Sources */}

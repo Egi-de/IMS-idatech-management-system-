@@ -26,6 +26,10 @@ ChartJS.register(
 );
 
 const FinancialChart = ({ type, transactionsData }) => {
+  if (!transactionsData || !Array.isArray(transactionsData)) {
+    return <div>Loading chart...</div>;
+  }
+
   // Calculate totals based on type
   const incomeTotal = transactionsData
     .filter((t) => t.type === "Income")

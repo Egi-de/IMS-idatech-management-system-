@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Transaction
 
 class TransactionSerializer(serializers.ModelSerializer):
-    screenshot = serializers.ImageField(required=False, allow_null=True)
+    screenshot = serializers.ImageField(required=False, allow_null=True, use_url=True)
 
     class Meta:
         model = Transaction

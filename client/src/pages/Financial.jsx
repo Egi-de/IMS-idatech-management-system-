@@ -412,7 +412,7 @@ const Financial = () => {
           <CardTitle>Income vs Expenses Overview</CardTitle>
         </CardHeader>
         <CardContent className="pb-8">
-          <FinancialChart income={totalIncome} expenses={totalExpenses} />
+          <FinancialChart transactionsData={transactions} />
         </CardContent>
       </Card>
 
