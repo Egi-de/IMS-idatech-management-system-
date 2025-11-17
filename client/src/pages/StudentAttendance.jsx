@@ -148,7 +148,7 @@ const StudentAttendance = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -169,7 +169,7 @@ const StudentAttendance = () => {
             <select
               value={selectedProgram}
               onChange={(e) => setSelectedProgram(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
             >
               <option value="">All Programs</option>
               <option value="Software Development">Software Development</option>
@@ -183,7 +183,7 @@ const StudentAttendance = () => {
               Search
             </label>
             <div className="relative">
-              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-9/12 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by name or ID"

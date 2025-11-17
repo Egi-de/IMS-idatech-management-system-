@@ -410,7 +410,7 @@ const StudentEnrollment = () => {
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-64">
           <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-9/12 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search enrollments..."
@@ -424,7 +424,7 @@ const StudentEnrollment = () => {
         <select
           value={programFilter}
           onChange={(e) => setProgramFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-white"
         >
           <option value="">All Programs</option>
           <option value="IoT Development">IoT Development</option>
@@ -435,7 +435,7 @@ const StudentEnrollment = () => {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-white"
         >
           <option value="">All Status</option>
           <option value="Active">Active</option>
@@ -447,7 +447,7 @@ const StudentEnrollment = () => {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-white"
         >
           <option value="name">Sort by Name</option>
           <option value="enrollmentDate">Sort by Enrollment Date</option>
@@ -457,7 +457,7 @@ const StudentEnrollment = () => {
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-white"
         >
           <option value="asc">Ascending</option>
           <option value="desc">Descending</option>
@@ -537,7 +537,7 @@ const StudentEnrollment = () => {
                           ).length
                       }
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark: border-b-black"
                     />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -826,7 +826,7 @@ const StudentEnrollment = () => {
                 name="gender"
                 value={formData.gender}
                 onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 h-10 border border-gray-300  rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500   dark: text-gray-400"
                 required
               >
                 <option value="">Select Gender</option>
@@ -837,7 +837,7 @@ const StudentEnrollment = () => {
                 name="program"
                 value={formData.program}
                 onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
                 required
               >
                 <option value="IoT Development">IoT Development</option>
@@ -850,7 +850,7 @@ const StudentEnrollment = () => {
                 name="studentType"
                 value={formData.studentType}
                 onChange={handleInputChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
               >
                 <option value="">Select Student Type</option>
                 <option value="Internee">Internee</option>
@@ -889,7 +889,7 @@ const StudentEnrollment = () => {
                     name="interneeType"
                     value={formData.interneeType}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
                   >
                     <option value="">Select Internee Type</option>
                     <option value="University">University</option>
@@ -899,7 +899,7 @@ const StudentEnrollment = () => {
                     name="studyStatus"
                     value={formData.studyStatus}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
                   >
                     <option value="">Select Study Status</option>
                     <option value="Still Studying">Still Studying</option>
@@ -937,7 +937,7 @@ const StudentEnrollment = () => {
                     name="paymentStatus"
                     value={formData.paymentStatus}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
                   >
                     <option value="Paid">Paid</option>
                     <option value="Pending">Pending</option>

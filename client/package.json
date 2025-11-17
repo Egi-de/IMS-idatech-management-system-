@@ -13,6 +13,7 @@
     "@ag-grid-community/core": "^32.3.9",
     "@headlessui/react": "^2.2.8",
     "@heroicons/react": "^2.2.0",
+    "@tailwindcss/vite": "^4.1.17",
     "ag-grid-community": "^34.2.0",
     "ag-grid-react": "^34.2.0",
     "axios": "^1.12.2",
@@ -29,6 +30,7 @@
     "react-toastify": "^11.0.5",
     "react-tooltip": "^5.29.1",
     "recharts": "^3.2.1",
+    "tailwindcss": "^4.1.17",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

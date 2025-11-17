@@ -235,25 +235,25 @@ const StudentActivities = () => {
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-64">
           <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-9/12 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
             />
           </div>
         </div>
 
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400">
           <option value="">All Programs</option>
           <option value="iot">IoT Development</option>
           <option value="software">Software Development</option>
           <option value="data">Data Science</option>
         </select>
 
-        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400">
           <option value="">All Categories</option>
           <option value="award">Awards</option>
           <option value="certification">Certifications</option>

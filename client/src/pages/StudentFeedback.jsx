@@ -399,19 +399,19 @@ const StudentFeedback = () => {
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-64">
           <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-9/12 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
             />
           </div>
         </div>
 
         <select
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
           value={selectedProgram}
           onChange={(e) => setSelectedProgram(e.target.value)}
         >
@@ -422,7 +422,7 @@ const StudentFeedback = () => {
         </select>
 
         <select
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
           value={selectedRating}
           onChange={(e) => setSelectedRating(e.target.value)}
         >
@@ -613,7 +613,7 @@ const StudentFeedback = () => {
                   <UserIcon className="h-8 w-8 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold">
+                  <h3 className="text-xl font-semibold dark: text-white">
                     {selectedStudent.studentName}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
@@ -790,7 +790,7 @@ const StudentFeedback = () => {
                               (strength, index) => (
                                 <span
                                   key={index}
-                                  className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                                  className="px-4 py-3 bg-green-100 text-green-700 text-xs rounded-full"
                                 >
                                   {strength}
                                 </span>
@@ -811,7 +811,7 @@ const StudentFeedback = () => {
                               (area, index) => (
                                 <span
                                   key={index}
-                                  className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full"
+                                  className="px-6 py-3 bg-yellow-100 text-yellow-700 text-xs rounded-full"
                                 >
                                   {area}
                                 </span>
@@ -985,7 +985,7 @@ const StudentFeedback = () => {
                 name="studentId"
                 value={newFeedback.studentId}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
                 required
               >
                 <option value="">Select Student</option>
@@ -1005,7 +1005,7 @@ const StudentFeedback = () => {
                 name="type"
                 value={newFeedback.type}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
               >
                 <option value="instructor">Instructor</option>
                 <option value="peer">Peer</option>
@@ -1067,7 +1067,7 @@ const StudentFeedback = () => {
                 name="rating"
                 value={newFeedback.rating}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
               >
                 <option value={5}>5 - Excellent</option>
                 <option value={4}>4 - Very Good</option>

@@ -351,13 +351,15 @@ const Financial = () => {
                 <ArrowUpIcon className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Total Income
                 </h3>
                 <p className="text-2xl font-bold text-green-600">
                   Rwf{totalIncome.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">This month</p>
+                <p className="text-sm text-gray-600 dark:text-gray-500">
+                  This month
+                </p>
               </div>
             </div>
           </CardContent>
@@ -370,13 +372,15 @@ const Financial = () => {
                 <ArrowDownIcon className="h-6 w-6 text-red-600" />
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Total Expenses
                 </h3>
                 <p className="text-2xl font-bold text-red-600">
                   Rwf{totalExpenses.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">This month</p>
+                <p className="text-sm text-gray-600 dark:text-gray-500">
+                  This month
+                </p>
               </div>
             </div>
           </CardContent>
@@ -389,7 +393,7 @@ const Financial = () => {
                 <CurrencyDollarIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Net Profit
                 </h3>
                 <p
@@ -598,7 +602,9 @@ const Financial = () => {
     <div className="space-y-6">
       {/* Header and Actions */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">All Transactions</h2>
+        <h2 className="text-xl font-semibold  dark:text-white">
+          All Transactions
+        </h2>
         <Button onClick={handleAddTransaction}>
           <PlusIcon className="h-4 w-4 mr-2" />
           Add Transaction
@@ -609,13 +615,13 @@ const Financial = () => {
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-64">
           <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-9/12 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search transactions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500  dark:text-gray-400"
             />
           </div>
         </div>
@@ -623,7 +629,7 @@ const Financial = () => {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500  dark:text-gray-400"
         >
           <option value="">All Types</option>
           <option value="Income">Income</option>
@@ -633,7 +639,7 @@ const Financial = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500  dark:text-gray-400"
         >
           <option value="">All Statuses</option>
           <option value="Completed">Completed</option>
@@ -777,7 +783,7 @@ const Financial = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-gray-600  dark:text-gray-400">
                       {transaction.method || "N/A"}
                     </span>
                   </td>
@@ -1177,14 +1183,14 @@ const Financial = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                   Category
                 </label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-400"
                 >
                   <option value="">Select Category</option>
                   <option value="Salary">Salary</option>
@@ -1235,7 +1241,7 @@ const Financial = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                 Screenshot (Optional)
               </label>
               <input
@@ -1246,7 +1252,7 @@ const Financial = () => {
                   const file = e.target.files[0];
                   setFormData((prev) => ({ ...prev, screenshot: file }));
                 }}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-400"
               />
             </div>
             <div className="flex justify-end space-x-3">

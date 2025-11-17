@@ -380,13 +380,13 @@ const Employees = () => {
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-64">
           <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-9/12 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search employees..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
             />
           </div>
         </div>
@@ -394,7 +394,7 @@ const Employees = () => {
         <select
           value={filterDepartment}
           onChange={(e) => setFilterDepartment(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
         >
           <option value="">All Departments</option>
           {departments.map((dept) => (
@@ -407,7 +407,7 @@ const Employees = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark: text-gray-400"
         >
           <option value="">All Statuses</option>
           {statuses.map((status) => (
@@ -611,11 +611,13 @@ const Employees = () => {
                 className="h-20 w-20 rounded-full"
               />
               <div>
-                <h3 className="text-2xl font-semibold">
+                <h3 className="text-2xl font-semibold dark: text-white">
                   {selectedEmployee.name}
                 </h3>
-                <p className="text-gray-600">{selectedEmployee.position}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-gray-600  dark:text-gray-400">
+                  {selectedEmployee.position}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {selectedEmployee.department.display_name ||
                     selectedEmployee.department.name}
                 </p>
@@ -625,19 +627,19 @@ const Employees = () => {
             {/* Contact Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">
+                <h4 className="font-semibold text-gray-900  dark:text-white">
                   Contact Information
                 </h4>
                 <div className="space-y-3">
-                  <div className="flex items-center">
-                    <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div className="flex items-center  dark:text-gray-400">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3 " />
                     <span>{selectedEmployee.email}</span>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center  dark:text-gray-400">
                     <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
                     <span>{selectedEmployee.phone}</span>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center  dark:text-gray-400">
                     <MapPinIcon className="h-5 w-5 text-gray-400 mr-3" />
                     <span>{selectedEmployee.address}</span>
                   </div>
@@ -645,19 +647,19 @@ const Employees = () => {
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">
+                <h4 className="font-semibold text-gray-900  dark:text-white">
                   Employment Details
                 </h4>
                 <div className="space-y-3">
                   <div>
                     <span className="text-gray-600">ID Number:</span>
-                    <span className="ml-2 font-medium">
+                    <span className="ml-2 font-medium  dark:text-gray-400">
                       {selectedEmployee.idNumber}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600">Hire Date:</span>
-                    <span className="ml-2 font-medium">
+                    <span className="ml-2 font-medium  dark:text-gray-400">
                       {new Date(
                         selectedEmployee.date_joined
                       ).toLocaleDateString()}
@@ -665,7 +667,7 @@ const Employees = () => {
                   </div>
                   <div>
                     <span className="text-gray-600">Salary:</span>
-                    <span className="ml-2 font-medium">
+                    <span className="ml-2 font-medium  dark:text-gray-400">
                       Rwf {parseFloat(selectedEmployee.salary).toLocaleString()}
                     </span>
                   </div>
@@ -781,7 +783,7 @@ const Employees = () => {
                   name="avatar"
                   accept="image/*"
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500  dark:text-gray-400"
                 />
               </div>
             </div>
