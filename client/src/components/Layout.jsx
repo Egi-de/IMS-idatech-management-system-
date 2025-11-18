@@ -52,7 +52,7 @@ const Layout = ({ children, isDarkMode, setIsDarkMode }) => {
         {/* Sidebar - hidden on mobile when closed, visible on desktop */}
         <div
           className={`${
-            sidebarOpen ? "w-50" : "w-0"
+            sidebarOpen ? "w-72" : "w-0"
           } transition-all duration-300 ease-in-out overflow-hidden`}
         >
           <Sidebar />

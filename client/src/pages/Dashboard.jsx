@@ -263,7 +263,7 @@ const Dashboard = () => {
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
+          <Card key={index} hover={false}>
             <CardContent>
               <div className="flex items-center">
                 <div className={`p-3 rounded-full ${stat.bgColor}`}>
@@ -284,7 +284,7 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Activities */}
-      <Card>
+      <Card hover={false}>
         <CardHeader>
           <CardTitle>Recent Activities</CardTitle>
         </CardHeader>

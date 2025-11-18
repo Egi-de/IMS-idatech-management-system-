@@ -77,7 +77,7 @@ const Sidebar = () => {
   return (
     <aside
       id="sidebar"
-      className="h-full w-60 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/20"
+      className="h-full w-72 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/20"
     >
       <div className="flex flex-col h-full">
         {/* Navigation */}

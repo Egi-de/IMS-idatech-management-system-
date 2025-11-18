@@ -1063,21 +1063,6 @@ const Financial = () => {
         </Card>
       </div>
 
-      <Card hover={false}>
-        <CardContent>
-          <div className="text-center py-8">
-            <ReceiptRefundIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Generate Custom Reports
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Create custom financial reports based on your specific needs
-            </p>
-            <Button onClick={handleCustomReport}>Start Report Builder</Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Custom Report Builder Modal */}
       <Modal
         isOpen={selectedReport === "custom" && !showReportModal}
